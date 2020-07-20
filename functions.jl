@@ -28,19 +28,19 @@ end
 # all arguments in units of kT
 function marcus_integrand(x, λ, eη, ox=true)
     if ox # oxidative direction
-        arg = -(x-λ+eη)^2 / (4*λ)
+        arg = -(λ-eη+x)^2 / (4*λ)
     else # reductive direction
-        arg = -(x-λ-eη)^2 / (4*λ)
+        arg = -(λ+eη-x)^2 / (4*λ)
     end
     exp(arg)
 end
 
 function MHC_integrand(x, λ, eη, average_dos)
-    marcus_term = marcus_integrand(x, λ, eη, false) - marcus_integrand(x, λ, eη, true)
-    if eη > 0
-        marcus_term = - marcus_term # red-ox instead of ox-red
-    end
-    average_dos * marcus_term * fermi_dirac(x)
+    marcus_ox = marcus_integrand(x, λ, eη, true)
+    marcus_red = marcus_integrand(x, λ, eη, false)
+    fd_ox = 1-fermi_dirac(x) # holes
+    fd_red = fermi_dirac(x) # electrons
+    sign(eη) * average_dos * (marcus_ox*fd_ox - marcus_red*fd_red)
 end
 
 function compute_k_MHC(x_min, x_max, λ, eη, average_dos)
@@ -59,7 +59,7 @@ function compute_k_MHC_DOS(dos_func, x_min, x_max, λ, eη, kT=.026)
     quadgk(fcn, x_min, x_max)[1]
 end
 
-function plot_comparison(dos_func, eη_max, min_E, max_E; kT=.026, length=500, plot_title="")
+function plot_comparison(dos_func, eη_max, min_E, max_E, average_dos; kT=.026, length=500, plot_title="")
     eη_range = range(-eη_max, eη_max, length=length)
     MHC_k = [compute_k_MHC(min_E/kT, max_E/kT, 10, eη, average_dos) for eη in eη_range]
     MHC_DOS_k = [compute_k_MHC_DOS(dos_func, min_E/kT, max_E/kT, 10, eη) for eη in eη_range]

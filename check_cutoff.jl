@@ -22,7 +22,7 @@ for cut_energy in [true, false]
 
     for Ef in [0.0, 1.0, -1.0, -2.0]
         dos_f, average_dos, min_E, max_E = get_dos(dos_file; Ef=Ef, cut_energy=cut_energy)
-        plot_comparison(dos_f, 200, min_E, max_E, plot_title=string("E_f = ", Ef, " eV"))
+        plot_comparison(dos_f, 200, min_E, max_E, average_dos, plot_title=string("E_f = ", Ef, " eV"))
         savefig(string(cutoff_figprefix[cut_energy],"rate_compare_Ef",Ef,".png"))
     end
 

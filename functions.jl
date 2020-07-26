@@ -2,7 +2,7 @@ using Statistics
 using Interpolations
 using QuadGK
 using Plots
-using LaTeXStrings
+#using LaTeXStrings
 using DelimitedFiles
 using BlackBoxOptim
 
@@ -76,7 +76,7 @@ function plot_comparison(dos_func, eη_max, min_E, max_E, average_dos; kT=.026, 
         println(sum(MHC_k.<0))
         println(sum(MHC_DOS_k.<0))
     end
-    plot(eη_range, hcat(log10.(abs.(MHC_k)), log10.(abs.(MHC_DOS_k))), label=["MHC" "MHC+DOS"], legend=:bottomright, xlabel="eη", ylabel="log(k)", title=plot_title)
+    plot(eη_range, hcat(log10.(abs.(MHC_k)), log10.(abs.(MHC_DOS_k))), label=["MHC" "MHC+DOS"], legend=:bottomright, xlabel="eη", ylabel="log(k)", title=plot_title, color=[:purple :green])
 end
 
 function plot_integrand_components(dos_func, min_E, max_E, average_dos; eη=0, kT=.026, λ=.26, length=500, plot_title="")
@@ -142,7 +142,5 @@ function plot_fits(exp_data, dos_f, avg_dos, E_min, E_max, MHC_λ, MHC_A, MHC_DO
     # scatter plot of experimental data, lines for fits
     xs = Vector[V, V_range, V_range]
     ys = Vector[exp_data[:,2], MHC_k, MHC_DOS_k]
-    #plot(V, log10.(exp_data[:,2]), seriestype=:scatter, label="experiment")
-    #plot!(V_range, hcat(log10.(abs.(MHC_k)), log10.(abs.(MHC_DOS_k))), label=[string(L"MHC: $\lambda=$",MHC_λ) string(L"MHC+DOS: $\lambda=$", MHC_DOS_λ)], xlabel="V", ylabel="log(k or I)")
-    plot(xs, ys, seriestype=[:scatter :line :line ], label=["experiment" string("MHC: λ=",round(MHC_λ, digits=3)) string("MHC+DOS: λ=", round(MHC_DOS_λ, digits=3))], xlabel="V", ylabel="log(k or I)", yscale=:log10, leg=:bottomright, title=plot_title)
+    plot(xs, ys, seriestype=[:scatter :line :line ], label=["experiment" string("MHC: λ=",round(MHC_λ, digits=3), "; A=", round(MHC_A, digits=2)) string("MHC+DOS: λ=", round(MHC_DOS_λ, digits=3), "; MHC_DOS_A=", round(MHC_DOS_A, digits=2))], xlabel="V", ylabel="log(k or I)", yscale=:log10, leg=:bottomright, title=plot_title)
 end

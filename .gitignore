@@ -1,5 +1,4 @@
-figs/*
-zeeshan_files/*
+figs/*/*.png
 *#
 *~
 Manifest.toml
@@ -7,4 +6,4 @@ Manifest.toml
 */Icon*
 *Icon*
 */*/Icon*
-*.pptx
+.ipynb_checkpoints/*

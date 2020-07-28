@@ -9,31 +9,30 @@ using BlackBoxOptim
 #TODO: clean up max/min variable names
 
 # assumes `dos_file` has two columns: energy (relative to equilibrium Ef) and DOS
+# NB that cut_energy will break if the upper bound is larger magnitude than lower as in some of the lithium cases
 function get_dos(dos_file; Ef=0, cut_energy=false)
     dos_data = readdlm(dos_file, Float64, skipstart=1)
     # recenter so Ef=0
     dos_data[:,1] = dos_data[:,1] .- Ef
-    max_E = dos_data[end,1]
+    E_max = dos_data[end,1]
     if cut_energy
         # for now, we'll pick a symmetric energy range about 0 (i.e. the new Ef)
-        len_keep = sum(dos_data[:,1] .> -max_E)
+        len_keep = sum(dos_data[:,1] .> -E_max)
         # cut off
         dos_data = dos_data[end-len_keep:end,:]
     end
-    min_E = dos_data[1,1]
+    E_min = dos_data[1,1]
     average_dos = mean(dos_data[:,2]) # for whole structure
     # interpolate
     E_step = mean(dos_data[2:end,1].-dos_data[1:end-1,1])
-    dos_interp = scale(interpolate(dos_data[:,2], BSpline(Linear())), range(min_E, max_E+0.0001, step=E_step))
-    return dos_interp, average_dos, min_E, max_E
+    dos_interp = scale(interpolate(dos_data[:,2], BSpline(Linear())), range(E_min, E_max+0.0001, step=E_step))
+    return dos_interp, average_dos, E_min, E_max
 end
 
-# assuming x is in units of kT
 function fermi_dirac(E; kT=.026)
     1 / (1 + exp(E/kT))
 end
 
-# all arguments in units of kT
 function marcus_integrand(E, λ, eη, ox=true; kT=.026)
     if ox # oxidative direction
         arg = -(λ-eη+E)^2 / (4*λ*kT)
@@ -67,10 +66,11 @@ function compute_k_MHC_DOS(E_min, E_max, λ, eη, dos_func; kT=.026)
     quadgk(fcn, E_min, E_max)[1]
 end
 
-function plot_comparison(dos_func, eη_max, min_E, max_E, average_dos; kT=.026, λ=.26, length=500, plot_title="")
+# plotting shortcut to make MHC and MHC+DOS curves
+function plot_comparison(dos_func, eη_max, E_min, E_max, average_dos; kT=.026, λ=.26, length=500, plot_title="")
     eη_range = range(-eη_max, eη_max, length=length)
-    MHC_k = [compute_k_MHC(min_E, max_E, λ, eη, average_dos; kT=kT) for eη in eη_range]
-    MHC_DOS_k = [compute_k_MHC_DOS(min_E, max_E, λ, eη, dos_func; kT=kT) for eη in eη_range]
+    MHC_k = [compute_k_MHC(E_min, E_max, λ, eη, average_dos; kT=kT) for eη in eη_range]
+    MHC_DOS_k = [compute_k_MHC_DOS(E_min, E_max, λ, eη, dos_func; kT=kT) for eη in eη_range]
     if any(MHC_k.<0) | any(MHC_DOS_k.<0)
         println("negative k...uh-oh...")
         println(sum(MHC_k.<0))
@@ -79,8 +79,9 @@ function plot_comparison(dos_func, eη_max, min_E, max_E, average_dos; kT=.026, 
     plot(eη_range, hcat(log10.(abs.(MHC_k)), log10.(abs.(MHC_DOS_k))), label=["MHC" "MHC+DOS"], legend=:bottomright, xlabel="eη", ylabel="log(k)", title=plot_title, color=[:purple :green])
 end
 
-function plot_integrand_components(dos_func, min_E, max_E, average_dos; eη=0, kT=.026, λ=.26, length=500, plot_title="")
-    E_range = range(min_E, max_E, length=length)
+# if you want to visualize each term in integrand separately
+function plot_integrand_components(dos_func, E_min, E_max, average_dos; eη=0, kT=.026, λ=.26, length=500, plot_title="")
+    E_range = range(E_min, E_max, length=length)
     dos_vals = dos_func.(E_range)
     p1 = plot(E_range, dos_vals, color=:black, ylabel="electrode states", label="electrons/holes", title=plot_title)
 

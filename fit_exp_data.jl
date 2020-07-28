@@ -2,8 +2,8 @@ using DelimitedFiles
 using Statistics
 include("functions.jl")
 
-dosfiles = ["DOSes/Li100dos.txt", "DOSes/Li110dos.txt"]
-expfiles = string.("shashank_li/", readdir("shashank_li/"))
+dosfiles = ["DOSes/Li_100_dos.txt"]
+expfiles = string.("exp_data/", readdir("exp_data/"))
 
 for expfile in expfiles
     for dosfile in dosfiles

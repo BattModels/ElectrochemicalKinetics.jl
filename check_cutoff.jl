@@ -4,8 +4,7 @@ Do a check to make sure that the bounds of the DOS (provided they're far from Ef
 
 include("functions.jl")
 
-dos_file = "zeeshan_files/relax_pris.dos"
-Ef_eq = 0.377 # for now have to pull this manually
+dos_file = "DOSes/LiF_Li2CO3dos.txt"
 E_step = 0.01
 kT = .026
 

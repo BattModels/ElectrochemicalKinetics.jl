@@ -1,6 +1,5 @@
 using Interact
 using Plots
-using LaTeXStrings
 include("functions.jl")
 
 dosfiles = string.("DOSes/", readdir("./DOSes/"))
@@ -26,7 +25,7 @@ electrode_surfaces = [dosfile[7:end-7] for dosfile in dosfiles]
         red_dos_vals = 0.5.*maximum(dos_vals).*marcus_integrand.(E_vals, λ, 0, false; kT=kT)
         p1 = plot(E_vals, hcat(dos_vals_e, dos_vals_h, ox_dos_vals, red_dos_vals), label=["electrons" "holes" "reduction" "oxidation"], title="Electrode state occupations", xlabel="E-E_f", ylabel="# (arb.)", color=[:blue :orange :blue :orange], linestyle=[:solid :solid :dash :dash])
     else
-        p1 = plot(E_vals, hcat(dos_vals_e, dos_vals_h), label=["electrons" "holes"], title="Electrode state occupations", xlabel=L"E-E_f", ylabel="# (arb.)")
+        p1 = plot(E_vals, hcat(dos_vals_e, dos_vals_h), label=["electrons" "holes"], title="Electrode state occupations", xlabel="E-E_f", ylabel="# (arb.)")
     end
     p3 = plot_comparison(dos_f, E_range, min_E, max_E, average_dos; kT=kT, λ=λ, plot_title="Rate constants")
     plot(p1, p3, layout=(2,1), size=(500,500))

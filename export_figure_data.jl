@@ -4,7 +4,9 @@ stepsize=0.005
 
 ## FIGURE 1
 # Li100 interpolated DOS
-dos_f, avg_dos, E_min, E_max = get_dos("DOSes/Li100dos.txt")
+dosfile = "Li_100_dos_10smooth.txt"
+#dosfile = "DOSes/Li_100_dos.txt"
+dos_f, avg_dos, E_min, E_max = get_dos(dosfile)
 E_vals = range(E_min, E_max, step=stepsize)
 dos_vals = dos_f.(E_vals)
 dos_data = hcat(E_vals, dos_vals)
@@ -50,7 +52,7 @@ end;
 # and rate constant comparison, at equilibrium Ef
 # for now using same reorg energy from above
 V_range = range(-5.0, 5.0, step=stepsize)
-MHC_k = [compute_k_MHC(E_min, E_max, MHC_DOS_λ, V, avg_dos) for V in V_range]
+MHC_k = [compute_k_MHC(E_min, E_max, MHC_λ, V, avg_dos) for V in V_range]
 MHC_DOS_k = [compute_k_MHC_DOS(E_min, E_max, MHC_DOS_λ, V, dos_f) for V in V_range]
 open("figure_data/fig2_Cu111/k_vs_V.txt", "w") do io
     write(io, "V, MHC_k, MHC_DOS_k\n")
@@ -75,7 +77,7 @@ end;
 # and rate constant comparison, at equilibrium Ef
 # for now using same reorg energy from above
 V_range = range(-5.0, 5.0, step=stepsize)
-MHC_k = [compute_k_MHC(E_min, E_max, MHC_DOS_λ, V, avg_dos) for V in V_range]
+MHC_k = [compute_k_MHC(E_min, E_max, MHC_λ, V, avg_dos) for V in V_range]
 MHC_DOS_k = [compute_k_MHC_DOS(E_min, E_max, MHC_DOS_λ, V, dos_f) for V in V_range]
 open("figure_data/fig4_SEI/k_vs_V.txt", "w") do io
     write(io, "V, MHC_k, MHC_DOS_k\n")
@@ -95,7 +97,7 @@ open("figure_data/fig5/SEI_dos_interp_Ef-2.txt", "w") do io
 end;
 
 # then recompute k's
-MHC_k = [compute_k_MHC(E_min, E_max, MHC_DOS_λ, V, avg_dos) for V in V_range]
+MHC_k = [compute_k_MHC(E_min, E_max, MHC_λ, V, avg_dos) for V in V_range]
 MHC_DOS_k = [compute_k_MHC_DOS(E_min, E_max, MHC_DOS_λ, V, dos_f) for V in V_range]
 open("figure_data/fig5/SEI_k_vs_V_Ef-2.txt", "w") do io
     write(io, "V, MHC_k, MHC_DOS_k\n")
@@ -103,7 +105,14 @@ open("figure_data/fig5/SEI_k_vs_V_Ef-2.txt", "w") do io
 end;
 
 
-# impact of changing λ on one of the other interfaces (TBD)
+# and now, impact of changing λ on the Cu111 case
+V_range = range(-5.0, 5.0, step=stepsize)
+MHC_k = [compute_k_MHC(E_min, E_max, MHC_DOS_λ*2, V, avg_dos) for V in V_range]
+MHC_DOS_k = [compute_k_MHC_DOS(E_min, E_max, MHC_DOS_λ*2, V, dos_f) for V in V_range]
+open("figure_data/fig5/Cu111_k_vs_V_doublelambda.txt", "w") do io
+    write(io, "V, MHC_k, MHC_DOS_k\n")
+    writedlm(io, hcat(V_range, MHC_k, MHC_DOS_k))
+end;
 
 ## SI stuff
 # Li110 case from figure 1 plus other electrolytes for SI

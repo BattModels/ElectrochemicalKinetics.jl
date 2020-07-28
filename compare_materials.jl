@@ -3,7 +3,11 @@ include("functions.jl")
 for dos_file in string.("DOSes/",readdir("./DOSes"))
     material = dos_file[7:end-7]
     println(material)
-    eq_dos, average_eq_dos, min_E_eq, max_E_eq = get_dos(dos_file)
+    if occursin("Li3Ag", dos_file)
+        eq_dos, average_eq_dos, min_E_eq, max_E_eq = get_dos(dos_file, cut_energy=true)
+    else
+        eq_dos, average_eq_dos, min_E_eq, max_E_eq = get_dos(dos_file)
+    end
 
     for Ef in [0.0, 1.0, -1.0, -2.0]
         dos_f, average_dos, min_E, max_E = get_dos(dos_file; Ef=Ef)

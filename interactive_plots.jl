@@ -11,9 +11,9 @@ electrode_surfaces = [dosfile[7:end-7] for dosfile in dosfiles]
     dosfile = string("DOSes/", electrode_surface, "dos.txt")
     dos_f, average_dos, min_E, max_E = get_dos(dosfile; Ef=Ef_eq)
     if occursin("Li1",electrode_surface)
-        E_range=2
+        E_range=1.5
     else
-        E_range=5
+        E_range=4
     end
     E_vals = range(-E_range, E_range, length=500)
     dos_vals=dos_f.(E_vals)

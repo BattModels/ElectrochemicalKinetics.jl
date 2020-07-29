@@ -1,6 +1,7 @@
 using DelimitedFiles
 using Statistics
-include("functions.jl")
+include("analysis_functions.jl")
+include("plot_fcns.jl")
 
 dosfiles = ["DOSes/Li_100_dos.txt"]
 expfiles = string.("exp_data/", readdir("exp_data/"))

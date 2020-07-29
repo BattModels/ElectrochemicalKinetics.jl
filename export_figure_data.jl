@@ -1,4 +1,4 @@
-include("functions.jl")
+include("analysis_functions.jl")
 
 stepsize=0.005
 

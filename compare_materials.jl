@@ -1,4 +1,5 @@
-include("functions.jl")
+include("analysis_functions.jl")
+include("plot_fcns.jl")
 
 for dos_file in string.("DOSes/",readdir("./DOSes"))
     material = dos_file[7:end-7]

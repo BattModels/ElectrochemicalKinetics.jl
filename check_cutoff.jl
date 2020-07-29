@@ -2,7 +2,8 @@
 Do a check to make sure that the bounds of the DOS (provided they're far from Ef) don't affect the final results.
 """
 
-include("functions.jl")
+include("analysis_functions.jl")
+include("plot_fcns.jl")
 
 dos_file = "DOSes/LiF_Li2CO3dos.txt"
 E_step = 0.01

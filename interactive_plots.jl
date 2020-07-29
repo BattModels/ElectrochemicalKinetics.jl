@@ -1,6 +1,7 @@
 using Interact
 using Plots
-include("functions.jl")
+include("analysis_functions.jl")
+include("plot_fcns.jl")
 
 dosfiles = string.("DOSes/", readdir("./DOSes/"))
 electrode_surfaces = [dosfile[7:end-7] for dosfile in dosfiles]

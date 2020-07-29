@@ -3,7 +3,7 @@
 Herein you can find the code used for analysis and plotting for [this paper](link_eventually) (that will eventually be a link to the paper).
 
 ## Here for the data viz?
-Either launch the `dataviz.ipynb` notebook yourself if you're down with that, or for an even easier (but probably slower-performing) way, use Binder!
+For now, just run `interactive_plots.jl` in your IDE of choice. Eventually will hopefully have a slicker solution for this.
 
 ## Usage
 If you just want to reproduce the analysis done in the paper, head over to `export_figure_data.jl` and then run the `figure_*.py` scripts to plot.

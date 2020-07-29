@@ -3,8 +3,8 @@ from matplotlib import pyplot as plt
 import numpy as np
 import pandas as pd
 
-fig_folder = "figure_data/fig5/"
-old_SEI_folder = "figure_data/fig4_SEI/"
+fig_folder = "figure_data/fig4_params/"
+old_SEI_folder = "figure_data/fig3_SEI/"
 old_Cu_folder = "figure_data/fig2_Cu111/"
 lb_fs = 12
 tl_fs = 10

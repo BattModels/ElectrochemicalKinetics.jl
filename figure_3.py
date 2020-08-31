@@ -3,7 +3,7 @@ from matplotlib import pyplot as plt
 import numpy as np
 import pandas as pd
 
-fig_folder = "figure_data/fig4_SEI/"
+fig_folder = "figure_data/fig3_SEI/"
 lb_fs = 12
 tl_fs = 10
 
@@ -43,4 +43,4 @@ a1.set_xlim([-5, 5])
 #a1.set_ylim([5e-9, 6])
 plt.legend(["MHC", "MHC+DOS"], fontsize=tl_fs-1, loc='lower left')
 plt.tight_layout()
-plt.savefig("figs/for_paper/fig4.png", dpi=300)
+plt.savefig("figs/for_paper/fig3.png", dpi=300)

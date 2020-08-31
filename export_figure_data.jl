@@ -1,4 +1,4 @@
-include("analysis_functions.jl")
+include("analysis_fcns.jl")
 
 stepsize=0.005
 
@@ -105,7 +105,7 @@ dos_f, avg_dos, E_min, E_max = get_dos("DOSes/Cu_111_dos.txt")
 V_range = range(-5.0, 5.0, step=stepsize)
 MHC_k = [compute_k_MHC(E_min, E_max, MHC_DOS_λ*2, V, avg_dos) for V in V_range]
 MHC_DOS_k = [compute_k_MHC_DOS(E_min, E_max, MHC_DOS_λ*2, V, dos_f) for V in V_range]
-open("figure_data/fig5/Cu111_k_vs_V_doublelambda.txt", "w") do io
+open("figure_data/fig4_params/Cu111_k_vs_V_doublelambda.txt", "w") do io
     write(io, "V, MHC_k, MHC_DOS_k\n")
     writedlm(io, hcat(V_range, MHC_k, MHC_DOS_k))
 end;

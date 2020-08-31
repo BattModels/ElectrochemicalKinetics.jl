@@ -51,4 +51,4 @@ a1.set_xlim([-3, 3])
 a1.legend(["$\lambda_{orig}$ (from fig. 2)", "$2\lambda_{orig}$ eV"], fontsize=tl_fs-1, loc='lower left')
 
 plt.tight_layout()
-plt.savefig("figs/for_paper/fig5.png", dpi=300)
+plt.savefig("figs/for_paper/fig4.png", dpi=300)

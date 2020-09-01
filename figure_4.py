@@ -39,7 +39,7 @@ a0.set_ylabel("Rate constant $k$", fontsize=lb_fs)
 a0.set_xlabel("Overpotential $\eta$ [V]", fontsize=lb_fs)
 a0.tick_params(labelsize=tl_fs)
 a0.set_xlim([-5, 5])
-a0.legend(["$E_f^{eq}$ (from fig. 3)", "$E_f^{eq}-2$ eV"], fontsize=tl_fs-1, loc='lower left')
+a0.legend(["$E_f^{eq}$", "$E_f^{eq}-2$ eV"], fontsize=tl_fs-1, loc='lower left')
 
 # figure b: reorg energy in Cu111
 sns.lineplot(x="V", y="MHC_DOS_k", data=Cu_data, hue='fit', legend=False, linewidth=2, ax=a1)
@@ -48,7 +48,7 @@ a1.set_ylabel("Rate constant $k$", fontsize=lb_fs)
 a1.set_xlabel("Overpotential $\eta$ [V]", fontsize=lb_fs)
 a1.tick_params(labelsize=tl_fs)
 a1.set_xlim([-3, 3])
-a1.legend(["$\lambda_{orig}$ (from fig. 2)", "$2\lambda_{orig}$ eV"], fontsize=tl_fs-1, loc='lower left')
+a1.legend(["$\lambda_{orig}$", "$2\lambda_{orig}$"], fontsize=tl_fs-1, loc='lower left')
 
 plt.tight_layout()
 plt.savefig("figs/for_paper/fig4.png", dpi=300)

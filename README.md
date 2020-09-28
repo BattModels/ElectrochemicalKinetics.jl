@@ -3,7 +3,9 @@
 Herein you can find the code used for analysis and plotting for [this paper](link_eventually) (that will eventually be a link to the paper).
 
 ## Here for the data viz?
-For now, just run `interactive_plots.jl` in your IDE of choice. Eventually will hopefully have a slicker solution for this.
+You can view it in nbviewer [here](https://nbviewer.jupyter.org/github/aced-differentiate/MHC_DOS/blob/master/dataviz.ipynb): Note that this can take quite awhile to load!
+
+You can also of course run the notebook (`dataviz.ipynb`) locally if you have a Julia install!
 
 ## Usage
 If you just want to reproduce the analysis done in the paper, head over to `export_figure_data.jl` and then run the `figure_*.py` scripts to plot.

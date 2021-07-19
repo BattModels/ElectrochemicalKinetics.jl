@@ -4,6 +4,7 @@ using QuadGK
 #using LaTeXStrings
 using DelimitedFiles
 using BlackBoxOptim
+using Dierckx
 
 # assumes `dos_file` has two columns: energy (relative to equilibrium Ef) and DOS
 # NB that cut_energy will break if the upper bound is larger magnitude than lower as in some of the lithium cases
@@ -24,6 +25,17 @@ function get_dos(dos_file; Ef=0, cut_energy=false)
     E_step = mean(dos_data[2:end,1].-dos_data[1:end-1,1])
     dos_interp = scale(interpolate(dos_data[:,2], BSpline(Linear())), range(E_min, E_max+0.0001, step=E_step))
     return dos_interp, average_dos, E_min, E_max
+end
+
+function get_vh(vh_file)
+    
+    vh_data = readdlm(vh_file, Float64, skipstart=1)
+    v_max = vh_data[end,1]
+    v_min = vh_data[1,1]
+    v_step = mean(vh_data[2:end,1].-vh_data[1:end-1,1])
+    #v_interp = scale(interpolate(vh_data[:,2], BSpline(Linear())), range(v_min, v_max+0.0001, step=v_step))
+    v_interp = LinearInterpolation(vh_data[:,1], vh_data[:,2])
+    return v_interp, v_min, v_max
 end
 
 function fermi_dirac(E; kT=.026)
@@ -47,6 +59,17 @@ function MHC_integrand(E, λ, eη, average_dos; kT=.026)
     sign(eη) * average_dos * (marcus_ox*fd_ox - marcus_red*fd_red)
 end
 
+function MHC_integrand_redox(E, λ, eη, average_dos; ox=true, kT=.026)
+    if ox
+        marcus = marcus_integrand(E, λ, eη, true; kT=kT)
+        fd = 1-fermi_dirac(E; kT=kT) # holes
+    else
+        marcus = marcus_integrand(E, λ, eη, false; kT=kT)
+        fd = fermi_dirac(E; kT=kT)
+    end
+    average_dos * marcus * fd
+end
+
 function compute_k_MHC(E_min, E_max, λ, eη, average_dos; kT=.026)
     fcn = E->MHC_integrand(E, λ, eη, average_dos; kT=.026)
     quadgk(fcn, E_min, E_max)[1] # return format is (value, error_bound)
@@ -54,14 +77,33 @@ end
 
 # compute with DOS by evaluating the function we already have for a unit DOS and multiplying
 # by the interpolated value
-function MHC_DOS_integrand(E, λ, eη, dos_func; kT=.026)
-    dos_func(E) * MHC_integrand(E, λ, eη, 1; kT=kT)
+function MHC_DOS_integrand(E, λ, eη, dos_func; kT=.026, vq=0)
+    dos_func(E+vq) * MHC_integrand(E, λ, eη, 1; kT=kT)
 end
 
-function compute_k_MHC_DOS(E_min, E_max, λ, eη, dos_func; kT=.026)
-    fcn = E->MHC_DOS_integrand(E, λ, eη, dos_func; kT=kT)
+function MHC_DOS_integrand_redox(E, λ, eη, dos_func; ox=true, kT=.026, vq=0)
+    dos_func(E+vq) * MHC_integrand_redox(E, λ, eη, 1; ox, kT=kT)
+end
+
+function compute_k_MHC_DOS(E_min, E_max, λ, eη, dos_func; kT=.026, vq=0)
+    fcn = E->MHC_DOS_integrand(E, λ, eη, dos_func; kT=kT, vq=vq)
     quadgk(fcn, E_min, E_max)[1]
 end
+
+function compute_k_MHC_DOS_redox(E_min, E_max, λ, eη, dos_func; ox=true, kT=.026, vq=0)
+    fcn = E->MHC_DOS_integrand_redox(E, λ, eη, dos_func; ox=ox, kT=kT, vq=vq)
+    quadgk(fcn, E_min, E_max)[1]
+end
+
+function QC_integrand(E, eVq, dos_func; kT=.026)
+    dos_func(E) * sech((E-eVq)/(2*kT))^2/(4*kT)
+end
+
+function compute_cq(E_min, E_max, eVq, dos_func; kT=.026)
+    fcn = E->QC_integrand(E, eVq, dos_func; kT=kT)
+    quadgk(fcn, E_min, E_max)[1]
+end
+
 
 # NOW FOR THE FITTING STUFF
 

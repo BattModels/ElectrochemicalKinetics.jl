@@ -27,71 +27,99 @@ function get_dos(dos_file; Ef=0, cut_energy=false)
     return dos_interp, average_dos, E_min, E_max
 end
 
-function get_vh(vh_file)
-    
-    vh_data = readdlm(vh_file, Float64, skipstart=1)
-    v_max = vh_data[end,1]
-    v_min = vh_data[1,1]
-    v_step = mean(vh_data[2:end,1].-vh_data[1:end-1,1])
-    #v_interp = scale(interpolate(vh_data[:,2], BSpline(Linear())), range(v_min, v_max+0.0001, step=v_step))
-    v_interp = LinearInterpolation(vh_data[:,1], vh_data[:,2])
-    return v_interp, v_min, v_max
-end
-
 function fermi_dirac(E; kT=.026)
     1 / (1 + exp(E/kT))
 end
 
-function marcus_integrand(E, λ, eη, ox=true; kT=.026)
+function marcus_integrand(E, λ, V_dl, ox=true; kT=.026)
     if ox # oxidative direction
-        arg = -(λ-eη+E)^2 / (4*λ*kT)
+        arg = -(λ-V_dl+E)^2 / (4*λ*kT)
     else # reductive direction
-        arg = -(λ+eη-E)^2 / (4*λ*kT)
+        arg = -(λ+V_dl-E)^2 / (4*λ*kT)
     end
     exp(arg)
 end
 
-function MHC_integrand(E, λ, eη, average_dos; kT=.026)
-    marcus_ox = marcus_integrand(E, λ, eη, true; kT=kT)
-    marcus_red = marcus_integrand(E, λ, eη, false; kT=kT)
+function MHC_integrand(E, λ, V_dl, average_dos; kT=.026)
+    marcus_ox = marcus_integrand(E, λ, V_dl, true; kT=kT)
+    marcus_red = marcus_integrand(E, λ, V_dl, false; kT=kT)
     fd_ox = 1-fermi_dirac(E; kT=kT) # holes
     fd_red = fermi_dirac(E; kT=kT) # electrons
-    sign(eη) * average_dos * (marcus_ox*fd_ox - marcus_red*fd_red)
+    sign(V_dl) * average_dos * (marcus_ox*fd_ox - marcus_red*fd_red)
 end
 
-function MHC_integrand_redox(E, λ, eη, average_dos; ox=true, kT=.026)
-    if ox
-        marcus = marcus_integrand(E, λ, eη, true; kT=kT)
-        fd = 1-fermi_dirac(E; kT=kT) # holes
-    else
-        marcus = marcus_integrand(E, λ, eη, false; kT=kT)
-        fd = fermi_dirac(E; kT=kT)
-    end
-    average_dos * marcus * fd
-end
 
-function compute_k_MHC(E_min, E_max, λ, eη, average_dos; kT=.026)
-    fcn = E->MHC_integrand(E, λ, eη, average_dos; kT=.026)
+function compute_k_MHC(E_min, E_max, λ, V_dl, average_dos; kT=.026)
+    fcn = E->MHC_integrand(E, λ, V_dl, average_dos; kT=.026)
     quadgk(fcn, E_min, E_max)[1] # return format is (value, error_bound)
 end
 
 # compute with DOS by evaluating the function we already have for a unit DOS and multiplying
 # by the interpolated value
-function MHC_DOS_integrand(E, λ, eη, dos_func; kT=.026, vq=0)
-    dos_func(E+vq) * MHC_integrand(E, λ, eη, 1; kT=kT)
+function MHC_DOS_integrand(E, λ, V_dl, dos_func; kT=.026, V_q=0)
+    dos_func(E+V_q) * MHC_integrand(E, λ, V_dl, 1; kT=kT)
 end
 
-function MHC_DOS_integrand_redox(E, λ, eη, dos_func; ox=true, kT=.026, vq=0)
-    dos_func(E+vq) * MHC_integrand_redox(E, λ, eη, 1; ox, kT=kT)
+function calculate_Vdl_interp(dos_f, Vq_min, Vq_max, C_dl)
+    
+    Vq_range = range(Vq_min, Vq_max, step=0.001)
+    E_min = dos_f.ranges[1][1]
+    E_max = dos_f.ranges[1][end]
+    CQ = [compute_cq(E_min, E_max, V, dos_f)*1.602*10 for V in Vq_range]
+    Vdl_data = []
+    Vappl_data = []
+    for i = 1:length(Vq_range)
+        V_app_i =  Vq_range[i]*((CQ[i]/C_dl) + 1)
+        V_dl_i = V_app_i - Vq_range[i]
+        push!(Vdl_data, V_dl_i)
+        push!(Vappl_data, V_app_i)
+    end
+    
+    ## do V_dl interpolation
+    v_interp = LinearInterpolation(Vappl_data, Vdl_data)
+    return v_interp
 end
 
-function compute_k_MHC_DOS(E_min, E_max, λ, eη, dos_func; kT=.026, vq=0)
-    fcn = E->MHC_DOS_integrand(E, λ, eη, dos_func; kT=kT, vq=vq)
+function compute_k_MHC_DOS(E_min, E_max, λ, V_app, dos_func; kT=.026, C_q_calc=false, C_dl=10.0, Vq_min=-0.5, Vq_max=0.5)
+    
+    if C_q_calc
+        ## calculate V_dl from V_app by calculating CQ
+        V_dl_interp = calculate_Vdl_interp(dos_func, Vq_min, Vq_max, C_dl)
+        V_dl = V_dl_interp(V_app)
+        V_q = V_app - V_dl
+        fcn = E->MHC_DOS_integrand(E, λ, V_dl, dos_func; kT=kT, V_q=V_q)
+    else
+        fcn = E->MHC_DOS_integrand(E, λ, V_app, dos_func; kT=kT, V_q=0)
+    end
     quadgk(fcn, E_min, E_max)[1]
 end
 
-function compute_k_MHC_DOS_redox(E_min, E_max, λ, eη, dos_func; ox=true, kT=.026, vq=0)
-    fcn = E->MHC_DOS_integrand_redox(E, λ, eη, dos_func; ox=ox, kT=kT, vq=vq)
+function MHC_DOS_integrand_redox(E, λ, V_dl, dos_func; ox=true, kT=.026, V_q=0)
+    dos_func(E+V_q) * MHC_integrand_redox(E, λ, V_dl, 1; ox, kT=kT)
+end
+
+function MHC_integrand_redox(E, λ, V_dl, average_dos; ox=true, kT=.026)
+    if ox
+        marcus = marcus_integrand(E, λ, V_dl, true; kT=kT)
+        fd = 1-fermi_dirac(E; kT=kT) # holes
+    else
+        marcus = marcus_integrand(E, λ, V_dl, false; kT=kT)
+        fd = fermi_dirac(E; kT=kT)
+    end
+    average_dos * marcus * fd
+end
+
+
+function compute_k_MHC_DOS_redox(E_min, E_max, λ, V_app, dos_func; ox=true, kT=.026, C_q_calc=false, C_dl=10.0, Vq_min=-0.5, Vq_max=0.5)
+    
+    if C_q_calc
+        V_dl_interp = calculate_Vdl_interp(dos_func, Vq_min, Vq_max, C_dl)
+        V_dl = V_dl_interp(V_app)
+        V_q = V_app - V_dl
+        fcn = E->MHC_DOS_integrand_redox(E, λ, V_dl, dos_func; ox=ox, kT=kT, V_q=V_q)
+    else
+        fcn = E->MHC_DOS_integrand_redox(E, λ, V_dl, dos_func; ox=ox, kT=kT, V_q=0)
+    end
     quadgk(fcn, E_min, E_max)[1]
 end
 

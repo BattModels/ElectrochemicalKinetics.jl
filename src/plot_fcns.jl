@@ -1,10 +1,10 @@
 using Plots
-include("analysis_functions.jl")
+include("./analysis_fcns.jl")
 
 # plotting shortcut to make MHC and MHC+DOS curves
 function plot_comparison(dos_func, eη_max, E_min, E_max, average_dos; kT=.026, λ=.26, length=500, plot_title="")
     eη_range = range(-eη_max, eη_max, length=length)
-    MHC_k = [compute_k_MHC(E_min, E_max, λ, eη, average_dos; kT=kT) for eη in eη_range]
+    MHC_k = [compute_k_MHC_net(E_min, E_max, λ, eη, average_dos; kT=kT) for eη in eη_range]
     MHC_DOS_k = [compute_k_MHC_DOS(E_min, E_max, λ, eη, dos_func; kT=kT) for eη in eη_range]
     if any(MHC_k.<0) | any(MHC_DOS_k.<0)
         println("negative k...uh-oh...")
@@ -16,7 +16,7 @@ end
 
 # if you want to visualize each term in integrand separately
 function plot_integrand_components(dos_func, E_min, E_max, average_dos; eη=0, kT=.026, λ=.26, length=500, plot_title="")
-    E_range = range(E_min, E_max, length=length)
+    E_range = range(E_min+1e-9, E_max-1e-9, length=length)
     dos_vals = dos_func.(E_range)
     p1 = plot(E_range, dos_vals, color=:black, ylabel="electrode states", label="electrons/holes", title=plot_title)
 

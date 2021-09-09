@@ -1,3 +1,6 @@
+using BlackBoxOptim
+
+
 # NOW FOR THE FITTING STUFF
 
 # goal: minimize MSE between experimental and modeled data by choosing best-fit λ

@@ -1,6 +1,9 @@
 module DOS
 
 using Interpolations
+using DelimitedFiles
+using Statistics
+
 export DOSData, get_dos
 
 struct DOSData
@@ -11,6 +14,11 @@ struct DOSData
 end
 
 DOSData(dos_file; Ef=0, cut_energy=false) = DOSData(get_dos(dos_file; Ef, cut_energy)...)
+
+# pretty printing
+Base.show(io::IO, dd::DOSData) = print(io, "DOSData: avg value $(round(dd.average_value, digits=3)) from energy $(round(dd.E_min, digits=2)) to $(round(dd.E_max, digits=2))")
+
+(dd::DOSData)(E::Real) = dd.interp_func(E)
 
 """
     get_dos(dos_file; Ef=0, cut_energy=false)

@@ -8,12 +8,12 @@ using Dierckx
 # TODO: think about reaction direction and quantum cap dispatches; there's probably a cleaner way to handle them...
 
 # for one direction
-function compute_k(E_min, E_max, V_app, model::KineticModel, ox::Bool; kT=.026) = quadgk(integrand(model, V_app, ox; kT=kT), E_min, E_max)[1] # return format is (value, error_bound)
+compute_k(E_min, E_max, V_app, model::KineticModel, ox::Bool; args...) = quadgk(integrand(model, V_app, ox; args...), E_min, E_max)[1] # return format is (value, error_bound)
 
 # for net
-function compute_k(E_min, E_max, V_app, model::KineticModel; kT = .026) = quadgk(integrand(model, V_app; kT=kT), E_min, E_max)[1]
+compute_k(E_min, E_max, V_app, model::KineticModel; args...) = quadgk(integrand(model, V_app; args...), E_min, E_max)[1]
 
-function compute_k(E_min, E_max, V_app, model::MarcusHushChidseyDOS, ox::Bool, C_dl=10.0, Vq_min=-0.5, Vq_max=0.5; kT = .026)
+function compute_k_cq(E_min, E_max, V_app, model::MarcusHushChidseyDOS, ox::Bool, C_dl=10.0, Vq_min=-0.5, Vq_max=0.5; kT = .026)
     V_dl_interp = calculate_Vdl_interp(model.dos.interp_func, Vq_min, Vq_max, C_dl)
     V_dl = V_dl_interp(V_app)
     V_q = V_app - V_dl
@@ -21,7 +21,7 @@ function compute_k(E_min, E_max, V_app, model::MarcusHushChidseyDOS, ox::Bool, C
 end
 
 # TODO: check that this gives the same as computing them separately and subtracting in all cases (including with V_q)
-function compute_k(E_min, E_max, V_app, model::MarcusHushChidseyDOS, C_dl=10.0, Vq_min=-0.5, Vq_max=0.5; kT = .026)
+function compute_k_cq(E_min, E_max, V_app, model::MarcusHushChidseyDOS, C_dl=10.0, Vq_min=-0.5, Vq_max=0.5; kT = .026)
     V_dl_interp = calculate_Vdl_interp(model.dos.interp_func, Vq_min, Vq_max, C_dl)
     V_dl = V_dl_interp(V_app)
     V_q = V_app - V_dl

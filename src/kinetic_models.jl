@@ -1,3 +1,5 @@
+using .DOS
+
 """
     fermi_dirac(E, kT=0.026)
 
@@ -20,7 +22,7 @@ struct Marcus <: KineticModel
     λ::Float64
 end
 
-function integrand(m::Marcus, V_dl::Real, ox::Bool; kT::Real  = 0.026)
+function integrand(m::Marcus, V_dl::Real, ox::Bool; kT::Real = 0.026)
     arg =
         E ->
             ox ? -(m.λ - V_dl + E)^2 / (4 * m.λ * kT) : -(m.λ + V_dl - E)^2 / (4 * m.λ * kT)
@@ -32,7 +34,11 @@ struct MarcusHushChidsey <: KineticModel
     average_dos::Float64
 end
 
-function integrand(mhc::MarcusHushChidsey, V_dl::Real, ox::Bool; kT::Real  = 0.026)
+MarcusHushChidsey(λ, dd::DOSData) = MarcusHushChidsey(λ, dd.average_value)
+MarcusHushChidsey(λ, dos_file::String; args...) =
+    MarcusHushChidsey(λ, DOSData(dos_file; args...))
+
+function integrand(mhc::MarcusHushChidsey, V_dl::Real, ox::Bool; kT::Real = 0.026)
     marcus = integrand(Marcus(mhc.λ), V_dl, ox; kT = kT)
     fd(E) = ox ? 1 - fermi_dirac(E; kT = kT) : fermi_dirac(E; kT = kT)
     return E -> mhc.average_dos * marcus(E) * fd(E)
@@ -43,4 +49,10 @@ struct MarcusHushChidseyDOS <: KineticModel
     dos::DOSData
 end
 
-integrand(mhcd::MarcusHushChidseyDOS, V_dl::Real, ox::Bool; kT::Real = .026, V_q=0.0) = E -> mhcd.dos.interp_func(E+V_q) * integrand(MarcusHushChidsey(mhcd.λ, mhcd.dos.average_value), V_dl, ox; kT=kT)(E)
+MarcusHushChidseyDOS(λ, dos_file::String; args...) =
+    MarcusHushChidseyDOS(λ, DOSData(dos_file; args...))
+
+integrand(mhcd::MarcusHushChidseyDOS, V_dl::Real, ox::Bool; kT::Real = 0.026, V_q = 0.0) =
+    E ->
+        mhcd.dos.interp_func(E + V_q) *
+        integrand(MarcusHushChidsey(mhcd.λ, 1.0), V_dl, ox; kT = kT)(E)

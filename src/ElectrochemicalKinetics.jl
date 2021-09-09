@@ -13,7 +13,7 @@ export Marcus, MarcusHushChidsey, MarcusHushChidseyDOS
 include("quantum_capacitance.jl")
 
 include("rate_constant.jl")
-export compute_k
+export compute_k, compute_k_cq
 
 include("fitting.jl")
 

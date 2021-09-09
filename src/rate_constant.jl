@@ -25,5 +25,5 @@ function compute_k_cq(E_min, E_max, V_app, model::MarcusHushChidseyDOS, C_dl=10.
     V_dl_interp = calculate_Vdl_interp(model.dos.interp_func, Vq_min, Vq_max, C_dl)
     V_dl = V_dl_interp(V_app)
     V_q = V_app - V_dl
-    quadgk(integrand(model, V_dl, ox; kT=kT, V_q=V_q), E_min, E_max)[1]
+    quadgk(integrand(model, V_dl; kT=kT, V_q=V_q), E_min, E_max)[1]
 end

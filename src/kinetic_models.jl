@@ -11,9 +11,10 @@ abstract type KineticModel end
 integrand(km::KineticModel, V_dl::Real, ox::Bool; kT::Real = 0.026) =
     error("A kinetic model must dispatch the `integrand` function!")
 
+# TODO: check that this passes through both kT and V_q appropriately
 # dispatch for net rates
-integrand(km::KineticModel, V_dl::Real; kT::Real  = 0.026) =
-    E -> abs(integrand(km, V_dl, true; kT = kT)(E) - integrand(km, V_dl, false; kT = kT)(E))
+integrand(km::KineticModel, V_dl::Real; args...) =
+    E -> abs(integrand(km, V_dl, true; args...)(E) - integrand(km, V_dl, false; args...)(E))
 
 struct Marcus <: KineticModel
     λ::Float64
@@ -43,6 +44,3 @@ struct MarcusHushChidseyDOS <: KineticModel
 end
 
 integrand(mhcd::MarcusHushChidseyDOS, V_dl::Real, ox::Bool; kT::Real = .026, V_q=0.0) = E -> mhcd.dos.interp_func(E+V_q) * integrand(MarcusHushChidsey(mhcd.λ, mhcd.dos.average_value), V_dl, ox; kT=kT)(E)
-
-# do our own net-rate dispatch here to pass through V_q, seems like there should be a more elegant solution
-integrand(mhcd::MarcusHushChidseyDOS, V_dl::Real; kT::Real = .026, V_q=0.0) = E -> mhcd.dos.interp_func(E+V_q) * integrand(MarcusHushChidsey(mhcd.λ, mhcd.dos.average_value), V_dl, ox; kT=kT)(E)

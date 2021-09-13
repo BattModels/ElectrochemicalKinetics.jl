@@ -14,7 +14,14 @@ abstract type KineticModel end
 (km::KineticModel)(V_app; kwargs...) = abs(km(V_app, true; kwargs...) - km(V_app, false; kwargs...))
 
 
-# in this case, A also includes exponential of equilibrium activation energy
+"""
+    ButlerVolmer(A, α)
+    ButlerVolmer(A)
+
+Computes Butler-Volmer kinetics. 
+
+If initialized with one argument, assumes symmetric electron transfer (α=0.5) and sets this to be the prefactor A. Note that this prefactor implicitly contains information about equilibrium activation energies, as well as geometric information.
+"""
 struct ButlerVolmer <: KineticModel
     A::Float64
     α::Float64
@@ -25,6 +32,14 @@ ButlerVolmer(A) = ButlerVolmer(A, 0.5)
 
 (bv::ButlerVolmer)(V_app, ox::Bool; kT::Real = 0.026) = bv.A * exp(ox * bv.α * V_app / kT)
 
+"""
+    AsymptoticMarcusHushChidsey(A, λ)
+    AsymptoticMarchusHushChidsey(λ)
+
+Computes asymptotic solution to MHC model, as described in Zeng et al.: 10.1016/j.jelechem.2014.09.038d
+
+If initialized with one argument, assumes this to be the reorganization energy λ and sets the prefactor to 1.0.
+"""
 struct AsymptoticMarcusHushChidsey <: KineticModel
     A::Float64
     λ::Float64
@@ -53,13 +68,21 @@ integrand(km::IntegralModel, V_dl::Real, ox::Bool; kwargs...) =
 integrand(km::IntegralModel, V_dl::Real; args...) =
     E -> abs(integrand(km, V_dl, true; args...)(E) - integrand(km, V_dl, false; args...)(E))
 
+"""
+    Marcus(A, λ)
+    Marcus(λ)
+
+Computes Marcus kinetics.
+
+If initialized with one argument, assumes this to be the reorganization energy λ and sets the prefactor A to 1.0.
+"""
 struct Marcus <: IntegralModel
     A::Float64
     λ::Float64
 end
 
 # default prefactor is 1
-Marcus(λ) = MarcusHushChidsey(1.0, λ)
+Marcus(λ) = Marcus(1.0, λ)
 
 function integrand(m::Marcus, V_dl::Real, ox::Bool; kT::Real = 0.026)
     arg =
@@ -68,6 +91,14 @@ function integrand(m::Marcus, V_dl::Real, ox::Bool; kT::Real = 0.026)
     E -> m.A * exp(arg(E))
 end
 
+"""
+    MarcusHushChidsey(A, λ, average_dos)
+    MarcusHushChidsey(λ, average_dos)
+
+Computes Marcus-Hush-Chidsey kinetics: 10.1126/science.251.4996.919
+
+Note that strictly speaking, `average_dos` and the prefactor `A` are redundant. They are both included primarily to facilitate comparisons with similarly parametrized `Marcus` models.
+"""
 struct MarcusHushChidsey <: IntegralModel
     A::Float64
     λ::Float64
@@ -86,6 +117,11 @@ function integrand(mhc::MarcusHushChidsey, V_dl::Real, ox::Bool; kT::Real = 0.02
     return E -> mhc.A * mhc.average_dos * marcus(E) * fd(E)
 end
 
+"""
+    MarcusHushChidseyDOS(A, λ, dos)
+
+Computes Marcus-Hush-Chidsey + DOS kinetics as described in Kurchin and Viswanathan: 10.1063/5.0023611 
+"""
 struct MarcusHushChidseyDOS <: IntegralModel
     A::Float64
     λ::Float64

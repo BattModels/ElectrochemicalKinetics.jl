@@ -9,6 +9,7 @@ include("kinetic_models.jl")
 export ButlerVolmer, AsymptoticMarcusHushChidsey
 export fermi_dirac
 export integrand
+export KineticModel, IntegralModel
 export Marcus, MarcusHushChidsey, MarcusHushChidseyDOS
 
 include("quantum_capacitance.jl")
@@ -17,5 +18,6 @@ include("rate_constant.jl")
 export compute_k, compute_k_cq
 
 include("fitting.jl")
+export fit_params, fit_model
 
 end

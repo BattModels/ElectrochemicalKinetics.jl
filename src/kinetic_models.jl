@@ -108,9 +108,10 @@ end
 
 # default prefactor is 1
 MarcusHushChidsey(λ, avg_dos) = MarcusHushChidsey(1.0, λ, avg_dos)
-MarcusHushChidsey(λ, dd::DOSData) = MarcusHushChidsey(λ, dd.average_value)
-MarcusHushChidsey(λ, dos_file::String; args...) =
-    MarcusHushChidsey(λ, DOSData(dos_file; args...))
+# convert more detailed DOS information to just pull out average
+MarcusHushChidsey(A, λ, dd::DOSData) = MarcusHushChidsey(A, λ, dd.average_value)
+MarcusHushChidsey(A, λ, dos_file::String; args...) =
+    MarcusHushChidsey(A, λ, DOSData(dos_file; args...))
 
 function integrand(mhc::MarcusHushChidsey, V_dl::Real, ox::Bool; kT::Real = 0.026)
     marcus = integrand(Marcus(mhc.λ), V_dl, ox; kT = kT)
@@ -132,8 +133,8 @@ end
 # default prefactor is 1
 MarcusHushChidseyDOS(λ, dd::DOSData) = MarcusHushChidseyDOS(1.0, λ, dd)
 
-MarcusHushChidseyDOS(λ, dos_file::String; args...) =
-    MarcusHushChidseyDOS(λ, DOSData(dos_file; args...))
+MarcusHushChidseyDOS(A, λ, dos_file::String; args...) =
+    MarcusHushChidseyDOS(A, λ, DOSData(dos_file; args...))
 
 integrand(mhcd::MarcusHushChidseyDOS, V_dl::Real, ox::Bool; kT::Real = 0.026, V_q = 0.0) =
     E ->

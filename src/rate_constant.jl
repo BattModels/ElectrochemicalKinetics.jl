@@ -23,9 +23,25 @@ compute_k(V_app, model::KineticModel; kwargs...) = model(V_app; kwargs...)
 compute_k(E_min, E_max, V_app, model::IntegralModel; kwargs...) =
     quadgk(integrand(model, V_app; kwargs...), E_min, E_max)[1]
 
+function compute_k(E_min, E_max, V_app, model::MarcusHushChidseyDOS, ox::Bool, calc_cq::Bool=false; C_dl = 10.0, Vq_min = -0.5, Vq_max = 0.5; kwargs...)
+    if calc_cq
+        compute_k_cq(E_min, E_max, V_app, model, ox; C_dl=C_dl, Vq_min=VQ_min, Vq_max=Vq_max; kwargs...)
+    else
+        compute_k(E_min, E_max, V_app, model, ox; kwargs...)
+    end
+end
+
+function compute_k(E_min, E_max, V_app, model::MarcusHushChidseyDOS, calc_cq::Bool=false; C_dl = 10.0, Vq_min = -0.5, Vq_max = 0.5; kwargs...)
+    if calc_cq
+        compute_k_cq(E_min, E_max, V_app, model, ox; C_dl=C_dl, Vq_min=VQ_min, Vq_max=Vq_max; kwargs...)
+    else
+        compute_k(E_min, E_max, V_app, model; kwargs...)
+    end
+end
+
 """
-    compute_k_cq(E_min, E_max, V_app, model::MarcusHushChidseyDOS, ox::Bool; kwargs...)
-    compute_k_cq(E_min, E_max, V_app, model::MarcusHushChidseyDOS; kwargs...)
+    compute_k_cq(E_min, E_max, V_app, model::MarcusHushChidseyDOS, ox::Bool; C_dl=10.0, Vq_min=-0.5, Vq_max=0.5, kwargs...)
+    compute_k_cq(E_min, E_max, V_app, model::MarcusHushChidseyDOS; C_dl=10.0, Vq_min=-0.5, Vq_max=0.5, kwargs...)
 
 Compute the rate constant k predicted by a `MarcusHushChidseyDOS` model at a applied voltage `V_app`, including the effects of quantum capacitance. If a flag for reaction direction `ox` is supplied, `true` gives the oxidative and `false` the reductive direction, while omitting this flag will yield net reaction rate.
 """
@@ -34,10 +50,10 @@ function compute_k_cq(
     E_max,
     V_app,
     model::MarcusHushChidseyDOS,
-    ox::Bool,
+    ox::Bool;
     C_dl = 10.0,
     Vq_min = -0.5,
-    Vq_max = 0.5;
+    Vq_max = 0.5,
     kT = 0.026,
 )
     V_dl_interp = calculate_Vdl_interp(model.dos.interp_func, Vq_min, Vq_max, C_dl)
@@ -50,10 +66,10 @@ function compute_k_cq(
     E_min,
     E_max,
     V_app,
-    model::MarcusHushChidseyDOS,
+    model::MarcusHushChidseyDOS;
     C_dl = 10.0,
     Vq_min = -0.5,
-    Vq_max = 0.5;
+    Vq_max = 0.5,
     kT = 0.026,
 )
     V_dl_interp = calculate_Vdl_interp(model.dos.interp_func, Vq_min, Vq_max, C_dl)

@@ -6,6 +6,16 @@ using Statistics
 
 export DOSData, get_dos
 
+"""
+    DOSData(dos_file; Ef=0, cut_energy=false)
+
+Struct for storing density of states (DOS) information. Can be constructed from a CSV file.
+
+# Fields
+* interp_func: function that returns interpolated values of DOS for any energy between E_min and E_max
+* average_value: Average value of DOS over this interval
+* E_min, E_max: bounds over which this DOS is defined
+"""
 struct DOSData
     interp_func
     average_value::Float64

@@ -1,14 +1,30 @@
 using Plots
 using ElectrochemicalKinetics
 
-function plot_models(models; plot_title="", V_min=-1.0, V_max=1.0, kwargs...)
-    V_range = range(V_min, V_max, length=200)
+"""
+    plot_models(models::Vector{<:KineticModel}; kwargs...)
+
+Plot predicted rate constants for each model in the provided list.
+
+# Keyword Arguments
+* V_min and V_max: bounds of voltage, defaults to +/- 1.0
+* plot_title
+* kwargs for compute_k function
+"""
+function plot_models(
+    models::Vector{<:KineticModel};
+    plot_title = "",
+    V_min = -1.0,
+    V_max = 1.0,
+    kwargs...,
+)
+    V_range = range(V_min, V_max, length = 200)
     xs = repeat([V_range], length(models))
-    ys = map(model->[compute_k(V, model; kwargs...) for V in V_range], models)
+    ys = map(model -> [compute_k(V, model; kwargs...) for V in V_range], models)
     plot(
         xs,
         ys,
-        seriestype = [:line repeat([:line], length(models)-1)...],
+        seriestype = [:line repeat([:line], length(models) - 1)...],
         label = [repr(models[1]) repr.(models[2:end])...],
         xlabel = "V",
         ylabel = "log(k or I)",
@@ -18,18 +34,31 @@ function plot_models(models; plot_title="", V_min=-1.0, V_max=1.0, kwargs...)
     )
 end
 
+"""
+    plot_exp_and_models(models::Vector{<:KineticModel}; kwargs...)
+
+Plot predicted rate constants for each model in the provided list.
+
+# Keyword Arguments
+* V_min and V_max: bounds of voltage, defaults to +/- 1.0
+* plot_title
+* kwargs for compute_k function
+"""
 function plot_exp_and_models(
     exp_data::Matrix,
     models::Vector{<:KineticModel};
     plot_title = "",
-    kwargs...
+    kwargs...,
 )
     V = exp_data[:, 1]
     V_mag = 1.1 * maximum(abs.(V))
     V_range = range(-V_mag, V_mag, length = 200)
 
     xs = Vector[V, repeat([V_range], length(models))...]
-    ys = Vector[exp_data[:, 2], map(model->[compute_k(V, model; kwargs...) for V in V_range], models)...]
+    ys = Vector[
+        exp_data[:, 2],
+        map(model -> [compute_k(V, model; kwargs...) for V in V_range], models)...,
+    ]
 
     # scatter plot of experimental data, lines for fits
     plot(

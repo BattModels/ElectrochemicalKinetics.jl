@@ -11,8 +11,8 @@ fermi_dirac(E; kT = 0.026) = 1 / (1 + exp(E / kT))
 abstract type KineticModel end
 
 # dispatch for net rates
-(km::KineticModel)(V_app; kwargs...) =
-    abs(km(V_app, true; kwargs...) - km(V_app, false; kwargs...))
+(km::KineticModel)(V_app; kT = 0.026) =
+    abs(km(V_app, true; kT = kT) - km(V_app, false; kT = kT))
 
 
 """
@@ -66,8 +66,10 @@ integrand(km::IntegralModel, V_dl::Real, ox::Bool; kwargs...) =
 
 # TODO: check that this passes through both kT and V_q appropriately
 # dispatch for net rates
-integrand(km::IntegralModel, V_dl::Real; args...) =
-    E -> abs(integrand(km, V_dl, true; args...)(E) - integrand(km, V_dl, false; args...)(E))
+integrand(km::IntegralModel, V_dl::Real; kwargs...) =
+    E -> abs(
+        integrand(km, V_dl, true; kwargs...)(E) - integrand(km, V_dl, false; kwargs...)(E),
+    )
 
 """
     Marcus(A, λ)
@@ -110,8 +112,8 @@ end
 MarcusHushChidsey(λ, avg_dos) = MarcusHushChidsey(1.0, λ, avg_dos)
 # convert more detailed DOS information to just pull out average
 MarcusHushChidsey(A, λ, dd::DOSData) = MarcusHushChidsey(A, λ, dd.average_value)
-MarcusHushChidsey(A, λ, dos_file::String; args...) =
-    MarcusHushChidsey(A, λ, DOSData(dos_file; args...))
+MarcusHushChidsey(A, λ, dos_file::String; kwargs...) =
+    MarcusHushChidsey(A, λ, DOSData(dos_file; kwargs...))
 
 function integrand(mhc::MarcusHushChidsey, V_dl::Real, ox::Bool; kT::Real = 0.026)
     marcus = integrand(Marcus(mhc.λ), V_dl, ox; kT = kT)
@@ -133,8 +135,8 @@ end
 # default prefactor is 1
 MarcusHushChidseyDOS(λ, dd::DOSData) = MarcusHushChidseyDOS(1.0, λ, dd)
 
-MarcusHushChidseyDOS(A, λ, dos_file::String; args...) =
-    MarcusHushChidseyDOS(A, λ, DOSData(dos_file; args...))
+MarcusHushChidseyDOS(A, λ, dos_file::String; kwargs...) =
+    MarcusHushChidseyDOS(A, λ, DOSData(dos_file; kwargs...))
 
 integrand(mhcd::MarcusHushChidseyDOS, V_dl::Real, ox::Bool; kT::Real = 0.026, V_q = 0.0) =
     E ->

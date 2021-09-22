@@ -1,8 +1,20 @@
-# using BlackBoxOptim
+using BlackBoxOptim
 using Zygote
 using Optim
 
-# TODO: add fit_overpotential fcn
+"""
+    fit_overpotential(model, k; kwargs...)
+
+Given values for current/rate constant and specified model parameters, find the overpotentials that must have resulted in it.
+"""
+function fit_overpotential(model::KineticModel, k; kT=.026, kwargs...)
+    sq_error(k_pred) = (k_pred .- k) .^ 2
+    opt_func = V -> sq_error(compute_k(V[1], model; kT=kT, kwargs...))
+    # just using ForwardDiff here because couldn't get Zygote to work... :/
+    # also the integral models work but behave badly without voltage bounds...
+    opt = optimize(opt_func, [-10.0], [10.0], [0.0], Fminbox(LBFGS()); autodiff=:forward)
+    opt.minimizer[1]
+end
 
 fitting_params(t::Type{<:KineticModel}) = fieldnames(t)
 fitting_params(::Type{MarcusHushChidsey}) = (:A, :λ)
@@ -88,6 +100,11 @@ function _fit_model(
             MinDeltaFitnessTolerance = 1e-3,
         )
         best_params = best_candidate(res)
+        # lower = Float64.([param_bounds[p][1] for p in fitting_params(model_type)])
+        # upper = Float64.([param_bounds[p][2] for p in fitting_params(model_type)])
+        # init_guess = 0.5 .* (lower .+ upper)
+        # opt = optimize(opt_func, lower, upper, init_guess, Fminbox(LBFGS()); autodiff=:forward)
+        # best_params = opt.minimizer
     else
         function grad!(s, x)
             gs = gradient(params -> opt_func(params), x)[1]

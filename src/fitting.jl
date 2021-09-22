@@ -1,4 +1,6 @@
-using BlackBoxOptim
+# using BlackBoxOptim
+using Zygote
+using Optim
 
 # TODO: add fit_overpotential fcn
 
@@ -59,8 +61,6 @@ function _fit_model(
     model_type::Type{<:KineticModel},
     param_bounds,
     model_evaluator;
-    MaxSteps = 2000,
-    MinDeltaFitnessTolerance = 1e-3,
     kwargs...,
 )
     I_vals = exp_data[:, 2]
@@ -74,17 +74,33 @@ function _fit_model(
     fitting_params(::Type{MarcusHushChidseyDOS}) = (:A, :λ)
 
     # find best-fitting params
+    # Zygote is tripped up by QuadGK, so that one has to be done with black-box optimization, but the non-integral models work with autodiff
     opt_func = params -> sq_error(model_evaluator(model_builder(params)))
-    ss = [param_bounds[p] for p in fitting_params(model_type)]
-    res = bboptimize(
-        opt_func;
-        SearchSpace = RectSearchSpace(ss),
-        NumDimensions = length(ss),
-        MaxSteps = MaxSteps,
-        TraceInterval = 5.0,
-        MinDeltaFitnessTolerance = MinDeltaFitnessTolerance,
-    )
-    best_params = best_candidate(res)
+    local best_params
+    if model_type <: IntegralModel
+        ss = [param_bounds[p] for p in fitting_params(model_type)]
+        res = bboptimize(
+            opt_func;
+            SearchSpace = RectSearchSpace(ss),
+            NumDimensions = length(ss),
+            MaxSteps = 400,
+            TraceInterval = 5.0,
+            MinDeltaFitnessTolerance = 1e-3,
+        )
+        best_params = best_candidate(res)
+    else
+        function grad!(s, x)
+            gs = gradient(params -> opt_func(params), x)[1]
+            for i in 1:length(x)
+                s[i] = gs[i]
+            end
+        end
+        lower = Float64.([param_bounds[p][1] for p in fitting_params(model_type)])
+        upper = Float64.([param_bounds[p][2] for p in fitting_params(model_type)])
+        init_guess = 0.5 .* (lower .+ upper)
+        opt = optimize(opt_func, grad!, lower, upper, init_guess, Fminbox(LBFGS()))
+        best_params = opt.minimizer
+    end
 
     # construct and return model
     model_builder(best_params)

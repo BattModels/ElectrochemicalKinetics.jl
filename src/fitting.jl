@@ -2,9 +2,9 @@ using BlackBoxOptim
 
 # TODO: add fit_overpotential fcn
 
-fit_params(t::Type{<:KineticModel}) = fieldnames(t)
-fit_params(::Type{MarcusHushChidsey}) = (:A, :λ)
-fit_params(::Type{MarcusHushChidseyDOS}) = (:A, :λ)
+fitting_params(t::Type{<:KineticModel}) = fieldnames(t)
+fitting_params(::Type{MarcusHushChidsey}) = (:A, :λ)
+fitting_params(::Type{MarcusHushChidseyDOS}) = (:A, :λ)
 const default_param_bounds = Dict(:A => (0.1, 50000), :λ => (0.01, 0.5), :α => (0.01, 0.99))
 
 """
@@ -29,6 +29,7 @@ function fit_model(
     model_type::Type{<:KineticModel};
     param_bounds::Dict = default_param_bounds,
     kT::Real = 0.026,
+    kwargs...
 )
     V_vals = exp_data[:, 1]
     eval_model(model) = [compute_k(V, model; kT = kT) for V in V_vals]
@@ -59,7 +60,7 @@ function _fit_model(
     param_bounds,
     model_evaluator;
     MaxSteps = 2000,
-    MinDeltaFitnessTolerance = 1e-12,
+    MinDeltaFitnessTolerance = 1e-3,
     kwargs...,
 )
     I_vals = exp_data[:, 2]
@@ -68,13 +69,13 @@ function _fit_model(
     sq_error(I_pred) = sum((I_pred .- I_vals) .^ 2)
 
     # WTF, why do I need these here again...just when I think I understand scope
-    fit_params(t::Type{<:KineticModel}) = fieldnames(t)
-    fit_params(::Type{MarcusHushChidsey}) = (:A, :λ)
-    fit_params(::Type{MarcusHushChidseyDOS}) = (:A, :λ)
+    fitting_params(t::Type{<:KineticModel}) = fieldnames(t)
+    fitting_params(::Type{MarcusHushChidsey}) = (:A, :λ)
+    fitting_params(::Type{MarcusHushChidseyDOS}) = (:A, :λ)
 
     # find best-fitting params
     opt_func = params -> sq_error(model_evaluator(model_builder(params)))
-    ss = [param_bounds[p] for p in fit_params(model_type)]
+    ss = [param_bounds[p] for p in fitting_params(model_type)]
     res = bboptimize(
         opt_func;
         SearchSpace = RectSearchSpace(ss),
@@ -99,7 +100,7 @@ is_dosmodel(t::Type{<:IntegralModel}) = t == MarcusHushChidsey || t == MarcusHus
 
 function _get_model_builder(model_type, param_bounds; kwargs...)
     # check that all necessary params are provided
-    @assert Set(keys(param_bounds)) >= Set(fit_params(model_type))
+    @assert Set(keys(param_bounds)) >= Set(fitting_params(model_type))
 
     # check for kwargs, build DOS object if needed, etc.
     arg_names = keys(kwargs)

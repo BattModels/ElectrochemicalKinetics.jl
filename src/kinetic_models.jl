@@ -155,7 +155,8 @@ function integrand(mhc::MarcusHushChidsey, V_dl::Real, ox::Bool; kT::Real = 0.02
 end
 
 """
-    MarcusHushChidseyDOS(A, λ, dos)
+    MarcusHushChidseyDOS(A=1.0, λ, dos)
+    MarcusHushChidseyDOS(A=1.0, λ, dos_file)
 
 Computes Marcus-Hush-Chidsey + DOS kinetics as described in Kurchin and Viswanathan: 10.1063/5.0023611 
 """
@@ -176,6 +177,8 @@ MarcusHushChidseyDOS(λ, dd::DOSData) = MarcusHushChidseyDOS(1.0, λ, dd)
 
 MarcusHushChidseyDOS(A, λ, dos_file::String; kwargs...) =
     MarcusHushChidseyDOS(A, λ, DOSData(dos_file; kwargs...))
+
+MarcusHushChidseyDOS(λ, dos_file::String; kwargs...) = MarcusHushChidseyDOS(1.0, λ, DOSData(dos_file; kwargs...))
 
 function integrand(
     mhcd::MarcusHushChidseyDOS,

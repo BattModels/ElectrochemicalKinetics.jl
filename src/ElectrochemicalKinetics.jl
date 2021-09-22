@@ -18,7 +18,7 @@ include("rate_constant.jl")
 export compute_k, compute_k_cq
 
 include("fitting.jl")
-export fit_params, fit_model, is_dosmodel
+export fitting_params, fit_model, is_dosmodel
 
 include("plot_fcns.jl")
 export plot_models, plot_exp_and_models

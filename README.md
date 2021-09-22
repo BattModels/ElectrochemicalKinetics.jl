@@ -81,19 +81,23 @@ julia> plot_models(models)
 (I hope the equations below are visible in both dark and light mode...)
 ### Butler-Volmer
 Probably the most basic (and entirely empirical) kinetic model. The rate constants are given by:
+
 <img src="img/bv_ox.png" alt="BV_ox">
+
 <img src="img/bv_red.png" alt="BV_red">
 
 Implemented in the package as `ButlerVolmer`, possessing two fields: the prefactor `A` and the transfer coefficient `α`.
 
 ### Marcus
 One step up with a bit of mechanism...
+
 <img src="img/Marcus.png" alt="Marcus_k">
 
 Implemented in the package as `Marcus`, with parameters for prefactor `A` and reorganization energy `λ`.
 
 ### Marcus-Hush-Chidsey
 Originated from [Chidsey's 1991 paper](dx.doi.org/10.1126/science.251.4996.919).
+
 <img src="img/MHC.png" alt="MHC_k">
 
 Implemented as `MarcusHushChidsey`, with prefactor `A`, reorganization energy `λ`, and also an `average_dos` parameter (which defaults to 1.0), which is useful for making direct comparisons against `MarcusHushChidseyDOS` (see below).
@@ -105,6 +109,7 @@ Implemented as `AsymptoticMarcusHushChidsey` with parameters `A` and `λ`.
 
 ### Marcus-Hush-Chidsey + DOS
 Originated from [Kurchin and Viswanathan 2020](dx.doi.org/10.1063/5.0023611 ).
+
 <img src="img/MHCD_ox.png" alt="MHCD_ox">
 <img src="img/MHCD_red.png" alt="MHCD_red">
 

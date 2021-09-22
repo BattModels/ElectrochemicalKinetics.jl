@@ -14,6 +14,20 @@ abstract type KineticModel end
 (km::KineticModel)(V_app; kT = 0.026) =
     abs(km(V_app, true; kT = kT) - km(V_app, false; kT = kT))
 
+# generic pretty printing
+function Base.show(io::IO, m::KineticModel)
+    s = repr(typeof(m)) * "("
+    for field in propertynames(m)
+        s =
+            s *
+            string(field) *
+            "=" *
+            string(round(getproperty(m, field), sigdigits = 3)) *
+            ", "
+    end
+    s = s[1:end-2] * ")"
+    print(io, s)
+end
 
 """
     ButlerVolmer(A, α)
@@ -31,7 +45,15 @@ end
 # default to symmetric response
 ButlerVolmer(A) = ButlerVolmer(A, 0.5)
 
-(bv::ButlerVolmer)(V_app, ox::Bool; kT::Real = 0.026) = bv.A * exp(ox * bv.α * V_app / kT)
+function (bv::ButlerVolmer)(V_app, ox::Bool; kT::Real = 0.026)
+    local exp_arg
+    if ox
+        exp_arg = (bv.α * V_app) / kT
+    else
+        exp_arg = -((1 - bv.α) * V_app) / kT
+    end
+    bv.A * exp(exp_arg)
+end
 
 """
     AsymptoticMarcusHushChidsey(A, λ)
@@ -51,7 +73,7 @@ AsymptoticMarcusHushChidsey(λ) = AsymptoticMarcusHushChidsey(1.0, λ)
 
 function (amhc::AsymptoticMarcusHushChidsey)(V_app, ox::Bool; kT::Real = 0.026)
     a = 1 + sqrt(amhc.λ)
-    η = ox * V_app / kT
+    η = (2 * ox - 1) * V_app / kT
     λ_nondim = amhc.λ / kT
     arg = (λ_nondim - sqrt(a + η^2)) / (2 * sqrt(λ_nondim))
     pref = sqrt(π * λ_nondim) / (1 + exp(-η))
@@ -79,7 +101,7 @@ Computes Marcus kinetics.
 
 If initialized with one argument, assumes this to be the reorganization energy λ and sets the prefactor A to 1.0.
 """
-struct Marcus <: IntegralModel
+struct Marcus <: KineticModel
     A::Float64
     λ::Float64
 end
@@ -87,11 +109,14 @@ end
 # default prefactor is 1
 Marcus(λ) = Marcus(1.0, λ)
 
-function integrand(m::Marcus, V_dl::Real, ox::Bool; kT::Real = 0.026)
-    arg =
-        E ->
-            ox ? -(m.λ - V_dl + E)^2 / (4 * m.λ * kT) : -(m.λ + V_dl - E)^2 / (4 * m.λ * kT)
-    E -> m.A * exp(arg(E))
+function (m::Marcus)(V_app, ox::Bool; kT::Real = 0.026)
+    local exp_arg
+    if ox
+        exp_arg = -(m.λ + V_app)^2 / (4 * m.λ * kT)
+    else
+        exp_arg = -(m.λ - V_app)^2 / (4 * m.λ * kT)
+    end
+    m.A * exp(exp_arg)
 end
 
 """
@@ -115,10 +140,18 @@ MarcusHushChidsey(A, λ, dd::DOSData) = MarcusHushChidsey(A, λ, dd.average_valu
 MarcusHushChidsey(A, λ, dos_file::String; kwargs...) =
     MarcusHushChidsey(A, λ, DOSData(dos_file; kwargs...))
 
+# TODO: Check that both this and +DOS versions still match original paper
 function integrand(mhc::MarcusHushChidsey, V_dl::Real, ox::Bool; kT::Real = 0.026)
-    marcus = integrand(Marcus(mhc.λ), V_dl, ox; kT = kT)
-    fd(E) = ox ? 1 - fermi_dirac(E; kT = kT) : fermi_dirac(E; kT = kT)
-    return E -> mhc.A * mhc.average_dos * marcus(E) * fd(E)
+    function marcus_term(E)
+        local exp_arg
+        if ox
+            exp_arg = -(E-mhc.λ+V_dl)^2 / (4 * mhc.λ * kT)
+        else
+            exp_arg = -(E-mhc.λ-V_dl)^2 / (4 * mhc.λ * kT)
+        end
+        exp(exp_arg)
+    end
+    E -> mhc.A * mhc.average_dos * marcus_term(E) * fermi_dirac(E; kT = kT)
 end
 
 """
@@ -132,14 +165,34 @@ struct MarcusHushChidseyDOS <: IntegralModel
     dos::DOSData
 end
 
+function Base.show(io::IO, mhcd::MarcusHushChidseyDOS)
+    s = repr(typeof(mhcd)) * "("
+    s *= "A=$(round(mhcd.A, sigdigits=3)), λ=$(round(mhcd.λ, sigdigits=3)))"
+    print(io, s)
+end
+
 # default prefactor is 1
 MarcusHushChidseyDOS(λ, dd::DOSData) = MarcusHushChidseyDOS(1.0, λ, dd)
 
 MarcusHushChidseyDOS(A, λ, dos_file::String; kwargs...) =
     MarcusHushChidseyDOS(A, λ, DOSData(dos_file; kwargs...))
 
-integrand(mhcd::MarcusHushChidseyDOS, V_dl::Real, ox::Bool; kT::Real = 0.026, V_q = 0.0) =
-    E ->
-        mhcd.A *
-        mhcd.dos.interp_func(E + V_q) *
-        integrand(MarcusHushChidsey(mhcd.λ, 1.0), V_dl, ox; kT = kT)(E)
+function integrand(
+    mhcd::MarcusHushChidseyDOS,
+    V_dl::Real,
+    ox::Bool;
+    kT::Real = 0.026,
+    V_q = 0.0,
+)
+    function marcus_term(E)
+        local exp_arg
+        if ox
+            exp_arg = -(mhcd.λ-V_dl+E)^2 / (4 * mhcd.λ * kT)
+        else
+            exp_arg = -(mhcd.λ+V_dl-E)^2 / (4 * mhcd.λ * kT)
+        end
+        exp(exp_arg)
+    end
+    fd(E) = ox ? 1 - fermi_dirac(E; kT = kT) : fermi_dirac(E; kT = kT)
+    E -> mhcd.A * mhcd.dos.interp_func(E + V_q) * fd(E) * marcus_term(E)
+end

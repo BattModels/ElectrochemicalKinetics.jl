@@ -30,7 +30,7 @@ compute_k(
 ) = quadgk(integrand(model, V_app, ox; kT=kT), E_min, E_max)[1] # return format is (value, error_bound)
 
 compute_k(V_app, model::KineticModel; kT = 0.026) = model(V_app; kT = kT)
-compute_k(V_app, model::IntegralModel; kT = 0.026, E_min = -100 * kT, E_max = 100 * kT) =
+compute_k(V_app, model::IntegralModel; kT = 0.026, E_min = -100 * kT, E_max = 100 * kT, kwargs...) =
     quadgk(integrand(model, V_app; kT=kT), E_min, E_max)[1]
 
 function compute_k(
@@ -44,6 +44,7 @@ function compute_k(
     C_dl = 10.0,
     Vq_min = -0.5,
     Vq_max = 0.5,
+    kwargs...
 )
     if calc_cq
         compute_k_cq(
@@ -58,7 +59,7 @@ function compute_k(
             E_max = E_max,
         )
     else
-        compute_k(V_app, model, ox; kT = kT, E_min = E_min, E_max = E_max)
+        invoke(compute_k, Tuple{typeof(V_app), IntegralModel, Bool}, V_app, model, ox; kT = kT, E_min = E_min, E_max = E_max)
     end
 end
 
@@ -72,6 +73,7 @@ function compute_k(
     C_dl = 10.0,
     Vq_min = -0.5,
     Vq_max = 0.5,
+    kwargs...
 )
     if calc_cq
         compute_k_cq(
@@ -86,7 +88,7 @@ function compute_k(
             Vq_max = Vq_max,
         )
     else
-        compute_k(V_app, model; kT = kT, E_min = E_min, E_max = E_max)
+        invoke(compute_k, Tuple{typeof(V_app), IntegralModel}, V_app, model; kT = kT, E_min = E_min, E_max = E_max)
     end
 end
 

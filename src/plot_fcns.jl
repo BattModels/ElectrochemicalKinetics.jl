@@ -1,35 +1,51 @@
 using Plots
 using ElectrochemicalKinetics
 
-# plotting shortcut to make MHC and MHC+DOS curves with some fixed parameters
-function plot_comparison(
-    dos_file,
-    eη_max,
-    E_min,
-    E_max;
-    kT = 0.026,
-    λ = 0.26,
-    length = 500,
-    plot_title = "",
-)
-    eη_range = range(-eη_max, eη_max, length = length)
-    MHC_model = MarcusHushChidsey(λ, dos_file)
-    MHC_DOS_model = MarcusHushChidseyDOS(λ, dos_file)
-    MHC_k = [compute_k(E_min, E_max, eη, MHC_model; kT = kT) for eη in eη_range]
-    MHC_DOS_k = [compute_k(E_min, E_max, eη, MHC_DOS_model; kT = kT) for eη in eη_range]
+function plot_models(models; plot_title="", V_min=-1.0, V_max=1.0, kwargs...)
+    V_range = range(V_min, V_max, length=200)
+    xs = repeat([V_range], length(models))
+    ys = map(model->[compute_k(V, model; kwargs...) for V in V_range], models)
     plot(
-        eη_range,
-        hcat(log10.(abs.(MHC_k)), log10.(abs.(MHC_DOS_k))),
-        label = ["MHC" "MHC+DOS"],
-        legend = :bottomright,
-        xlabel = "eη",
-        ylabel = "log(k)",
+        xs,
+        ys,
+        seriestype = [:line repeat([:line], length(models)-1)...],
+        label = [repr(models[1]) repr.(models[2:end])...],
+        xlabel = "V",
+        ylabel = "log(k or I)",
+        yscale = :log10,
+        leg = :bottomright,
         title = plot_title,
-        color = [:purple :green],
     )
 end
 
-# if you want to visualize each term in integrand separately
+function plot_exp_and_models(
+    exp_data::Matrix,
+    models::Vector{<:KineticModel};
+    plot_title = "",
+    kwargs...
+)
+    V = exp_data[:, 1]
+    V_mag = 1.1 * maximum(abs.(V))
+    V_range = range(-V_mag, V_mag, length = 200)
+
+    xs = Vector[V, repeat([V_range], length(models))...]
+    ys = Vector[exp_data[:, 2], map(model->[compute_k(V, model; kwargs...) for V in V_range], models)...]
+
+    # scatter plot of experimental data, lines for fits
+    plot(
+        xs,
+        ys,
+        seriestype = [:scatter repeat([:line], length(models))...],
+        label = ["experiment" repr.(models)...],
+        xlabel = "V",
+        ylabel = "log(k or I)",
+        yscale = :log10,
+        leg = :bottomright,
+        title = plot_title,
+    )
+end
+
+# if you want to visualize each term in MHC+DOS integrand separately
 function plot_integrand_components(
     dos_file,
     E_min,
@@ -74,48 +90,3 @@ function plot_integrand_components(
     plot(p1, p2, p3, layout = (3, 1))
 end
 
-function plot_fits(
-    exp_data,
-    dos_file,
-    E_min,
-    E_max,
-    MHC_λ,
-    MHC_A,
-    MHC_DOS_λ,
-    MHC_DOS_A;
-    plot_title = "",
-)
-    # compute k's
-    V = exp_data[:, 1]
-    V_mag = 1.1 * maximum(abs.(V))
-    V_range = range(-V_mag, V_mag, length = 200)
-    MHC_model = MarcusHushChidsey(MHC_λ, dos_file)
-    MHC_DOS_model = MarcusHushChidseyDOS(MHC_DOS_λ, dos_file)
-    MHC_k = [MHC_A * compute_k(E_min, E_max, V, MHC_model) for V in V_range]
-    MHC_DOS_k = [MHC_DOS_A * compute_k(E_min, E_max, V, MHC_DOS_model) for V in V_range]
-
-    # scatter plot of experimental data, lines for fits
-    xs = Vector[V, V_range, V_range]
-    ys = Vector[exp_data[:, 2], MHC_k, MHC_DOS_k]
-    plot(
-        xs,
-        ys,
-        seriestype = [:scatter :line :line],
-        label = ["experiment" string(
-            "MHC: λ=",
-            round(MHC_λ, digits = 3),
-            "; A=",
-            round(MHC_A, digits = 2),
-        ) string(
-            "MHC+DOS: λ=",
-            round(MHC_DOS_λ, digits = 3),
-            "; MHC_DOS_A=",
-            round(MHC_DOS_A, digits = 2),
-        )],
-        xlabel = "V",
-        ylabel = "log(k or I)",
-        yscale = :log10,
-        leg = :bottomright,
-        title = plot_title,
-    )
-end

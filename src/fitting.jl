@@ -1,9 +1,11 @@
 using BlackBoxOptim
 
+# TODO: add fit_overpotential fcn
+
 fit_params(t::Type{<:KineticModel}) = fieldnames(t)
 fit_params(::Type{MarcusHushChidsey}) = (:A, :λ)
 fit_params(::Type{MarcusHushChidseyDOS}) = (:A, :λ)
-const default_param_bounds = Dict(:A => (0.1, 10000), :λ => (0.01, 0.5), :α => (0.01, 0.99))
+const default_param_bounds = Dict(:A => (0.1, 50000), :λ => (0.01, 0.5), :α => (0.01, 0.99))
 
 """
     fit_model(exp_data, model_type, param_bounds, kT=.026; kwargs...)
@@ -29,24 +31,24 @@ function fit_model(
     model_type::Type{<:KineticModel};
     param_bounds::Dict = default_param_bounds,
     kT::Real = 0.026,
-    kwargs...,
 )
     V_vals = exp_data[:, 1]
     eval_model(model) = [compute_k(V, model; kT = kT) for V in V_vals]
-    _fit_model(exp_data, model_type, param_bounds, eval_model, kwargs...)
+    _fit_model(exp_data, model_type, param_bounds, eval_model)
 end
 
+# TODO: check if this works with Cq
 function fit_model(
     exp_data::Matrix,
-    model_type::Type{<:IntegralModel},
-    E_min::Real,
-    E_max::Real;
+    model_type::Type{<:IntegralModel};
     param_bounds::Dict = default_param_bounds,
     kT::Real = 0.026,
+    E_min=-100*kT,
+    E_max=100*kT,
     kwargs...,
 )
     V_vals = exp_data[:, 1]
-    eval_model(model) = [compute_k(E_min, E_max, V, model; kT = kT) for V in V_vals]
+    eval_model(model) = [compute_k(V, model; kT = kT, E_min=E_min, E_max=E_max, kwargs...) for V in V_vals]
     _fit_model(exp_data, model_type, param_bounds, eval_model; kwargs...)
 end
 
@@ -55,9 +57,9 @@ function _fit_model(
     model_type::Type{<:KineticModel},
     param_bounds,
     model_evaluator;
-    MaxSteps = 100000,
+    MaxSteps = 2000,
     MinDeltaFitnessTolerance = 1e-12,
-    kwargs...,
+    kwargs...
 )
     I_vals = exp_data[:, 2]
 
@@ -105,6 +107,8 @@ function _get_model_builder(model_type, param_bounds; kwargs...)
         elseif :average_dos in arg_names
             @assert model_type == MarcusHushChidsey "You haven't provided a DOSData object or a file from which to build it"
             dos_arg = :average_dos
+        else
+            throw(ArgumentError("I need DOS information for this model type!"))
         end
         model_builder = param_tuple -> model_type(param_tuple..., kwargs[dos_arg])
     else

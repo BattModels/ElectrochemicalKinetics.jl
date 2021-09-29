@@ -1,6 +1,7 @@
 using BlackBoxOptim
 using Zygote
 using Optim
+using DiffImages
 
 """
     fit_overpotential(model, k; kwargs...)
@@ -89,35 +90,30 @@ function _fit_model(
     # Zygote is tripped up by QuadGK, so that one has to be done with black-box optimization, but the non-integral models work with autodiff
     opt_func = params -> sq_error(model_evaluator(model_builder(params)))
     local best_params
-    if model_type <: IntegralModel
-        ss = [param_bounds[p] for p in fitting_params(model_type)]
-        res = bboptimize(
-            opt_func;
-            SearchSpace = RectSearchSpace(ss),
-            NumDimensions = length(ss),
-            MaxSteps = 400,
-            TraceInterval = 5.0,
-            MinDeltaFitnessTolerance = 1e-3,
-        )
-        best_params = best_candidate(res)
-        # lower = Float64.([param_bounds[p][1] for p in fitting_params(model_type)])
-        # upper = Float64.([param_bounds[p][2] for p in fitting_params(model_type)])
-        # init_guess = 0.5 .* (lower .+ upper)
-        # opt = optimize(opt_func, lower, upper, init_guess, Fminbox(LBFGS()); autodiff=:forward)
-        # best_params = opt.minimizer
-    else
-        function grad!(s, x)
-            gs = gradient(params -> opt_func(params), x)[1]
-            for i in 1:length(x)
-                s[i] = gs[i]
-            end
+    function grad!(s, x)
+        gs = gradient(params -> opt_func(params), x)[1]
+        for i in 1:length(x)
+            s[i] = gs[i]
         end
-        lower = Float64.([param_bounds[p][1] for p in fitting_params(model_type)])
-        upper = Float64.([param_bounds[p][2] for p in fitting_params(model_type)])
-        init_guess = 0.5 .* (lower .+ upper)
-        opt = optimize(opt_func, grad!, lower, upper, init_guess, Fminbox(LBFGS()))
-        best_params = opt.minimizer
     end
+    lower = Float64.([param_bounds[p][1] for p in fitting_params(model_type)])
+    upper = Float64.([param_bounds[p][2] for p in fitting_params(model_type)])
+    init_guess = 0.5 .* (lower .+ upper)
+
+    # set optimisers based on the model type
+    # IntegralModels performed better with GradientDescent
+    optimizer, opts = if model_type <: IntegralModel
+      opts = Optim.Options(show_trace = true,
+                           iterations = 3,
+                           outer_iterations = 4,
+                           x_tol = 1.,
+                           f_tol = 1e3)
+      Fminbox(GradientDescent()), opts
+    else
+      Fminbox(LBFGS()), Optim.Options()
+    end
+    opt = optimize(opt_func, grad!, lower, upper, init_guess, optimizer, opts)
+    best_params = Optim.minimizer(opt)
 
     # construct and return model
     model_builder(best_params)

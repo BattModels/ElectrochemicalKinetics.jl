@@ -62,10 +62,12 @@ function fit_model(
     kwargs...,
 )
     V_vals = exp_data[:, 1]
-    eval_model(model) = [
-        compute_k(V, model; kT = kT, E_min = E_min, E_max = E_max, kwargs...) for
-        V in V_vals
-    ]
+    eval_model(model) = compute_k(V_vals,
+                                  model;
+                                  kT = kT,
+                                  E_min = E_min,
+                                  E_max = E_max,
+                                  kwargs...)
     _fit_model(exp_data, model_type, param_bounds, eval_model; kwargs...)
 end
 
@@ -103,7 +105,7 @@ function _fit_model(
     # set optimisers based on the model type
     # IntegralModels performed better with GradientDescent
     optimizer, opts = if model_type <: IntegralModel
-      opts = Optim.Options(show_trace = true,
+      opts = Optim.Options(show_trace = false,
                            iterations = 3,
                            outer_iterations = 4,
                            x_tol = 1.,

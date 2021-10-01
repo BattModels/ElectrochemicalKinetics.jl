@@ -83,8 +83,8 @@ end
 abstract type IntegralModel <: KineticModel end # "Marcus-like"
 
 # check to catch missed dispatches for new types
-integrand(km::IntegralModel, V_dl::Real, ox::Bool; kwargs...) =
-    error("An integral-based kinetic model must dispatch the `integrand` function!")
+# integrand(km::IntegralModel, V_dl, ox::Bool; kwargs...) =
+#     error("An integral-based kinetic model must dispatch the `integrand` function!")
 
 # TODO: check that this passes through both kT and V_q appropriately
 # dispatch for net rates
@@ -184,7 +184,7 @@ MarcusHushChidseyDOS(λ, dos_file::String; kwargs...) = MarcusHushChidseyDOS(1.0
 
 function integrand(
     mhcd::MarcusHushChidseyDOS,
-    V_dl::Real,
+    V_dl,
     ox::Bool;
     kT::Real = 0.026,
     V_q = 0.0,
@@ -192,12 +192,12 @@ function integrand(
     function marcus_term(E)
         local exp_arg
         if ox
-            exp_arg = -(( (mhcd.λ - V_dl) .+ E) .^ 2) ./ (4 * mhcd.λ * kT)
+            exp_arg = -(( (mhcd.λ .- V_dl) .+ E) .^ 2) ./ (4 * mhcd.λ * kT)
         else
-            exp_arg = -(( (mhcd.λ+V_dl) .- E) .^ 2) ./ (4 * mhcd.λ * kT)
+            exp_arg = -(( (mhcd.λ .+ V_dl) .- E) .^ 2) ./ (4 * mhcd.λ * kT)
         end
         exp.(exp_arg)
     end
     fd(E) = ox ? 1 .- fermi_dirac(E; kT = kT) : fermi_dirac(E; kT = kT)
-    E -> mhcd.A .* mhcd.dos.interp_func(E .+ V_q) .* fd(E) .* marcus_term(E)
+    E -> mhcd.A .* mhcd.dos.interp_func.(E .+ V_q) .* fd(E) .* marcus_term(E)
 end

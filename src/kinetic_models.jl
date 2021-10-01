@@ -6,7 +6,7 @@ using SpecialFunctions
 
 Compute the value of the Fermi-Dirac distribution at energy `E` (relative to the Fermi energy) and thermal energy `kT`.
 """
-fermi_dirac(E; kT = 0.026) = 1 / (1 + exp(E / kT))
+fermi_dirac(E; kT = 0.026) = inv.(1 .+ exp.(E ./ kT))
 
 abstract type KineticModel end
 
@@ -88,8 +88,8 @@ integrand(km::IntegralModel, V_dl::Real, ox::Bool; kwargs...) =
 
 # TODO: check that this passes through both kT and V_q appropriately
 # dispatch for net rates
-integrand(km::IntegralModel, V_dl::Real; kwargs...) =
-    E -> abs(
+integrand(km::IntegralModel, V_dl; kwargs...) =
+    E -> abs.(
         integrand(km, V_dl, true; kwargs...)(E) - integrand(km, V_dl, false; kwargs...)(E),
     )
 
@@ -141,18 +141,20 @@ MarcusHushChidsey(A, λ, dos_file::String; kwargs...) =
     MarcusHushChidsey(A, λ, DOSData(dos_file; kwargs...))
 
 # TODO: Check that both this and +DOS versions still match original paper
-function integrand(mhc::MarcusHushChidsey, V_dl::Real, ox::Bool; kT::Real = 0.026)
+function integrand(mhc::MarcusHushChidsey, V_dl, ox::Bool; kT::Real = 0.026)
     function marcus_term(E)
         local exp_arg
         if ox
-            exp_arg = -(E-mhc.λ+V_dl)^2 / (4 * mhc.λ * kT)
+            exp_arg = -( ((E .- (mhc.λ .+ V_dl)) .^ 2)) ./ (4 * mhc.λ * kT)
         else
-            exp_arg = -(E-mhc.λ-V_dl)^2 / (4 * mhc.λ * kT)
+            exp_arg = -( ((E .- (mhc.λ .- V_dl)) .^2)) ./ (4 * mhc.λ * kT)
         end
-        exp(exp_arg)
+        exp.(exp_arg)
     end
-    E -> mhc.A * mhc.average_dos * marcus_term(E) * fermi_dirac(E; kT = kT)
+    E -> (mhc.A * mhc.average_dos) .* marcus_term(E) .* fermi_dirac(E; kT = kT)
 end
+
+
 
 """
     MarcusHushChidseyDOS(A=1.0, λ, dos)
@@ -190,12 +192,12 @@ function integrand(
     function marcus_term(E)
         local exp_arg
         if ox
-            exp_arg = -(mhcd.λ-V_dl+E)^2 / (4 * mhcd.λ * kT)
+            exp_arg = -(( (mhcd.λ - V_dl) .+ E) .^ 2) ./ (4 * mhcd.λ * kT)
         else
-            exp_arg = -(mhcd.λ+V_dl-E)^2 / (4 * mhcd.λ * kT)
+            exp_arg = -(( (mhcd.λ+V_dl) .- E) .^ 2) ./ (4 * mhcd.λ * kT)
         end
-        exp(exp_arg)
+        exp.(exp_arg)
     end
-    fd(E) = ox ? 1 - fermi_dirac(E; kT = kT) : fermi_dirac(E; kT = kT)
-    E -> mhcd.A * mhcd.dos.interp_func(E .+ V_q) * fd(E) * marcus_term(E)
+    fd(E) = ox ? 1 .- fermi_dirac(E; kT = kT) : fermi_dirac(E; kT = kT)
+    E -> mhcd.A .* mhcd.dos.interp_func(E .+ V_q) .* fd(E) .* marcus_term(E)
 end

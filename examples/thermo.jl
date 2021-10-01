@@ -40,6 +40,7 @@ function find_phase_boundaries(I, km::KineticModel; Ω=Ω, muoA=muoA, muoB=muoB,
         storage[1] = res[1]
         storage[2] = res[2]
     end
+    # TODO: grad! here from AD
     x1 = nlsolve(myct!, [0.05 0.95])
     x1.zero
 end

@@ -12,7 +12,7 @@ abstract type KineticModel end
 
 # dispatch for net rates
 (km::KineticModel)(V_app; kT = 0.026) =
-    abs(km(V_app, true; kT = kT) - km(V_app, false; kT = kT))
+    abs.(km(V_app, true; kT = kT) - km(V_app, false; kT = kT))
 
 # generic pretty printing
 function Base.show(io::IO, m::KineticModel)
@@ -48,11 +48,11 @@ ButlerVolmer(A) = ButlerVolmer(A, 0.5)
 function (bv::ButlerVolmer)(V_app, ox::Bool; kT::Real = 0.026)
     local exp_arg
     if ox
-        exp_arg = (bv.α * V_app) / kT
+        exp_arg = (bv.α .* V_app) ./ kT
     else
-        exp_arg = -((1 - bv.α) * V_app) / kT
+        exp_arg = -((1 .- bv.α) .* V_app) ./ kT
     end
-    bv.A * exp(exp_arg)
+    bv.A .* exp.(exp_arg)
 end
 
 """
@@ -73,11 +73,11 @@ AsymptoticMarcusHushChidsey(λ) = AsymptoticMarcusHushChidsey(1.0, λ)
 
 function (amhc::AsymptoticMarcusHushChidsey)(V_app, ox::Bool; kT::Real = 0.026)
     a = 1 + sqrt(amhc.λ)
-    η = (2 * ox - 1) * V_app / kT
+    η = (2 * ox - 1) .* V_app ./ kT
     λ_nondim = amhc.λ / kT
-    arg = (λ_nondim - sqrt(a + η^2)) / (2 * sqrt(λ_nondim))
+    arg = (λ_nondim .- sqrt.(a .+ η^2)) ./ (2 * sqrt(λ_nondim))
     pref = sqrt(π * λ_nondim) / (1 + exp(-η))
-    return amhc.A * pref * erfc(arg)
+    return amhc.A .* pref .* erfc.(arg)
 end
 
 abstract type IntegralModel <: KineticModel end # "Marcus-like"
@@ -112,11 +112,11 @@ Marcus(λ) = Marcus(1.0, λ)
 function (m::Marcus)(V_app, ox::Bool; kT::Real = 0.026)
     local exp_arg
     if ox
-        exp_arg = -(m.λ + V_app)^2 / (4 * m.λ * kT)
+        exp_arg = -(m.λ .+ V_app).^2 ./ (4 .* m.λ .* kT)
     else
-        exp_arg = -(m.λ - V_app)^2 / (4 * m.λ * kT)
+        exp_arg = -(m.λ .- V_app).^2 ./ (4 .* m.λ .* kT)
     end
-    m.A * exp(exp_arg)
+    m.A .* exp.(exp_arg)
 end
 
 """

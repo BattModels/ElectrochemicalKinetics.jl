@@ -53,11 +53,10 @@ function plot_exp_and_models(
     V = exp_data[:, 1]
     V_mag = 1.1 * maximum(abs.(V))
     V_range = range(-V_mag, V_mag, length = 200)
-
     xs = Vector[V, repeat([V_range], length(models))...]
     ys = Vector[
         exp_data[:, 2],
-        map(model -> [compute_k(V, model; kwargs...) for V in V_range], models)...,
+        map(model -> compute_k(V_range, model; kwargs...), models)...,
     ]
 
     # scatter plot of experimental data, lines for fits

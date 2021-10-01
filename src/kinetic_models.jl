@@ -50,7 +50,8 @@ struct ButlerVolmer <: KineticModel
     α::Float64
 end
 
-# default to symmetric response
+# default to unit prefactor and symmetric response
+ButlerVolmer() = ButlerVolmer(1.0, 0.5)
 ButlerVolmer(A) = ButlerVolmer(A, 0.5)
 
 function (bv::ButlerVolmer)(V_app, ox::Bool; kT::Real = 0.026)

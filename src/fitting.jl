@@ -2,6 +2,7 @@ using BlackBoxOptim
 using Zygote
 using Optim
 using DiffImages
+using NLsolve
 
 """
     fit_overpotential(model, k; kwargs...)
@@ -9,6 +10,7 @@ using DiffImages
 Given values for current/rate constant and specified model parameters, find the overpotentials that must have resulted in it.
 """
 function fit_overpotential(model::KineticModel, k; kT=.026, kwargs...)
+    # TODO: do with nlsolve and Dhairya's AD
     sq_error(k_pred) = (k_pred .- k) .^ 2
     opt_func = V -> sq_error(compute_k(V[1], model; kT=kT, kwargs...))
     # just using ForwardDiff here because couldn't get Zygote to work... :/

@@ -14,6 +14,14 @@ abstract type KineticModel end
 (km::KineticModel)(V_app; kT = 0.026) =
     abs.(km(V_app, true; kT = kT) - km(V_app, false; kT = kT))
 
+# return a new one with a scaled prefactor
+import Base.*
+function *(c::Real, km::KineticModel)
+    new_A = c*km.A
+    other_params = getfield.([km], propertynames(km))[2:end]
+    typeof(km)(new_A, other_params...)
+end
+
 # generic pretty printing
 function Base.show(io::IO, m::KineticModel)
     s = repr(typeof(m)) * "("
@@ -42,7 +50,8 @@ struct ButlerVolmer <: KineticModel
     α::Float64
 end
 
-# default to symmetric response
+# default to unit prefactor and symmetric response
+ButlerVolmer() = ButlerVolmer(1.0, 0.5)
 ButlerVolmer(A) = ButlerVolmer(A, 0.5)
 
 function (bv::ButlerVolmer)(V_app, ox::Bool; kT::Real = 0.026)

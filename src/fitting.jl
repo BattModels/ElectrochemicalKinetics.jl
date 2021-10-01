@@ -1,4 +1,3 @@
-using BlackBoxOptim
 using Zygote
 using Optim
 using DiffImages
@@ -10,13 +9,20 @@ using NLsolve
 Given values for current/rate constant and specified model parameters, find the overpotentials that must have resulted in it.
 """
 function fit_overpotential(model::KineticModel, k; kT=.026, kwargs...)
-    # TODO: do with nlsolve and Dhairya's AD
-    sq_error(k_pred) = (k_pred .- k) .^ 2
-    opt_func = V -> sq_error(compute_k(V[1], model; kT=kT, kwargs...))
-    # just using ForwardDiff here because couldn't get Zygote to work... :/
-    # also the integral models work but behave badly without voltage bounds...
-    opt = optimize(opt_func, [-10.0], [10.0], [0.0], Fminbox(LBFGS()); autodiff=:forward)
-    opt.minimizer[1]
+    function compare_k!(storage, V)
+        storage .= compute_k(V, model; kT=kT, kwargs...) .- k
+    end
+
+    # this isn't quite right yet...
+    # function grad!(storage, V)
+    #     gs = gradient(V -> compute_k(V, model; kT=kT, kwargs...) .- k, V)
+    #     for i in 1:length(V)
+    #         storage[i] = gs[i]
+    #     end
+    # end
+    # Vs = nlsolve(compare_k!, grad!, repeat([0.1], length(k)))
+    Vs = nlsolve(compare_k!, repeat([0.1], length(k)))
+    Vs.zero
 end
 
 fitting_params(t::Type{<:KineticModel}) = fieldnames(t)
@@ -39,7 +45,6 @@ Requirements differ by model type...
 Some are always options...
 * `param_bounds::Dict{Symbol,Any}`: ranges of guesses for relevant model parameters. (must include all necessary keys, but defaults to some sensible ranges if not provided, see `default_param_bounds`...note that you should provide this for faster fitting if you know bounds)
 * E_min and E_max for integral models...defaults to +/- 100kT or in case of MarcusHushChidseyDOS, to energy bounds on DOS data
-* some options of the `bboptimize` function from BlackBoxOptim. Default values are: MaxSteps=10000, MinDeltaFitnessTolerance=1e-9 
 """
 function fit_model(
     exp_data::Matrix,

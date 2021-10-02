@@ -2,7 +2,6 @@ using Statistics
 using Interpolations
 using QuadGK
 using DelimitedFiles
-using BlackBoxOptim
 using Dierckx
 
 # TODO: think about reaction direction and quantum cap dispatches; there's probably a cleaner way to handle them...

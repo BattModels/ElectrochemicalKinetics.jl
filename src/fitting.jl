@@ -15,7 +15,7 @@ function fit_overpotential(model::KineticModel, k; kT=.026, kwargs...)
 
     function grad!(storage, V)
         gs = gradient(V -> sum(compute_k(V, model; kT=kT, kwargs...) .- k), V)[1]
-        storage .= gs'
+        storage .= gs
         nothing
     end
     Vs = nlsolve(compare_k!, grad!, repeat([0.1], length(k)))

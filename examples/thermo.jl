@@ -11,10 +11,10 @@ muoB = 0.03
 Ω = 0.1
 
 # our familiar thermodynamic functions
-hs(x;Ω=Ω) = x*(1-x)*Ω # enthalpy of mixing
-s(x) = -kB*(x*log(x) + (1-x)*log(1-x)) # entropy per particle
-g_thermo(x; Ω=Ω, muoA=muoA, muoB=muoB, T=T) = hs(x;Ω=Ω) - T*s(x)+ muoA*(1-x) + muoB*x # Gibbs free energy per particle
-μ_thermo(x; Ω=Ω, muoA=muoA, muoB=muoB, T=T) = (1-2*x)*Ω + kB*T*log(x/(1-x)) + muoB-muoA # chemical potential
+@. hs(x;Ω=Ω) = x*(1-x)*Ω # enthalpy of mixing
+@. s(x) = -kB*(x*log(x) + (1-x)*log(1-x)) # entropy per particle
+@. g_thermo(x; Ω=Ω, muoA=muoA, muoB=muoB, T=T) = hs(x;Ω=Ω) - T*s(x)+ muoA*(1-x) + muoB*x # Gibbs free energy per particle
+@. μ_thermo(x; Ω=Ω, muoA=muoA, muoB=muoB, T=T) = (1-2*x)*Ω + kB*T*log(x/(1-x)) + muoB-muoA # chemical potential
 
 """
 µ and g with kinetic constributions, can be modeled using any <:KineticModel object
@@ -23,15 +23,15 @@ These functions return single-argument functions (to easily use common-tangent f
 still being able to swap out model parameters by calling "function-builders" with different arguments).
 """
 µ_kinetic(I, km::KineticModel; Ω=Ω, muoA=muoA, muoB=muoB, T=T) = 
-    x -> µ_thermo(x; Ω=Ω, muoA=muoA, muoB=muoB, T=T) + fit_overpotential((1-x)*km, I)
+    x -> µ_thermo(x; Ω=Ω, muoA=muoA, muoB=muoB, T=T) .+ [t[1] for t in fit_overpotential.((1 .-x).* repeat([km], length(x)), I)]
 g_kinetic(I, km::KineticModel; Ω=Ω, muoA=muoA, muoB=muoB, T=T) = 
-    x -> g_thermo(x; Ω=Ω, muoA=muoA, muoB=muoB, T=T) + quadgk(x->fit_overpotential((1-x)*km, I), 0, x)[1]
+    x -> g_thermo(x; Ω=Ω, muoA=muoA, muoB=muoB, T=T) .+ [q[1][1][1] for q in quadgk.(y->fit_overpotential.((1 .-y).* repeat([km], length(y)), I), 0, x)]
 
 # zeros of this function correspond to pairs of x's satisfying the common tangent condition for a given µ function
 function common_tangent(x, I, km::KineticModel; Ω=Ω, muoA=muoA, muoB=muoB, T=T)
     g = g_kinetic(I, km; Ω=Ω, muoA=muoA, muoB=muoB, T=T)
     µ = µ_kinetic(I, km; Ω=Ω, muoA=muoA, muoB=muoB, T=T)
-    [(g(x[2])-g(x[1]))/(x[2]-x[1]) - μ(x[1]), μ(x[2])-μ(x[1])]
+    [((g(x[:,2]).-g(x[:,1]))./(x[:,2].-x[:,1]) .- μ(x[:,1]))[1], (μ(x[:,2]).-μ(x[:,1]))[1]]
 end
 
 function find_phase_boundaries(I, km::KineticModel; Ω=Ω, muoA=muoA, muoB=muoB, T=T)

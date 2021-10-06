@@ -24,8 +24,26 @@ still being able to swap out model parameters by calling "function-builders" wit
 """
 µ_kinetic(I, km::KineticModel; Ω=Ω, muoA=muoA, muoB=muoB, T=T) = 
     x -> µ_thermo(x; Ω=Ω, muoA=muoA, muoB=muoB, T=T) .+ [t[1] for t in fit_overpotential.((1 .-x).* repeat([km], length(x)), I)]
+# g_kinetic(I, km::KineticModel; Ω=Ω, muoA=muoA, muoB=muoB, T=T) = 
+#     x -> g_thermo(x; Ω=Ω, muoA=muoA, muoB=muoB, T=T) .+ [q[1][1][1] for q in quadgk.(y->fit_overpotential.((1 .-y).* repeat([km], length(y)), I), 0, x)]
+
+# fully scalar version
 g_kinetic(I, km::KineticModel; Ω=Ω, muoA=muoA, muoB=muoB, T=T) = 
-    x -> g_thermo(x; Ω=Ω, muoA=muoA, muoB=muoB, T=T) .+ [q[1][1][1] for q in quadgk.(y->fit_overpotential.((1 .-y).* repeat([km], length(y)), I), 0, x)]
+    x -> g_thermo(x; Ω=Ω, muoA=muoA, muoB=muoB, T=T) + quadgk(y->fit_overpotential((1 - y) * km, I), 0, x)[1][1]
+
+# for vector inputs x (for a vector of I's we would get a vector of functions that would then presumably each need to be broadcasted)
+function g_kinetic_vec(I, km::KineticModel; Ω=Ω, muoA=muoA, muoB=muoB, T=T)
+    function g_func(x::Vector{<:Real})
+        @assert issorted(x) "Input x values must be sorted!"
+        thermo_terms = g_thermo.(x; Ω=Ω, muoA=muoA, muoB=muoB, T=T)
+        lower_bounds = vcat([0], x[1:end-1])
+        upper_bounds = x
+        integral_slices = quadgk.(y -> fit_overpotential((1-y)*km, I), lower_bounds, upper_bounds)
+        kinetic_terms = cumsum([t[1][1] for t in integral_slices])
+        thermo_terms .+ kinetic_terms
+    end
+    return g_func
+end
 
 # zeros of this function correspond to pairs of x's satisfying the common tangent condition for a given µ function
 function common_tangent(x, I, km::KineticModel; Ω=Ω, muoA=muoA, muoB=muoB, T=T)

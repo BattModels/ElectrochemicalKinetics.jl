@@ -23,16 +23,16 @@ These functions return single-argument functions (to easily use common-tangent f
 still being able to swap out model parameters by calling "function-builders" with different arguments).
 """
 µ_kinetic(I::Real, km::KineticModel; Ω=Ω, muoA=muoA, muoB=muoB, T=T) = 
-    x -> µ_thermo(x; Ω=Ω, muoA=muoA, muoB=muoB, T=T) .+ [t[1] for t in fit_overpotential.((1 .-x).* repeat([km], length(x)), I)]
+    x -> µ_thermo(x; Ω=Ω, muoA=muoA, muoB=muoB, T=T) .+ [t[1] for t in fit_overpotential.((1 .-x).* Ref(km), I)]
 
-µ_kinetic(I::Vector{<:Real}, km::KineticModel; Ω=Ω, muoA=muoA, muoB=muoB, T=T) = µ_kinetic.(I, repeat([km], length(I)); Ω=Ω, muoA=muoA, muoB=muoB, T=T)
+µ_kinetic(I::Vector{<:Real}, km::KineticModel; Ω=Ω, muoA=muoA, muoB=muoB, T=T) = µ_kinetic.(I, Ref(km); Ω=Ω, muoA=muoA, muoB=muoB, T=T)
 # g_kinetic(I, km::KineticModel; Ω=Ω, muoA=muoA, muoB=muoB, T=T) = 
 #     x -> g_thermo(x; Ω=Ω, muoA=muoA, muoB=muoB, T=T) .+ [q[1][1][1] for q in quadgk.(y->fit_overpotential.((1 .-y).* repeat([km], length(y)), I), 0, x)]
 
 # fully scalar version
 g_kinetic(I::Real, km::KineticModel; Ω=Ω, muoA=muoA, muoB=muoB, T=T) = 
     x -> g_thermo(x; Ω=Ω, muoA=muoA, muoB=muoB, T=T) + quadgk(y->fit_overpotential((1 - y) * km, I), 0, x)[1][1]
-g_kinetic(I::Vector{<:Real}, km::KineticModel; Ω=Ω, muoA=muoA, muoB=muoB, T=T) = g_kinetic.(I, repeat([km], length(I)); Ω=Ω, muoA=muoA, muoB=muoB, T=T)
+g_kinetic(I::Vector{<:Real}, km::KineticModel; Ω=Ω, muoA=muoA, muoB=muoB, T=T) = g_kinetic.(I, Ref(km); Ω=Ω, muoA=muoA, muoB=muoB, T=T)
 
 # for vector inputs x (for a vector of I's we would get a vector of functions that would then presumably each need to be broadcasted)
 function g_kinetic_vecx(I::Real, km::KineticModel; Ω=Ω, muoA=muoA, muoB=muoB, T=T)

@@ -10,15 +10,46 @@ Given values for current/rate constant and specified model parameters, find the 
 """
 function fit_overpotential(model::KineticModel, k; kT=.026, kwargs...)
     function compare_k!(storage, V)
+        # @show size(storage)
+        storage .= compute_k(V, model; kT=kT, kwargs...) .- k
+    end
+    n = 0
+    # this isn't quite right yet...
+    # function grad!(storage, V)
+    #     # @show V
+    #     # y, back = Zygote.pullback(V, model, k) do V, model, k
+    #     #  (compute_k(V, model; kT=kT, kwargs...) .- k)
+    #     # end
+    #     n += 1
+    #     # @show gs
+    #     # @show back(one.(y))
+    #     # @show y
+    #     # @show size(storage)
+    #     j = Zygote.jacobian(V -> (compute_k(V, model; kT=kT, kwargs...) .- k), V)
+    #     # @show size(j[1])
+    #     
+    #     storage .= j[1] # back(one.(y))[1]
+    # end
+    # Vs = nlsolve(compare_k!, grad!, repeat([0.1], length(k)))
+    Vs = nlsolve(compare_k!, repeat([0.1], length(k)))
+    if !converged(Vs)
+        @warn "Overpotential fit not fully converged...you may have fed in an unreachable reaction rate!"
+    end
+    # @show n
+    Vs.zero
+end
+
+function fit_overpotential(model, k; kT=.026, kwargs...)
+    function compare_k!(storage, V)
         storage .= compute_k(V, model; kT=kT, kwargs...) .- k
     end
 
     # this isn't quite right yet...
     # function grad!(storage, V)
-    #     gs = gradient(V -> compute_k(V, model; kT=kT, kwargs...) .- k, V)
-    #     for i in 1:length(V)
-    #         storage[i] = gs[i]
-    #     end
+    #     gs = gradient(V) do V
+    #       sum(compute_k(V, model; kT=kT, kwargs...) .- k)
+    #     end[1]
+    #     storage .= gs
     # end
     # Vs = nlsolve(compare_k!, grad!, repeat([0.1], length(k)))
     Vs = nlsolve(compare_k!, repeat([0.1], length(k)))
@@ -27,6 +58,7 @@ function fit_overpotential(model::KineticModel, k; kT=.026, kwargs...)
     end
     Vs.zero
 end
+
 
 fitting_params(t::Type{<:KineticModel}) = fieldnames(t)
 fitting_params(::Type{MarcusHushChidsey}) = (:A, :λ)
@@ -164,3 +196,5 @@ function _get_model_builder(model_type, param_bounds; kwargs...)
     end
     return model_builder
 end
+
+Zygote.@nograd nlsolve, quadgk

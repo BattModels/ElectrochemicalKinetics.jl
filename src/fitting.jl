@@ -15,23 +15,23 @@ function fit_overpotential(model::KineticModel, k; kT=.026, kwargs...)
     end
     n = 0
     # this isn't quite right yet...
-    # function grad!(storage, V)
-    #     # @show V
-    #     # y, back = Zygote.pullback(V, model, k) do V, model, k
-    #     #  (compute_k(V, model; kT=kT, kwargs...) .- k)
-    #     # end
-    #     n += 1
-    #     # @show gs
-    #     # @show back(one.(y))
-    #     # @show y
-    #     # @show size(storage)
-    #     j = Zygote.jacobian(V -> (compute_k(V, model; kT=kT, kwargs...) .- k), V)
-    #     # @show size(j[1])
-    #     
-    #     storage .= j[1] # back(one.(y))[1]
-    # end
-    # Vs = nlsolve(compare_k!, grad!, repeat([0.1], length(k)))
-    Vs = nlsolve(compare_k!, repeat([0.1], length(k)))
+    function grad!(storage, V)
+        # @show V
+        # y, back = Zygote.pullback(V, model, k) do V, model, k
+        #  (compute_k(V, model; kT=kT, kwargs...) .- k)
+        # end
+        n += 1
+        # @show gs
+        # @show back(one.(y))
+        # @show y
+        # @show size(storage)
+        j = Zygote.jacobian(V -> (compute_k(V, model; kT=kT, kwargs...) .- k), V)
+        # @show size(j[1])
+        
+        storage .= j[1] # back(one.(y))[1]
+    end
+    Vs = nlsolve(compare_k!, grad!, repeat([0.1], length(k)))
+    # Vs = nlsolve(compare_k!, repeat([0.1], length(k)))
     if !converged(Vs)
         @warn "Overpotential fit not fully converged...you may have fed in an unreachable reaction rate!"
     end

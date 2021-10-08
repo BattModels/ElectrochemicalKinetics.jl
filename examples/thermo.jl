@@ -40,12 +40,15 @@ function µ_kinetic(I::Real, km::KineticModel;
     end
 end
 
+# convention: first dimension is I, next (up to) two are x (if x is a matrix)
 function µ_kinetic(I::AbstractVector, km::KineticModel;
                    Ω=Ω, muoA=muoA, muoB=muoB, T=T)
-  function (x)
-    µ_thermo(x, Ω=Ω, muoA=muoA, muoB=muoB, T=T) .+
-    first.(fit_overpotential.((1 .- x) .* Ref(km), Ref(I)))
-  end
+    thermo(x) = µ_thermo(x, Ω=Ω, muoA=muoA, muoB=muoB, T=T)
+    kinetic(x) = fit_overpotential.((1 .- x) .* Ref(km), Ref(I))
+    µ(x::Real) = thermo(x) .+ kinetic(x)
+    µ(x::Vector{<:Real}) = thermo(x)' .+ hcat(kinetic(x)...)
+    µ(x::Matrix{<:Real}) = reshape(thermo(x),(1,3,2)) .+ reshape(cat(kinetic(x)...;dims=3),(4,3,2))
+    return µ
 end
 
 # g_kinetic(I, km::KineticModel; Ω=Ω, muoA=muoA, muoB=muoB, T=T) = 
@@ -75,18 +78,27 @@ function g_kinetic_vecx(I::Real, km::KineticModel; Ω=Ω, muoA=muoA, muoB=muoB, 
         integral_slices = quadgk.(y -> fit_overpotential((1-y)*km, I), lower_bounds, upper_bounds)
         integral_slices_f = first.(integral_slices)
         kinetic_terms = cumsum([t[1] for t in integral_slices_f])
-        thermo_terms .+ kinetic_terms
+        thermo .+ hcat(kinetic_terms...)'
     end
 end
 
 function g_kinetic_vecxI(I::AbstractVector, km::KineticModel;
                          Ω=Ω, muoA=muoA, muoB=muoB, T=T)
 
+"""
+thermo(x) = µ_thermo(x, Ω=Ω, muoA=muoA, muoB=muoB, T=T)
+kinetic(x) = fit_overpotential.((1 .- x) .* Ref(km), Ref(I))
+µ(x::Real) = thermo(x) .+ kinetic(x)
+µ(x::Vector{<:Real}) = thermo(x)' .+ hcat(kinetic(x)...)
+µ(x::Matrix{<:Real}) = reshape(thermo(x),(1,3,2)) .+ reshape(cat(kinetic(x)...;dims=3),(4,3,2))
+return µ
+"""
   # @show "in g_kinetic_vecxI"
+  thermo(x) = g_thermo(x; Ω, muoA, muoB, T)
   function my_vec(x)
     # A = fill(km.A, length(I))
     # α = fill(km.α, length(I))
-    thermo = g_thermo.(x; Ω, muoA, muoB, T)
+    # thermo = g_thermo.(x; Ω, muoA, muoB, T)
     lower_bounds = vcat([0], x[1:end-1])
     upper_bounds = x
     @show length(I)
@@ -94,9 +106,9 @@ function g_kinetic_vecxI(I::AbstractVector, km::KineticModel;
     @show typeof(integral_slices)
     integral_slices_f = first.(integral_slices)
     # @show integral_slices_f[1]
-    # kinetic_terms = cumsum([t[1] for t in integral_slices_f])
+    kinetic_terms = cumsum.(integral_slices_f)
     # @show kinetic_terms
-    thermo .+ integral_slices_f[1] # kinetic_terms
+    thermo' .+ hcat(kinetic_terms...)
 
   end
   # g_kinetic_vecx.(I, Ref(km); Ω=Ω, muoA=muoA, muoB=muoB, T=T)

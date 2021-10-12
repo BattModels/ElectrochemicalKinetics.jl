@@ -2,6 +2,7 @@ using ElectrochemicalKinetics
 using Plots
 using NLsolve
 using QuadGK
+using Zygote
 
 # define some constants and default parameters
 kB = 8.617e-5
@@ -63,61 +64,41 @@ function g_kinetic(I::Real, km::KineticModel;
     end
 end
 
-function g_kinetic(I::AbstractVector, km::KineticModel;
-                   Ω=Ω, muoA=muoA, muoB=muoB, T=T)
-  g_kinetic.(I, Ref(km); Ω=Ω, muoA=muoA, muoB=muoB, T=T)
-end
-
-# for vector inputs x (for a vector of I's we would get a vector of functions that would then presumably each need to be broadcasted)
-function g_kinetic_vecx(I::Real, km::KineticModel; Ω=Ω, muoA=muoA, muoB=muoB, T=T)
-    function g_func(x::AbstractVector)
-        @assert issorted(x) "Input x values must be sorted!"
-        thermo_terms = g_thermo.(x; Ω=Ω, muoA=muoA, muoB=muoB, T=T)
-        lower_bounds = vcat([0], x[1:end-1])
-        upper_bounds = x
-        integral_slices = quadgk.(y -> fit_overpotential((1-y)*km, I), lower_bounds, upper_bounds)
-        integral_slices_f = first.(integral_slices)
-        kinetic_terms = cumsum([t[1] for t in integral_slices_f])
-        thermo .+ hcat(kinetic_terms...)'
-    end
-end
-
-function g_kinetic_vecxI(I::AbstractVector, km::KineticModel;
-                         Ω=Ω, muoA=muoA, muoB=muoB, T=T)
-
-"""
-thermo(x) = µ_thermo(x, Ω=Ω, muoA=muoA, muoB=muoB, T=T)
-kinetic(x) = fit_overpotential.((1 .- x) .* Ref(km), Ref(I))
-µ(x::Real) = thermo(x) .+ kinetic(x)
-µ(x::Vector{<:Real}) = thermo(x)' .+ hcat(kinetic(x)...)
-µ(x::Matrix{<:Real}) = reshape(thermo(x),(1,3,2)) .+ reshape(cat(kinetic(x)...;dims=3),(4,3,2))
-return µ
-"""
-  # @show "in g_kinetic_vecxI"
-  thermo(x) = g_thermo(x; Ω, muoA, muoB, T)
-  function my_vec(x)
-    # A = fill(km.A, length(I))
-    # α = fill(km.α, length(I))
-    # thermo = g_thermo.(x; Ω, muoA, muoB, T)
-    lower_bounds = vcat([0], x[1:end-1])
-    upper_bounds = x
-    @show length(I)
-    integral_slices = quadgk.(y -> fit_overpotential((1-y)*km, I), lower_bounds, upper_bounds)
-    @show typeof(integral_slices)
-    integral_slices_f = first.(integral_slices)
-    # @show integral_slices_f[1]
-    kinetic_terms = cumsum.(integral_slices_f)
-    # @show kinetic_terms
-    thermo' .+ hcat(kinetic_terms...)
-
+# NOTE that behavior is different for vector vs. scalar input and NOT NECESSARILY WHAT YOU WOULD INTUITIVELY EXPECT
+# in both cases a vector is returned: for scalar input, compute for each current
+# for vector input (must be of same length as I), zip x and I together and compute pairwise
+# (probably this one should really be some other name, this behavior is just what's needd for the find_phase_boundaries function to work)
+function µ_kinetic(I::AbstractVector, km::KineticModel;
+  Ω=Ω, muoA=muoA, muoB=muoB, T=T)
+  thermo(x) = µ_thermo(x, Ω=Ω, muoA=muoA, muoB=muoB, T=T)
+  kinetic(x) = first.(fit_overpotential.((1 .- x) .* Ref(km), I))
+  µ(x::Real) = thermo(x) .+ kinetic(x)
+  # µ(x::AbstractVector{<:Real}) = thermo(x) .+ hcat(kinetic(x)...)'
+  function µ(x::AbstractVector{<:Real})
+    @assert length(x) == length(I) "You need to pass an x for every I"
+    thermo(x) .+ kinetic(x)
   end
-  # g_kinetic_vecx.(I, Ref(km); Ω=Ω, muoA=muoA, muoB=muoB, T=T)
-  # my_vec(I) # , Ω=Ω, muoA=muoA, muoB=muoB, T=T)
+  # µ(x::Matrix{<:Real}) = reshape(thermo(x),(1,3,2)) .+ reshape(cat(kinetic(x)...;dims=3),(length(I), size(x)...))
+  return µ
+end
+
+# same warning as above
+function g_kinetic(I::AbstractVector, km::KineticModel; Ω=Ω, muoA=muoA, muoB=muoB, T=T)
+  thermo(x) = g_thermo(x, Ω=Ω, muoA=muoA, muoB=muoB, T=T)
+  
+  g(x::Real) = thermo(x) + quadgk(y -> fit_overpotential((1 - y) * km, I), 0, x)[1]
+  function g(x::AbstractVector{<:Real})
+    @assert length(x) == length(I) "You need to pass an x for every I"
+    fs = [y -> fit_overpotential((1-y) * km, Iv)[1] for Iv in I]
+    lb = zeros(length(x))
+    thermo(x) .+ first.(quadgk.(fs, lb, x))
+  end
+  return g
 end
 
 # zeros of this function correspond to pairs of x's satisfying the common tangent condition for a given µ function
 function common_tangent(x, I, km::KineticModel; Ω=Ω, muoA=muoA, muoB=muoB, T=T)
-    g = g_kinetic_vecxI(I, km; Ω=Ω, muoA=muoA, muoB=muoB, T=T)
+    g = g_kinetic(I, km; Ω=Ω, muoA=muoA, muoB=muoB, T=T)
     µ = µ_kinetic(I, km; Ω=Ω, muoA=muoA, muoB=muoB, T=T)
     x1 = @view x[:, 1]
     x2 = @view x[:, 2]
@@ -125,26 +106,26 @@ function common_tangent(x, I, km::KineticModel; Ω=Ω, muoA=muoA, muoB=muoB, T=T
 end
 
 # x should be N x 2, I of length N
-function common_tangent_vecI(x, I::AbstractVector, km::KineticModel;
+function common_tangent_vecI(x::Matrix{<:Real}, I::AbstractVector, km::KineticModel;
                              Ω=Ω, muoA=muoA, muoB=muoB, T=T)
     # @show "in common_tangent_vecI"
     # gs = g_kinetic(I, km; Ω=Ω, muoA=muoA, muoB=muoB, T=T)
-    gs = g_kinetic_vecxI(I, km; Ω=Ω, muoA=muoA, muoB=muoB, T=T)
+    g = g_kinetic(I, km; Ω=Ω, muoA=muoA, muoB=muoB, T=T)
     # @show "got gs"
-    µs = µ_kinetic(I, km; Ω=Ω, muoA=muoA, muoB=muoB, T=T)
-    inds = 1:length(I)
+    µ = µ_kinetic(I, km; Ω=Ω, muoA=muoA, muoB=muoB, T=T)
+    # inds = 1:length(I)
     # r = x[:, 1]
     # @show gs(r)
-    r1 = @views gs(x[:, 1])
-    r2 = @views gs(x[:, 2])
+    r1 = @views g(x[:, 1])
+    r2 = @views g(x[:, 2])
     dg = r2 - r1 # map((g,r) -> g(r[2]) - g(r[1]), gs, eachrow(x))
     dx = @views x[:, 2] .- x[:, 1]
-    μ1 = @views μs(x[:, 1])
-    μ2 = @views μs(x[:, 2])
+    μ1 = @views μ(x[:, 1])
+    μ2 = @views μ(x[:, 2])
     # @show μ1
     # µ1 = map((m,r) -> m(r[1])[1], μs, eachrow(x))
     # µ2 = map((m,r) -> m(r[2])[1], μs, eachrow(x))
-    return hcat(dg ./ dx .- µ1, µ2 .- µ1) # result N x 2
+    return hcat(dg ./ dx .- µ1, µ2 .- µ1) # result N x 2 x length(I)
 end
 
 function find_phase_boundaries(I, km::KineticModel; Ω=Ω, muoA=muoA, muoB=muoB, T=T)
@@ -181,7 +162,7 @@ init[:, 2] .= 0.95
 # pbs = [find_phase_boundaries(I, bv, T=330) for I in I_vals]
 # pbs = find_phase_boundaries(I_vals, bv, T=330)
 
-#plot(vcat(pbs...), hcat(I_vals, I_vals), label="phase boundary")
+#plot(pbs, hcat(I_vals, I_vals), label="phase boundary")
 # plot(pbs, hcat(I_vals, I_vals), label="phase boundary")
 # xlabel!("x")
 # ylabel!("I")

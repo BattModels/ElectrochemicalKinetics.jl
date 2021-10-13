@@ -23,9 +23,9 @@ These functions return single-argument functions (to easily use common-tangent f
 still being able to swap out model parameters by calling "function-builders" with different arguments).
 """
 µ_kinetic(I, km::KineticModel; Ω=Ω, muoA=muoA, muoB=muoB, T=T) = 
-    x -> µ_thermo(x; Ω=Ω, muoA=muoA, muoB=muoB, T=T) + fit_overpotential((1-x)*km, I)
+    x -> µ_thermo(x; Ω=Ω, muoA=muoA, muoB=muoB, T=T) + fit_overpotential((1-x)*km, I)[1]
 g_kinetic(I, km::KineticModel; Ω=Ω, muoA=muoA, muoB=muoB, T=T) = 
-    x -> g_thermo(x; Ω=Ω, muoA=muoA, muoB=muoB, T=T) + quadgk(x->fit_overpotential((1-x)*km, I), 0, x)[1]
+    x -> g_thermo(x; Ω=Ω, muoA=muoA, muoB=muoB, T=T) + quadgk(x->fit_overpotential((1-x)*km, I), 0, x)[1][1]
 
 # zeros of this function correspond to pairs of x's satisfying the common tangent condition for a given µ function
 function common_tangent(x, I, km::KineticModel; Ω=Ω, muoA=muoA, muoB=muoB, T=T)
@@ -49,9 +49,9 @@ end
 bv = ButlerVolmer(300)
 I_vals = 10 .^ (1.1:0.025:3.1)
 
-# this line takes a few seconds with B-V but aaages with anything else...
-pbs = [find_phase_boundaries(I, bv, T=330) for I in I_vals]
+# # this line takes a few seconds with B-V but aaages with anything else...
+# pbs = [find_phase_boundaries(I, bv, T=330) for I in I_vals]
 
-plot(vcat(pbs...), hcat(I_vals, I_vals), label="phase boundary")
-xlabel!("x")
-ylabel!("I")
+# plot(vcat(pbs...), hcat(I_vals, I_vals), label="phase boundary")
+# xlabel!("x")
+# ylabel!("I")

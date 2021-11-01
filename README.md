@@ -22,7 +22,7 @@ julia> bv(0.1, true)
 Let's try a fancier model now. The `MarcusHushChidseyDOS` model requires information about the density of states of the electrode, which we can read from a file:
 ```julia
 julia> mhcd = MarcusHushChidseyDOS(20, 0.2, "data/DOSes/Cu_111_dos.txt")
-MarcusHushChidseyDOS(A=1.0, λ=0.2)
+MarcusHushChidseyDOS(A=20.0, λ=0.2)
 ```
 In this case, since `MarcusHushChidseyDOS<:IntegralModel`, we can't directly evaluate the object as a callable because it's ambiguous if we want the integrand or the full integrated rate constant, and we must specify:
 ```julia

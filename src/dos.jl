@@ -42,12 +42,19 @@ Returns a callable interpolated DOS, the average value of DOS, and the lower and
 * `dos_file` is assumed to contain two colums, energy and DOS value
 * If `cut_energy==true`, return data in a symmetric range of energies around `Ef` (this is sometimes useful for nice-looking plots). Note that the code presumes the cutoff for this comes from the upper bound. This would not be hard to fix, I just have not done so as yet.
 """
-function get_dos(dos_file; Ef=0, cut_energy=false)
+function get_dos(dos_file::String; kwargs...)
     dos_data = Zygote.ignore() do
-      x = readdlm(dos_file, Float64, skipstart=1)
-    # recenter so Ef=0
-      x[:,1] = x[:,1] .- Ef
-      x
+        x = readdlm(dos_file, Float64, skipstart=1)
+        x
+    end
+    get_dos(dos_data; kwargs...)
+end
+function get_dos(dd::Matrix; Ef=0, cut_energy=false)
+    dos_data = Zygote.ignore() do 
+        x = dd
+        # recenter so Ef=0
+        x[:,1] = x[:,1] .- Ef
+        x
     end
     E_max = dos_data[end,1]
     if cut_energy #TODO: fix this so that it works if magnitude of upper bound is smaller

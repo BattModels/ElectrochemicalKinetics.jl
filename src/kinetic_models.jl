@@ -65,44 +65,6 @@ function (bv::ButlerVolmer)(V_app, ox::Bool; kT::Real = 0.026)
 end
 
 """
-    AsymptoticMarcusHushChidsey(A, λ)
-    AsymptoticMarchusHushChidsey(λ)
-
-Computes asymptotic solution to MHC model, as described in Zeng et al.: 10.1016/j.jelechem.2014.09.038d
-
-If initialized with one argument, assumes this to be the reorganization energy λ and sets the prefactor to 1.0.
-"""
-struct AsymptoticMarcusHushChidsey <: KineticModel
-    A::Float64
-    λ::Float64
-end
-
-# default prefactor is 1
-AsymptoticMarcusHushChidsey(λ) = AsymptoticMarcusHushChidsey(1.0, λ)
-
-function (amhc::AsymptoticMarcusHushChidsey)(V_app, ox::Bool; kT::Real = 0.026)
-    a = 1 + sqrt(amhc.λ)
-    η = (2 * ox - 1) .* V_app ./ kT
-    λ_nondim = amhc.λ / kT
-    arg = (λ_nondim .- sqrt.(a .+ η^2)) ./ (2 * sqrt(λ_nondim))
-    pref = sqrt(π * λ_nondim) / (1 + exp(-η))
-    return amhc.A .* pref .* erfc.(arg)
-end
-
-abstract type IntegralModel <: KineticModel end # "Marcus-like"
-
-# check to catch missed dispatches for new types
-# integrand(km::IntegralModel, V_dl, ox::Bool; kwargs...) =
-#     error("An integral-based kinetic model must dispatch the `integrand` function!")
-
-# TODO: check that this passes through both kT and V_q appropriately
-# dispatch for net rates
-integrand(km::IntegralModel, V_dl; kwargs...) =
-    E -> abs.(
-        integrand(km, V_dl, true; kwargs...)(E) - integrand(km, V_dl, false; kwargs...)(E),
-    )
-
-"""
     Marcus(A, λ)
     Marcus(λ)
 
@@ -129,12 +91,50 @@ function (m::Marcus)(V_app, ox::Bool; kT::Real = 0.026)
 end
 
 """
+    AsymptoticMarcusHushChidsey(A, λ)
+    AsymptoticMarchusHushChidsey(λ)
+
+Computes asymptotic solution to MHC model, as described in Zeng et al.: 10.1016/j.jelechem.2014.09.038d
+
+If initialized with one argument, assumes this to be the reorganization energy λ and sets the prefactor to 1.0.
+"""
+struct AsymptoticMarcusHushChidsey <: KineticModel
+    A::Float64
+    λ::Float64
+end
+
+# default prefactor is 1
+AsymptoticMarcusHushChidsey(λ) = AsymptoticMarcusHushChidsey(1.0, λ)
+
+function (amhc::AsymptoticMarcusHushChidsey)(V_app, ox::Bool; kT::Real = 0.026)
+    a = 1 + sqrt(amhc.λ)
+    η = (2 * ox - 1) .* V_app ./ kT
+    λ_nondim = amhc.λ / kT
+    arg = (λ_nondim .- sqrt.(a .+ η.^2)) ./ (2 * sqrt(λ_nondim))
+    pref = sqrt(π * λ_nondim) ./ (1 .+ exp.(-η))
+    return amhc.A .* pref .* erfc.(arg)
+end
+
+abstract type IntegralModel <: KineticModel end # "Marcus-like"
+
+# check to catch missed dispatches for new types
+# integrand(km::IntegralModel, V_dl, ox::Bool; kwargs...) =
+#     error("An integral-based kinetic model must dispatch the `integrand` function!")
+
+# TODO: check that this passes through both kT and V_q appropriately
+# dispatch for net rates
+integrand(km::IntegralModel, V_dl; kwargs...) =
+    E -> abs.(
+        integrand(km, V_dl, true; kwargs...)(E) - integrand(km, V_dl, false; kwargs...)(E),
+    )
+
+"""
     MarcusHushChidsey(A, λ, average_dos)
     MarcusHushChidsey(λ, average_dos)
 
 Computes Marcus-Hush-Chidsey kinetics: 10.1126/science.251.4996.919
 
-Note that strictly speaking, `average_dos` and the prefactor `A` are redundant. They are both included primarily to facilitate comparisons with similarly parametrized `Marcus` models.
+Note that strictly speaking, `average_dos` and the prefactor `A` are redundant. They are both included primarily to facilitate comparisons with similarly parametrized Marcus-like models.
 """
 struct MarcusHushChidsey <: IntegralModel
     A::Real

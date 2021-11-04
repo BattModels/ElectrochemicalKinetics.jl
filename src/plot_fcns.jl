@@ -35,7 +35,7 @@ function plot_models(
 end
 
 """
-    plot_exp_and_models(models::Vector{<:KineticModel}; kwargs...)
+    plot_exp_and_models(exp_data::Matrix, models::Vector{<:KineticModel}; kwargs...)
 
 Plot predicted rate constants for each model in the provided list.
 
@@ -52,7 +52,7 @@ function plot_exp_and_models(
 )
     V = exp_data[:, 1]
     V_mag = 1.1 * maximum(abs.(V))
-    V_range = range(-V_mag, V_mag, length = 200)
+    V_range = collect(range(-V_mag, V_mag, length = 200))
     xs = Vector[V, repeat([V_range], length(models))...]
     ys = Vector[
         exp_data[:, 2],

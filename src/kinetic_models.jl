@@ -107,9 +107,9 @@ end
 AsymptoticMarcusHushChidsey(λ) = AsymptoticMarcusHushChidsey(1.0, λ)
 
 function (amhc::AsymptoticMarcusHushChidsey)(V_app, ox::Bool; kT::Real = 0.026)
-    a = 1 + sqrt(amhc.λ)
     η = (2 * ox - 1) .* V_app ./ kT
     λ_nondim = amhc.λ / kT
+    a = 1 + sqrt(λ_nondim)
     arg = (λ_nondim .- sqrt.(a .+ η.^2)) ./ (2 * sqrt(λ_nondim))
     pref = sqrt(π * λ_nondim) ./ (1 .+ exp.(-η))
     return amhc.A .* pref .* erfc.(arg)

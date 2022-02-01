@@ -13,15 +13,13 @@ function fit_overpotential(model::KineticModel, k; kT=.026, kwargs...)
         storage .= compute_k(V, model; kT=kT, kwargs...) .- k
     end
 
-    # this isn't quite right yet...
-    # function grad!(storage, V)
-    #     gs = gradient(V -> compute_k(V, model; kT=kT, kwargs...) .- k, V)
-    #     for i in 1:length(V)
-    #         storage[i] = gs[i]
-    #     end
-    # end
-    # Vs = nlsolve(compare_k!, grad!, repeat([0.1], length(k)))
-    Vs = nlsolve(compare_k!, repeat([0.1], length(k)))
+    function grad!(storage, V)
+        gs = gradient(V -> sum(compute_k(V, model; kT=kT, kwargs...) .- k), V)[1]
+        storage .= gs
+        nothing
+    end
+    Vs = nlsolve(compare_k!, grad!, repeat([0.1], length(k)))
+    # Vs = nlsolve(compare_k!, repeat([0.1], length(k)))
     if !converged(Vs)
         @warn "Overpotential fit not fully converged...you may have fed in an unreachable reaction rate!"
     end

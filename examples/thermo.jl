@@ -11,10 +11,10 @@ muoB = 0.03
 Ω = 0.1
 
 # our familiar thermodynamic functions
-hs(x;Ω=Ω) = x*(1-x)*Ω # enthalpy of mixing
-s(x) = -kB*(x*log(x) + (1-x)*log(1-x)) # entropy per particle
-g_thermo(x; Ω=Ω, muoA=muoA, muoB=muoB, T=T) = hs(x;Ω=Ω) - T*s(x)+ muoA*(1-x) + muoB*x # Gibbs free energy per particle
-μ_thermo(x; Ω=Ω, muoA=muoA, muoB=muoB, T=T) = (1-2*x)*Ω + kB*T*log(x/(1-x)) + muoB-muoA # chemical potential
+hs(x;Ω=Ω) = @. x*(1-x)*Ω # enthalpy of mixing
+s(x) = @. -kB*(x*log(x) + (1-x)*log(1-x)) # entropy per particle
+g_thermo(x; Ω=Ω, muoA=muoA, muoB=muoB, T=T) = @. hs(x;Ω=Ω) - T*s(x)+ muoA*(1-x) + muoB*x # Gibbs free energy per particle
+μ_thermo(x; Ω=Ω, muoA=muoA, muoB=muoB, T=T) = @. (1-2*x)*Ω + kB*T*log(x/(1-x)) + muoB-muoA # chemical potential
 
 """
 µ and g with kinetic constributions, can be modeled using any <:KineticModel object
@@ -48,6 +48,7 @@ end
 
 bv = ButlerVolmer(300)
 I_vals = 10 .^ (1.1:0.025:3.1)
+
 
 # # this line takes a few seconds with B-V but aaages with anything else...
 # pbs = [find_phase_boundaries(I, bv, T=330) for I in I_vals]

@@ -81,9 +81,9 @@ end
 AsymptoticMarcusHushChidsey(λ) = AsymptoticMarcusHushChidsey(1.0, λ)
 
 function (amhc::AsymptoticMarcusHushChidsey)(V_app, ox::Bool; kT::Real = 0.026)
-    a = 1 + sqrt(amhc.λ)
     η = (2 * ox - 1) .* V_app ./ kT
     λ_nondim = amhc.λ / kT
+    a = 1 + sqrt(λ_nondim)
     arg = (λ_nondim .- sqrt.(a .+ η^2)) ./ (2 * sqrt(λ_nondim))
     pref = sqrt(π * λ_nondim) / (1 + exp(-η))
     return amhc.A .* pref .* erfc.(arg)
@@ -137,16 +137,16 @@ Computes Marcus-Hush-Chidsey kinetics: 10.1126/science.251.4996.919
 Note that strictly speaking, `average_dos` and the prefactor `A` are redundant. They are both included primarily to facilitate comparisons with similarly parametrized `Marcus` models.
 """
 struct MarcusHushChidsey <: IntegralModel
-    A::Float64
-    λ::Float64
-    average_dos::Float64
+    A::Real
+    λ::Real
+    average_dos::Real
 end
 
 # default prefactor is 1
 MarcusHushChidsey(λ, avg_dos) = MarcusHushChidsey(1.0, λ, avg_dos)
 # convert more detailed DOS information to just pull out average
 MarcusHushChidsey(A, λ, dd::DOSData) = MarcusHushChidsey(A, λ, dd.average_value)
-MarcusHushChidsey(A, λ, dos_file::String; kwargs...) =
+MarcusHushChidsey(A, λ, dos_file::Union{Matrix,String}; kwargs...) =
     MarcusHushChidsey(A, λ, DOSData(dos_file; kwargs...))
 
 # TODO: Check that both this and +DOS versions still match original paper
@@ -186,10 +186,10 @@ end
 # default prefactor is 1
 MarcusHushChidseyDOS(λ, dd::DOSData) = MarcusHushChidseyDOS(1.0, λ, dd)
 
-MarcusHushChidseyDOS(A, λ, dos_file::String; kwargs...) =
+MarcusHushChidseyDOS(A, λ, dos_file::Union{Matrix,String}; kwargs...) =
     MarcusHushChidseyDOS(A, λ, DOSData(dos_file; kwargs...))
 
-MarcusHushChidseyDOS(λ, dos_file::String; kwargs...) = MarcusHushChidseyDOS(1.0, λ, DOSData(dos_file; kwargs...))
+MarcusHushChidseyDOS(λ, dos_file::Union{Matrix,String}; kwargs...) = MarcusHushChidseyDOS(1.0, λ, DOSData(dos_file; kwargs...))
 
 function integrand(
     mhcd::MarcusHushChidseyDOS,

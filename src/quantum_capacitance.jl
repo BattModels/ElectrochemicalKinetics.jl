@@ -15,8 +15,9 @@ function calculate_Vdl_interp(dos_f, Vq_min, Vq_max, C_dl)
         push!(Vappl_data, V_app_i)
     end
     
-    ## do V_dl interpolation
-    v_interp = LinearInterpolation(Vappl_data, Vdl_data)
+    ## sort data and do V_dl interpolation
+    inds = sortperm(Vappl_data)
+    v_interp = LinearInterpolation(Vappl_data[inds], Vdl_data[inds])
     return v_interp
 end
 

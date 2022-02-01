@@ -22,7 +22,7 @@ julia> bv(0.1, true)
 Let's try a fancier model now. The `MarcusHushChidseyDOS` model requires information about the density of states of the electrode, which we can read from a file:
 ```julia
 julia> mhcd = MarcusHushChidseyDOS(20, 0.2, "data/DOSes/Cu_111_dos.txt")
-MarcusHushChidseyDOS(A=1.0, λ=0.2)
+MarcusHushChidseyDOS(A=20.0, λ=0.2)
 ```
 In this case, since `MarcusHushChidseyDOS<:IntegralModel`, we can't directly evaluate the object as a callable because it's ambiguous if we want the integrand or the full integrated rate constant, and we must specify:
 ```julia
@@ -96,19 +96,19 @@ One step up with a bit of mechanism...
 Implemented in the package as `Marcus`, with parameters for prefactor `A` and reorganization energy `λ`.
 
 ### Marcus-Hush-Chidsey
-Originated from [Chidsey's 1991 paper](dx.doi.org/10.1126/science.251.4996.919).
+Originated from [Chidsey's 1991 paper](https://dx.doi.org/10.1126/science.251.4996.919).
 
 <img src="img/MHC.png" alt="MHC_k">
 
 Implemented as `MarcusHushChidsey`, with prefactor `A`, reorganization energy `λ`, and also an `average_dos` parameter (which defaults to 1.0), which is useful for making direct comparisons against `MarcusHushChidseyDOS` (see below).
 
 ### Asymptotic Marcus-Hush-Chidsey
-Originated from [Zeng et al. 2014](dx.doi.org/10.1016/j.jelechem.2014.09.038d) (equation 17). Note that in their notation, $\eta$ is scaled by the thermal energy.
+Originated from [Zeng et al. 2014](https://dx.doi.org/10.1016/j.jelechem.2014.09.038d) (equation 17). Note that in their notation, $\eta$ is scaled by the thermal energy.
 
 Implemented as `AsymptoticMarcusHushChidsey` with parameters `A` and `λ`.
 
 ### Marcus-Hush-Chidsey + DOS
-Originated from [Kurchin and Viswanathan 2020](dx.doi.org/10.1063/5.0023611 ).
+Originated from [Kurchin and Viswanathan 2020](https://dx.doi.org/10.1063/5.0023611 ).
 
 <img src="img/MHCD_ox.png" alt="MHCD_ox">
 <img src="img/MHCD_red.png" alt="MHCD_red">

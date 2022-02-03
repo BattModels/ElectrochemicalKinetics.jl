@@ -59,7 +59,7 @@ function (bv::ButlerVolmer)(V_app, ox::Bool; kT::Real = 0.026)
     if ox
         exp_arg = (bv.α .* V_app) ./ kT
     else
-        exp_arg = -((1 .- bv.α) .* V_app) ./ kT
+        exp_arg = -((1 - bv.α) .* V_app) ./ kT
     end
     bv.A .* exp.(exp_arg)
 end
@@ -83,9 +83,9 @@ Marcus(λ) = Marcus(1.0, λ)
 function (m::Marcus)(V_app, ox::Bool; kT::Real = 0.026)
     local exp_arg
     if ox
-        exp_arg = -(m.λ .+ V_app).^2 ./ (4 .* m.λ .* kT)
+        exp_arg = -(m.λ .+ V_app).^2 ./ (4 * m.λ * kT)
     else
-        exp_arg = -(m.λ .- V_app).^2 ./ (4 .* m.λ .* kT)
+        exp_arg = -(m.λ .- V_app).^2 ./ (4 * m.λ * kT)
     end
     m.A .* exp.(exp_arg)
 end

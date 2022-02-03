@@ -154,9 +154,9 @@ function integrand(mhc::MarcusHushChidsey, V_dl, ox::Bool; kT::Real = 0.026)
     function marcus_term(E)
         local exp_arg
         if ox
-            exp_arg = -( ((E .- (mhc.λ .+ V_dl)) .^ 2)) ./ (4 * mhc.λ * kT)
+            exp_arg = -( ((E .- (mhc.λ .- V_dl)) .^ 2)) ./ (4 * mhc.λ * kT)
         else
-            exp_arg = -( ((E .- (mhc.λ .- V_dl)) .^2)) ./ (4 * mhc.λ * kT)
+            exp_arg = -( ((E .- (mhc.λ .+ V_dl)) .^2)) ./ (4 * mhc.λ * kT)
         end
         exp.(exp_arg)
     end

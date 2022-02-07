@@ -45,7 +45,6 @@
         @test m(0.13) == m(-0.13)
 
         # test vector voltages and also symmetry
-        Vs = 0.01:0.01:0.1
         @test m(Vs) == m(-Vs)
     end
 
@@ -56,5 +55,9 @@
         @test amhc(0.2) == amhc(-0.2) ≈ 0.1006330238
         @test amhc(0.2, kT=.015) ≈ 0.06360960459
         @test amhc(0.2, kT=.03) ≈ 0.11255129857
+
+        vec_out = amhc(Vs)
+        @test length(vec_out) == length(Vs)
+        @test vec_out[1] == amhc(Vs[1])
     end
 end

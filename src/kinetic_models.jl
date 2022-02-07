@@ -10,7 +10,7 @@ fermi_dirac(E; kT = 0.026) = inv.(1 .+ exp.(E ./ kT))
 
 abstract type KineticModel end
 
-# dispatch for net rates
+# dispatch for net rates, returns absolute value
 (km::KineticModel)(V_app; kT = 0.026) =
     abs.(km(V_app, true; kT = kT) - km(V_app, false; kT = kT))
 
@@ -92,7 +92,7 @@ end
 
 """
     AsymptoticMarcusHushChidsey(A, λ)
-    AsymptoticMarchusHushChidsey(λ)
+    AsymptoticMarcusHushChidsey(λ)
 
 Computes asymptotic solution to MHC model, as described in Zeng et al.: 10.1016/j.jelechem.2014.09.038d, with a corrction prefactor of kT since there is an error in the nondimensionalization in that work.
 
@@ -122,7 +122,7 @@ function (amhc::AsymptoticMarcusHushChidsey)(V_app; kT::Real = 0.026)
     a = 1 + sqrt(λ_nondim)
     arg = (λ_nondim .- sqrt.(a .+ η.^2)) ./ (2 * sqrt(λ_nondim))
     pref = sqrt(π * λ_nondim) .* tanh.(η/2)
-    return kT * amhc.A .* pref .* erfc.(arg)
+    return abs.(kT * amhc.A .* pref .* erfc.(arg))
 end
 
 

@@ -12,6 +12,6 @@
     @test isapprox(fit_overpotential(bv, [k1, k2]), [V1, V2], atol=1e-5)
 end
 
-@testset begin "Model Parameter Fitting" begin
+@testset "Model Parameter Fitting" begin
     
 end

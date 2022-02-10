@@ -31,7 +31,6 @@ function fit_overpotential(model::KineticModel, k, forward=true; kT=.026, loss =
         nothing
     end
     Vs = nlsolve(compare_k!, grad!, repeat([guess], length(k)))
-    # Vs = nlsolve(compare_k!, repeat([0.1], length(k)))
     if !converged(Vs)
         @warn "Overpotential fit not fully converged...you may have fed in an unreachable reaction rate!"
     end

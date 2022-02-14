@@ -24,8 +24,14 @@ still being able to swap out model parameters by calling "function-builders" wit
 """
 µ_kinetic(I, km::KineticModel; Ω=Ω, muoA=muoA, muoB=muoB, T=T) = 
     x -> µ_thermo(x; Ω=Ω, muoA=muoA, muoB=muoB, T=T) + fit_overpotential((1-x)*km, I)[1]
-g_kinetic(I, km::KineticModel; Ω=Ω, muoA=muoA, muoB=muoB, T=T) = 
-    x -> g_thermo(x; Ω=Ω, muoA=muoA, muoB=muoB, T=T) + quadgk(x->fit_overpotential((1-x)*km, I), 0, x)[1][1]
+function g_kinetic(I, km::KineticModel; Ω=Ω, muoA=muoA, muoB=muoB, T=T)
+    thermo_term(x) = g_thermo(x; Ω=Ω, muoA=muoA, muoB=muoB, T=T)
+    kinetic_term(x) = quadgk.(y->fit_overpotential((1 .- y) .* Ref(km), I), zero(x), x)
+    # quadgk always returns a tuple of (val, error) (or when we broadcast, an array of such tuples) so we need these two separate dispatches to get the return type to match the input type
+    g(x::Vector) = thermo_term(x) .+ [k[1] for k in kinetic_term(x)]
+    g(x::Real) = thermo_term(x) + kinetic_term(x)[1]
+    return g
+end
 
 # zeros of this function correspond to pairs of x's satisfying the common tangent condition for a given µ function
 function common_tangent(x, I, km::KineticModel; Ω=Ω, muoA=muoA, muoB=muoB, T=T)

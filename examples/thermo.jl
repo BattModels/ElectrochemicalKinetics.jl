@@ -12,7 +12,7 @@ muoB = 0.03
 
 # our familiar thermodynamic functions
 hs(x;Ω=Ω) = @. x*(1-x)*Ω # enthalpy of mixing
-s(x) = @. -kB*(x*log(x) + (1-x)*log(1-x)) # entropy per particle
+s(x) = @. -kB*(x*log(x+eps(Float64)) + (1-x)*log(1-x+eps(Float64))) # entropy per particle...added epsilons in the hopes that things will be less obnoxious at the edges
 g_thermo(x; Ω=Ω, muoA=muoA, muoB=muoB, T=T) = @. hs(x;Ω=Ω) - T*s(x)+ muoA*(1-x) + muoB*x # Gibbs free energy per particle
 μ_thermo(x; Ω=Ω, muoA=muoA, muoB=muoB, T=T) = @. (1-2*x)*Ω + kB*T*log(x/(1-x)) + muoB-muoA # chemical potential
 
@@ -46,8 +46,8 @@ function find_phase_boundaries(I, km::KineticModel; Ω=Ω, muoA=muoA, muoB=muoB,
 end
 
 
-bv = ButlerVolmer(300)
-I_vals = 10 .^ (1.1:0.025:3.1)
+# bv = ButlerVolmer(300)
+# I_vals = 10 .^ (1.1:0.025:3.1)
 
 
 # # this line takes a few seconds with B-V but aaages with anything else...

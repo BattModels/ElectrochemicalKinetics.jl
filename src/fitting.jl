@@ -34,8 +34,16 @@ function fit_overpotential(model::KineticModel, k, forward=true; kT=.026, loss =
     if !converged(Vs)
         @warn "Overpotential fit not fully converged...you may have fed in an unreachable reaction rate!"
     end
-    Vs.zero
+    # this is janky but the broadcast doesn't work otherwise
+    if typeof(k) <: Array
+        Vs.zero
+    else
+        Vs.zero[1]
+    end
 end
+
+# multiple models, one k value (used in thermo example)
+fit_overpotential(models::Vector{<:KineticModel}, k::Real, forward=true; kwargs...) = fit_overpotential.(models, Ref(k), Ref(forward); kwargs...)
 
 fitting_params(t::Type{<:KineticModel}) = fieldnames(t)
 fitting_params(::Type{MarcusHushChidsey}) = (:A, :λ)

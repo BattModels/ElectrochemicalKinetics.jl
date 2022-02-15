@@ -22,27 +22,43 @@ g_thermo(x; Ω=Ω, muoA=muoA, muoB=muoB, T=T) = @. hs(x;Ω=Ω) - T*s(x)+ muoA*(1
 These functions return single-argument functions (to easily use common-tangent function below while
 still being able to swap out model parameters by calling "function-builders" with different arguments).
 """
-µ_kinetic(I, km::KineticModel; Ω=Ω, muoA=muoA, muoB=muoB, T=T) = 
-    x -> µ_thermo(x; Ω=Ω, muoA=muoA, muoB=muoB, T=T) + fit_overpotential((1-x)*km, I)[1]
+function µ_kinetic(I, km::KineticModel; Ω=Ω, muoA=muoA, muoB=muoB, T=T)
+    thermo_term(x) = μ_thermo(x; Ω=Ω, muoA=muoA, muoB=muoB, T=T)
+    μ(x::Real) = thermo_term(x) + fit_overpotential((1-x)*km, I)
+    μ(x::AbstractVector) = thermo_term(x) .+ fit_overpotential((1 .- x).*Ref(km), I)
+    return μ
+end
 function g_kinetic(I, km::KineticModel; Ω=Ω, muoA=muoA, muoB=muoB, T=T)
     thermo_term(x) = g_thermo(x; Ω=Ω, muoA=muoA, muoB=muoB, T=T)
     kinetic_term(x) = quadgk.(y->fit_overpotential((1 .- y) .* Ref(km), I), zero(x), x)
     # quadgk always returns a tuple of (val, error) (or when we broadcast, an array of such tuples) so we need these two separate dispatches to get the return type to match the input type
-    g(x::Vector) = thermo_term(x) .+ [k[1] for k in kinetic_term(x)]
+    g(x::AbstractVector) = thermo_term(x) .+ [k[1] for k in kinetic_term(x)]
     g(x::Real) = thermo_term(x) + kinetic_term(x)[1]
     return g
 end
 
 # zeros of this function correspond to pairs of x's satisfying the common tangent condition for a given µ function
-function common_tangent(x, I, km::KineticModel; Ω=Ω, muoA=muoA, muoB=muoB, T=T)
+# case where we just feed in two points (x should be of length two)
+function common_tangent(x::Vector, I, km::KineticModel; Ω=Ω, muoA=muoA, muoB=muoB, T=T)
     g = g_kinetic(I, km; Ω=Ω, muoA=muoA, muoB=muoB, T=T)
     µ = µ_kinetic(I, km; Ω=Ω, muoA=muoA, muoB=muoB, T=T)
     [(g(x[2])-g(x[1]))/(x[2]-x[1]) - μ(x[1]), μ(x[2])-μ(x[1])]
 end
 
-function find_phase_boundaries(I, km::KineticModel; Ω=Ω, muoA=muoA, muoB=muoB, T=T)
+# case where we want to check many points at once (shape of x should be N x 2)
+function common_tangent(x::Array, I, km::KineticModel; kwargs...)
+    g = g_kinetic(I, km; kwargs...)
+    µ = µ_kinetic(I, km; kwargs...)
+    Δg = g(x[:,2]) - g(x[:,1])
+    Δx = x[:,2] - x[:,1]
+    μ1 = μ(x[:,1])
+    Δμ = μ(x[:,2]) - μ1
+    hcat(Δg ./ Δx .- μ1, Δμ)
+end
+
+function find_phase_boundaries(I, km::KineticModel; kwargs...)
     function myct!(storage, x)
-        res = common_tangent(x, I, km; Ω=Ω, muoA=muoA, muoB=muoB, T=T)
+        res = common_tangent(x, I, km; kwargs...)
         storage[1] = res[1]
         storage[2] = res[2]
     end

@@ -28,22 +28,21 @@ include("../examples/thermo.jl")
 end
 
 xs = [0.1, 0.5, 0.95]
-km = ButlerVolmer()
+km = ButlerVolmer(300)
 μ_50 = μ_kinetic(50, km)
 μ_200 = μ_kinetic(200, km)
 μ_100_T400 = μ_kinetic(100, km, T=400)
 
 @testset "Kinetic μ" begin
     # test that the right (approximate) relationships hold
-    μs = Dict(0.1 => 0.24249555384, 0.5 => 0.249469635, 0.95 => 0.35480771)
+    μs = Dict(0.1 => 0.0383864736, 0.5 => 0.01862765755, 0.95 => 0.06237022288)
     for x in xs
         @test μ_50(x) ≈ μs[x] ≈ μ_thermo(x) + fit_overpotential((1-x)*km, 50)
     end
 
     # test vector inputs
-    @test_throws MethodError μ_200(xs)
-    @test μ_200.(xs) ≈ [0.314567655, 0.32155307, 0.4268963]
-    @test μ_100_T400.(xs) ≈ [0.259213284, 0.285511025, 0.41673288]
+    @test μ_200(xs) ≈ [0.0524237924, 0.04250974, 0.13058880458]
+    @test μ_100_T400(xs) == μ_100_T400.(xs) ≈ [0.02384219096, 0.02702875, 0.1212749347]
 end
 
 @testset "Kinetic g" begin
@@ -58,5 +57,23 @@ end
     @test g_50(xs[2]) == g_50(xs)[2]
 
     # check a few other values, these are just from  me trusting that the function is running correctly when I write these...
-    @test g_200_T400(xs) ≈ [0.04661525, 0.17184189, 0.33075273]
+    @test g_200_T400(xs) ≈ [0.0205857425, 0.037693617, 0.06661696]
+end
+
+@testset "Phase Diagram" begin
+    # simplest case, just one pair of x values (this function is still pretty slow though)
+    v1 = find_phase_boundaries(100, km)
+    @test all(isapprox.(common_tangent(v1, 100, km), Ref(0.0), atol=1e-8)) # not sure why this one doesnt converge as closely as the rest
+    v2 = find_phase_boundaries(100, km, T=350)
+    @test all(isapprox.(common_tangent(v2, 100, km, T=350), Ref(0.0), atol=1e-11))
+    # they should get "narrower" with temperature
+    @test v2[1] > v1[1]
+    @test v2[2] < v1[2]
+    v3 = find_phase_boundaries(400, km)
+    # ...and also with current
+    @test v3[1] > v1[1]
+    @test v3[2] < v1[2]
+
+    # TODO: next for multiple currents at once (may require some syntax tweaks)
+
 end

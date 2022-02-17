@@ -24,7 +24,7 @@ still being able to swap out model parameters by calling "function-builders" wit
 """
 function µ_kinetic(I, km::KineticModel; Ω=Ω, muoA=muoA, muoB=muoB, T=T)
     thermo_term(x) = μ_thermo(x; Ω=Ω, muoA=muoA, muoB=muoB, T=T)
-    μ(x::Real) = thermo_term(x) + fit_overpotential((1-x)*km, I)
+    μ(x::Real) = thermo_term(x) .+ fit_overpotential((1-x)*km, I)
     μ(x::AbstractVector) = thermo_term(x) .+ fit_overpotential((1 .- x).*Ref(km), I)
     return μ
 end
@@ -67,6 +67,9 @@ function find_phase_boundaries(I, km::KineticModel; kwargs...)
     x1.zero
 end
 
+function phase_diagram(km::KineticModel; kwargs...)
+    # TODO: write this, lol
+end
 
 # bv = ButlerVolmer(300)
 # I_vals = 10 .^ (1.1:0.025:3.1)

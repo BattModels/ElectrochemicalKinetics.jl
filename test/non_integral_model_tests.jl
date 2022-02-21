@@ -1,6 +1,4 @@
-# make sure to test each one for:
-# - single V value, ox, red, and net
-# - vector of V values, ox, red, and net
+# test values come either from analytical inversion of expression (BV) or references evaluated as of 2/22/22 and presumed to be correct
 
 @testset "Non-Integral Models" begin
     @testset "Butler-Volmer" begin

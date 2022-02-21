@@ -1,3 +1,5 @@
+# all these numbers are just references evaluated as of 2/22/22
+
 @testset "Integral Models" begin
     @testset "MHC" begin
         mhc = MarcusHushChidsey(0.25)

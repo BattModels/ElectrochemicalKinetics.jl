@@ -28,39 +28,71 @@ include("../examples/thermo.jl")
 end
 
 xs = [0.1, 0.5, 0.95]
-km = ButlerVolmer(300)
-μ_50 = μ_kinetic(50, km)
-μ_200 = μ_kinetic(200, km)
-μ_100_T400 = μ_kinetic(100, km, T=400)
+bv = ButlerVolmer(300)
+m = Marcus(5000, 0.3)
+kms = [bv, m]
 
 @testset "Kinetic μ" begin
-    # test that the right (approximate) relationships hold
-    μs = Dict(0.1 => 0.0383864736, 0.5 => 0.01862765755, 0.95 => 0.06237022288)
-    for x in xs
-        @test μ_50(x) ≈ μs[x] ≈ μ_thermo(x) + fit_overpotential((1-x)*km, 50)
-    end
+    # all these numbers are just references evaluated as of 2/22/22
+    μ_50_vals = Dict(
+        ButlerVolmer=>Dict(
+            0.1 => 0.0383864736, 
+            0.5 => 0.01862765755, 
+            0.95 => 0.06237022288), 
+        Marcus=>Dict(
+            0.1 => 0.02841242588577, 
+            0.5 => 0.01928206795, 
+            0.95 => 0.07492901629449))
+    μ_200_vals = Dict(
+        ButlerVolmer=>[0.0524237924, 0.04250974, 0.13058880458], 
+        Marcus=>[0.054009696387679, 0.045881168639779, 0.212205862750])
+    μ_100_T400_vals = Dict(
+        ButlerVolmer=>[0.02384219096, 0.02702875, 0.1212749347], 
+        Marcus=>[0.024573427974, 0.028429814254, 0.1529930329757])
+    for km in kms
+        @testset "$(typeof(km))" begin
+            μ_50 = μ_kinetic(50, km)
+            μ_200 = μ_kinetic(200, km)
+            μ_100_T400 = μ_kinetic(100, km, T=400)
+            # test that the right (approximate) relationships hold
+            μs = μ_50_vals[typeof(km)]
+            for x in xs
+                @test μ_50(x) ≈ μs[x] ≈ μ_thermo(x) + fit_overpotential((1-x)*km, 50)
+            end
 
-    # test vector inputs
-    @test μ_200(xs) ≈ [0.0524237924, 0.04250974, 0.13058880458]
-    @test μ_100_T400(xs) == μ_100_T400.(xs) ≈ [0.02384219096, 0.02702875, 0.1212749347]
+            # test vector inputs
+            @test μ_200(xs) ≈ μ_200_vals[typeof(km)]
+            @test μ_100_T400(xs) == μ_100_T400.(xs) ≈ μ_100_T400_vals[typeof(km)] 
+        end
+    end
 end
 
 @testset "Kinetic g" begin
-    g_50 = g_kinetic(50, km)
-    g_200_T400 = g_kinetic(200, km, T=400)
+    g_200_T400_vals = Dict(
+        ButlerVolmer => [0.0205857425, 0.037693617, 0.06661696], 
+        Marcus => [0.02073470111, 0.03874647481, 0.07399607032])
+    g_50_2_vals = Dict(ButlerVolmer=>0.03519728018258, Marcus=>0.03395267141265)
+    for km in kms
+        @testset "$(typeof(km))" begin
+            μ_50 = μ_kinetic(50, km)
+            g_50 = g_kinetic(50, km)
+            g_200_T400 = g_kinetic(200, km, T=400)
 
-    # integral of the derivative should be the original fcn (up to a constant, which we know)
-    integrated_μs = [v[1] for v in quadgk.(μ_50, zero(xs), xs)]
-    @test g_50(xs) ≈ integrated_μs .+ muoA
+            # integral of the derivative should be the original fcn (up to a constant, which we know)
+            integrated_μs = [v[1] for v in quadgk.(μ_50, zero(xs), xs)]
+            @test g_50(xs) ≈ integrated_μs .+ muoA
 
-    # check scalar input works
-    @test g_50(xs[2]) == g_50(xs)[2]
+            # check scalar input works
+            @test g_50(xs[2]) == g_50(xs)[2] ≈ g_50_2_vals[typeof(km)]
 
-    # check a few other values, these are just from  me trusting that the function is running correctly when I write these...
-    @test g_200_T400(xs) ≈ [0.0205857425, 0.037693617, 0.06661696]
+            # check a few other values
+            @test g_200_T400(xs) ≈ g_200_T400_vals[typeof(km)]
+        end
+    end
 end
 
 @testset "Phase Diagram" begin
+    km = bv # TODO: expand this
     # simplest case, just one pair of x values (this function is still pretty slow though)
     v1 = find_phase_boundaries(100, km)
     @test all(isapprox.(common_tangent(v1, 100, km), Ref(0.0), atol=1e-8)) # not sure why this one doesnt converge as closely as the rest

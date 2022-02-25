@@ -13,7 +13,9 @@ using Dierckx
     compute_k(E_min, E_max, V_app, model::IntegralModel; kwargs...)
     compute_k(E_min, E_max, V_app, model::MarcusHushChidseyDOS, calc_cq::Bool=false; C_dl = 10.0, Vq_min = -0.5, Vq_max = 0.5, kwargs...)
 
-Compute the rate constant k predicted by a given kinetic model at a applied voltage `V_app`. If a flag for reaction direction `ox` is supplied, `true` gives the oxidative and `false` the reductive direction, while omitting this flag will yield net reaction rate. If the model is an `IntegralModel`, integration bounds `E_min` and `E_max` must be supplied. Integration is done via GK quadrature.
+Compute the rate constant k predicted by a given kinetic model at a applied voltage `V_app`. If a flag for reaction direction `ox` is supplied, `true` gives the oxidative and `false` the reductive direction, while omitting this flag will yield net reaction rate (absolute value thereof).
+
+If the model is an `IntegralModel`, integration bounds `E_min` and `E_max` must be supplied. Integration is done via GK quadrature.
 
 If calc_cq flag is passed, optionally compute voltage shifts due to quantum capacitance.
 """

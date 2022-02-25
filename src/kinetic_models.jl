@@ -10,7 +10,7 @@ fermi_dirac(E; kT = 0.026) = inv.(1 .+ exp.(E ./ kT))
 
 abstract type KineticModel end
 
-# dispatch for net rates
+# dispatch for net rates, returns absolute value
 (km::KineticModel)(V_app; kT = 0.026) =
     abs.(km(V_app, true; kT = kT) - km(V_app, false; kT = kT))
 
@@ -59,7 +59,7 @@ function (bv::ButlerVolmer)(V_app, ox::Bool; kT::Real = 0.026)
     if ox
         exp_arg = (bv.α .* V_app) ./ kT
     else
-        exp_arg = -((1 .- bv.α) .* V_app) ./ kT
+        exp_arg = -((1 - bv.α) .* V_app) ./ kT
     end
     bv.A .* exp.(exp_arg)
 end
@@ -83,18 +83,18 @@ Marcus(λ) = Marcus(1.0, λ)
 function (m::Marcus)(V_app, ox::Bool; kT::Real = 0.026)
     local exp_arg
     if ox
-        exp_arg = -(m.λ .+ V_app).^2 ./ (4 .* m.λ .* kT)
+        exp_arg = -(m.λ .+ V_app).^2 ./ (4 * m.λ * kT)
     else
-        exp_arg = -(m.λ .- V_app).^2 ./ (4 .* m.λ .* kT)
+        exp_arg = -(m.λ .- V_app).^2 ./ (4 * m.λ * kT)
     end
     m.A .* exp.(exp_arg)
 end
 
 """
     AsymptoticMarcusHushChidsey(A, λ)
-    AsymptoticMarchusHushChidsey(λ)
+    AsymptoticMarcusHushChidsey(λ)
 
-Computes asymptotic solution to MHC model, as described in Zeng et al.: 10.1016/j.jelechem.2014.09.038d
+Computes asymptotic solution to MHC model, as described in Zeng et al.: 10.1016/j.jelechem.2014.09.038d, with a corrction prefactor of kT since there is an error in the nondimensionalization in that work.
 
 If initialized with one argument, assumes this to be the reorganization energy λ and sets the prefactor to 1.0.
 """
@@ -112,8 +112,19 @@ function (amhc::AsymptoticMarcusHushChidsey)(V_app, ox::Bool; kT::Real = 0.026)
     a = 1 + sqrt(λ_nondim)
     arg = (λ_nondim .- sqrt.(a .+ η.^2)) ./ (2 * sqrt(λ_nondim))
     pref = sqrt(π * λ_nondim) ./ (1 .+ exp.(-η))
-    return amhc.A .* pref .* erfc.(arg)
+    return kT * amhc.A .* pref .* erfc.(arg)
 end
+
+
+function (amhc::AsymptoticMarcusHushChidsey)(V_app; kT::Real = 0.026)
+    η = V_app ./ kT
+    λ_nondim = amhc.λ / kT
+    a = 1 + sqrt(λ_nondim)
+    arg = (λ_nondim .- sqrt.(a .+ η.^2)) ./ (2 * sqrt(λ_nondim))
+    pref = sqrt(π * λ_nondim) .* tanh.(η/2)
+    return abs.(kT * amhc.A .* pref .* erfc.(arg))
+end
+
 
 abstract type IntegralModel <: KineticModel end # "Marcus-like"
 
@@ -131,10 +142,13 @@ integrand(km::IntegralModel, V_dl; kwargs...) =
 """
     MarcusHushChidsey(A, λ, average_dos)
     MarcusHushChidsey(λ, average_dos)
+    MarcusHushChidsey(λ)
 
 Computes Marcus-Hush-Chidsey kinetics: 10.1126/science.251.4996.919
 
-Note that strictly speaking, `average_dos` and the prefactor `A` are redundant. They are both included primarily to facilitate comparisons with similarly parametrized Marcus-like models.
+Note that for "typical" reorganization energy values (in the vicinity of 10*kT at typical temperatures, i.e. a few tenths of an eV), `AsymptoticMarcusHushChidsey` is comparably accurate to and much faster to evaluate than this model. 
+
+If either the prefactor or the average dos are omitted, their values are assumed to be 1. Note that strictly speaking, `average_dos` and the prefactor `A` are redundant. They are both included primarily to facilitate comparisons with similarly parametrized Marcus-like models such as `MarcusHushChidseyDOS`.
 """
 struct MarcusHushChidsey <: IntegralModel
     A::Real
@@ -144,6 +158,8 @@ end
 
 # default prefactor is 1
 MarcusHushChidsey(λ, avg_dos) = MarcusHushChidsey(1.0, λ, avg_dos)
+# assume prefactor = 1 and avg_dos = 1
+MarcusHushChidsey(λ) = MarcusHushChidsey(1.0, λ, 1.0)
 # convert more detailed DOS information to just pull out average
 MarcusHushChidsey(A, λ, dd::DOSData) = MarcusHushChidsey(A, λ, dd.average_value)
 MarcusHushChidsey(A, λ, dos_file::Union{Matrix,String}; kwargs...) =
@@ -154,9 +170,9 @@ function integrand(mhc::MarcusHushChidsey, V_dl, ox::Bool; kT::Real = 0.026)
     function marcus_term(E)
         local exp_arg
         if ox
-            exp_arg = -( ((E .- (mhc.λ .+ V_dl)) .^ 2)) ./ (4 * mhc.λ * kT)
+            exp_arg = -((E .- mhc.λ .+ V_dl) .^ 2) ./ (4 * mhc.λ * kT)
         else
-            exp_arg = -( ((E .- (mhc.λ .- V_dl)) .^2)) ./ (4 * mhc.λ * kT)
+            exp_arg = -((E .- mhc.λ .- V_dl) .^2) ./ (4 * mhc.λ * kT)
         end
         exp.(exp_arg)
     end

@@ -3,28 +3,47 @@ using Optim
 using DiffImages
 using NLsolve
 
+# sum of squares loss in logarithmic coordinates
+log_loss(y, y_pred) = (log.(y) .- log.(y_pred)).^2
+
+# sum of squares loss in linear coordinates
+linear_loss(y, y_pred) = (y .- y_pred).^2
+
 """
     fit_overpotential(model, k; kwargs...)
 
 Given values for current/rate constant and specified model parameters, find the overpotentials that must have resulted in it.
 """
-function fit_overpotential(model::KineticModel, k; kT=.026, kwargs...)
+function fit_overpotential(model::KineticModel, k, forward=true; kT=.026, loss = log_loss, kwargs...)
+    # start on the correct half of the Tafel plot
+    if forward
+        guess = 0.1
+    else
+        guess = -0.1
+    end
     function compare_k!(storage, V)
-        storage .= compute_k(V, model; kT=kT, kwargs...) .- k
+        storage .= loss(k, compute_k(V, model; kT=kT, kwargs...))
     end
 
     function grad!(storage, V)
-        gs = gradient(V -> sum(compute_k(V, model; kT=kT, kwargs...) .- k), V)[1]
+        gs = Zygote.jacobian(V -> sum(loss(k, compute_k(V, model; kT=kT, kwargs...))), V)[1]
         storage .= gs
         nothing
     end
-    Vs = nlsolve(compare_k!, grad!, repeat([0.1], length(k)))
-    # Vs = nlsolve(compare_k!, repeat([0.1], length(k)))
+    Vs = nlsolve(compare_k!, grad!, repeat([guess], length(k)))
     if !converged(Vs)
         @warn "Overpotential fit not fully converged...you may have fed in an unreachable reaction rate!"
     end
-    Vs.zero
+    # this is janky but the broadcast doesn't work otherwise
+    if typeof(k) <: Array
+        Vs.zero
+    else
+        Vs.zero[1]
+    end
 end
+
+# multiple models, one k value (used in thermo example)
+fit_overpotential(models::Vector{<:KineticModel}, k::Real, forward=true; kwargs...) = fit_overpotential.(models, Ref(k), Ref(forward); kwargs...)
 
 fitting_params(t::Type{<:KineticModel}) = fieldnames(t)
 fitting_params(::Type{MarcusHushChidsey}) = (:A, :λ)

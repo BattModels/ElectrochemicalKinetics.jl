@@ -1,5 +1,5 @@
 # basic setup
-
+using Plots.PlotMeasures
 include("thermo.jl")
 
 xs = 0.01:0.01:0.95
@@ -7,6 +7,8 @@ xs = 0.01:0.01:0.95
 bv =  ButlerVolmer(20)
 m = Marcus(350, 0.3)
 amhc = AsymptoticMarcusHushChidsey(5000, 0.3)
+
+## CURRENT VS. OVERPOTENTIAL
 
 # plot wide range of overpotentials
 Vs = -0.5:0.0051:0.5
@@ -22,22 +24,53 @@ xlabel!("η [V]")
 ylabel!("log(I)")
 
 
-# plot multiple chemical potentials at the same current
+# THERMODYNAMIC FUNCTIONS
+# TODO: fix colors so reference case is always blue
+
 I = 20
 
 μ_bv = μ_kinetic(I, bv)
 μ_m = μ_kinetic(I, m)
 μ_amhc = μ_kinetic(I, amhc)
 
-plot(xs, [μ_bv(xs) μ_m(xs) μ_amhc(xs)], label=["Butler-Volmer" "Marcus" "Marcus-Hush-Chidsey"], legend=:topleft)
-xlabel!("x")
-ylabel!("μ")
+μ_vals_bv = μ_bv(xs)
+μ_vals_m = μ_m(xs)
+μ_vals_amhc = μ_amhc(xs)
+
+ref_color = palette(:tab10)[1]
+
+# compare thermodynamic and kinetic cases
+plot(xs, [μ_thermo(xs), μ_vals_bv .- μ_thermo(xs), μ_vals_bv], 
+    lw=3, 
+    legend=:topleft,
+    xlabel="x", 
+    label = ["Thermodynamic μ" "Δϕ" "Kinetic μ (Butler-Volmer)"], 
+    linecolor = [:grey :darkorchid4 ref_color],
+    yticks=[], ylims=[-0.02, 0.3],
+)
+
+# plot multiple chemical potentials at the same current
+plot(xs, [μ_vals_m, μ_vals_amhc, μ_vals_bv], 
+    label=["Marcus" "Marcus-Hush-Chidsey" "Butler-Volmer"], legend=:topleft, 
+    lw=3,  
+    xlabel="x", ylabel="μ", 
+    yticks=[], ylims=[-0.02,0.3],
+    linecolor = [palette(:tab10)[2] palette(:tab10)[3] ref_color],
+    legendtitle="Vary model at I=I₀", 
+    margin=3mm,
+)
 
 # multiple currents for one model type
-I_vals = [10, 20, 30, 40]
+I_vals = [20, 100, 10]
 μ_fcns = Dict(I => μ_kinetic(I, bv) for I in I_vals)
-plot(xs, [μ_fcns[I](xs) for I in I_vals], label=I_vals', legend=:topleft, legendtitle="I")
-xlabel!("x")
-ylabel!("μ")
+plot(xs, [μ_fcns[I](xs) for I in I_vals], 
+    label=["I₀" "10I₀" "0.5I₀"],
+    legend=:topleft, legendtitle="Butler-Volmer, vary I", xlabel="x", ylabel="μ", 
+    yticks=[], 
+    linecolor = [ref_color :maroon :goldenrod2],
+    lw=3, 
+    ylims=[-0.02,0.3],
+    margin=3mm
+)
 
 # make phase diagrams!  

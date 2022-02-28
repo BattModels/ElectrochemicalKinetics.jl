@@ -10,7 +10,11 @@ kms = [bv, m, amhc]
 ### fit_overpotential
 k = 2e3
 
-# benchmarks, mean times
+# scalar benchmarks, mean times in comments
 @benchmark fit_overpotential($bv, $k) # ~16µs
 @benchmark fit_overpotential($m, $k) # ~30µs
 @benchmark fit_overpotential($amhc, $k) #~21µs
+
+# vector of models
+bvs = [bv, 0.8*bv, 1.2*bv]
+@benchmark fit_overpotential($bvs, $k)

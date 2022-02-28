@@ -1,4 +1,4 @@
-using Zygote
+# using Zygote
 using Optim
 using DiffImages
 using NLsolve
@@ -25,12 +25,13 @@ function fit_overpotential(model::KineticModel, k, forward=true; kT=.026, loss =
         storage .= loss(k, compute_k(V, model; kT=kT, kwargs...))
     end
 
-    function grad!(storage, V)
-        gs = Zygote.jacobian(V -> sum(loss(k, compute_k(V, model; kT=kT, kwargs...))), V)[1]
-        storage .= gs
-        nothing
-    end
-    Vs = nlsolve(compare_k!, grad!, repeat([guess], length(k)))
+    # function grad!(storage, V)
+    #     gs = Zygote.jacobian(V -> sum(loss(k, compute_k(V, model; kT=kT, kwargs...))), V)[1]
+    #     storage .= gs
+    #     nothing
+    # end
+    # Vs = nlsolve(compare_k!, grad!, repeat([guess], length(k)))
+    Vs = nlsolve(compare_k!, repeat([guess], length(k)))
     if !converged(Vs)
         @warn "Overpotential fit not fully converged...you may have fed in an unreachable reaction rate!"
     end
@@ -119,12 +120,12 @@ function _fit_model(
     # Zygote is tripped up by QuadGK, so that one has to be done with black-box optimization, but the non-integral models work with autodiff
     opt_func = params -> sq_error(model_evaluator(model_builder(params)))
     local best_params
-    function grad!(s, x)
-        gs = gradient(params -> opt_func(params), x)[1]
-        for i in 1:length(x)
-            s[i] = gs[i]
-        end
-    end
+    # function grad!(s, x)
+    #     gs = gradient(params -> opt_func(params), x)[1]
+    #     for i in 1:length(x)
+    #         s[i] = gs[i]
+    #     end
+    # end
     lower = Float64.([param_bounds[p][1] for p in fitting_params(model_type)])
     upper = Float64.([param_bounds[p][2] for p in fitting_params(model_type)])
     init_guess = 0.5 .* (lower .+ upper)
@@ -137,11 +138,11 @@ function _fit_model(
                            outer_iterations = 4,
                            x_tol = 1.,
                            f_tol = 1e3)
-      Fminbox(GradientDescent()), opts
+      Fminbox(NelderMead()), opts
     else
-      Fminbox(LBFGS()), Optim.Options()
+      Fminbox(NelderMead()), Optim.Options()
     end
-    opt = optimize(opt_func, grad!, lower, upper, init_guess, optimizer, opts)
+    opt = optimize(opt_func, lower, upper, init_guess, optimizer, opts)
     best_params = Optim.minimizer(opt)
 
     # construct and return model

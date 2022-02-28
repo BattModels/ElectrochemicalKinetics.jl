@@ -1,4 +1,5 @@
-using Zygote
+# using Zygote
+using ForwardDiff
 using Optim
 using DiffImages
 using NLsolve
@@ -25,11 +26,15 @@ function fit_overpotential(model::KineticModel, k, forward=true; kT=.026, loss =
         storage .= loss(k, compute_k(V, model; kT=kT, kwargs...))
     end
 
+    # function grad!(storage, V)
+    #     gs = Zygote.jacobian(V -> sum(loss(k, compute_k(V, model; kT=kT, kwargs...))), V)[1]
+    #     storage .= gs
+    #     nothing
+    # end
     function grad!(storage, V)
-        gs = Zygote.jacobian(V -> sum(loss(k, compute_k(V, model; kT=kT, kwargs...))), V)[1]
-        storage .= gs
-        nothing
-    end
+        gs = ForwardDiff.gradient(V -> sum(loss(k, compute_k(V, model; kT=kT, kwargs...))), V)
+        copyto!(storage, gs)
+      end
     Vs = nlsolve(compare_k!, grad!, repeat([guess], length(k)))
     if !converged(Vs)
         @warn "Overpotential fit not fully converged...you may have fed in an unreachable reaction rate!"

@@ -18,7 +18,7 @@ include("rate_constant.jl")
 export compute_k, compute_k_cq
 
 include("fitting.jl")
-include("datastructures.jl")
+# include("datastructures.jl")
 export fitting_params, fit_model, fit_overpotential, is_dosmodel
 
 include("plot_fcns.jl")

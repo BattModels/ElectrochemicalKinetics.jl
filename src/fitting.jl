@@ -3,7 +3,7 @@ using Optim
 # using DiffImages
 using NLsolve
 using Zygote, LinearAlgebra
-using ForwardDiff
+# using ForwardDiff
 
 # sum of squares loss in logarithmic coordinates
 log_loss(y, y_pred) = (log.(y) .- log.(y_pred)).^2

@@ -1,7 +1,9 @@
 # using Zygote
 using Optim
-using DiffImages
+# using DiffImages
 using NLsolve
+using Zygote, LinearAlgebra
+using ForwardDiff
 
 # sum of squares loss in logarithmic coordinates
 log_loss(y, y_pred) = (log.(y) .- log.(y_pred)).^2
@@ -21,17 +23,31 @@ function fit_overpotential(model::KineticModel, k, forward=true; kT=.026, loss =
     else
         guess = -0.1
     end
+    # pb = Channel()
     function compare_k!(storage, V)
+        # @show "ck", V
+        # y, pb2 = Zygote.pullback(x -> loss(k, compute_k(x, model; kT=kT, kwargs...)), V)
+        # @show pb
+        # put!(pb, pb2)
+        # @show isready(pb)
         storage .= loss(k, compute_k(V, model; kT=kT, kwargs...))
+        # storage .= y
     end
 
-    # function grad!(storage, V)
-    #     gs = Zygote.jacobian(V -> sum(loss(k, compute_k(V, model; kT=kT, kwargs...))), V)[1]
-    #     storage .= gs
-    #     nothing
-    # end
-    # Vs = nlsolve(compare_k!, grad!, repeat([guess], length(k)))
-    Vs = nlsolve(compare_k!, repeat([guess], length(k)))
+    function grad!(storage, V)
+        # @show "grad", V
+        # gs = Zygote.jacobian(V -> sum(loss(k, compute_k(V, model; kT=kT, kwargs...))), V)[1]
+        # gs = Zygote.gradient(V -> sum(loss(k, compute_k(V, model; kT=kT, kwargs...))), V)[1]
+        gs = gradient(V) do V
+          Zygote.forwarddiff(V) do V
+           sum(loss(k, compute_k(V, model; kT=kT, kwargs...)))
+          end
+        end[1]
+        storage .= gs # take!(pb)(one.(V))
+        nothing
+    end
+    Vs = nlsolve(compare_k!, grad!, repeat([guess], length(k)))
+    # Vs = nlsolve(compare_k!, repeat([guess], length(k)))
     if !converged(Vs)
         @warn "Overpotential fit not fully converged...you may have fed in an unreachable reaction rate!"
     end

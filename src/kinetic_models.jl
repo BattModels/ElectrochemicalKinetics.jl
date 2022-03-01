@@ -12,7 +12,7 @@ abstract type KineticModel end
 
 # dispatch for net rates, returns absolute value
 (km::KineticModel)(V_app; kT = 0.026) =
-    abs.(km(V_app, true; kT = kT) - km(V_app, false; kT = kT))
+    abs.(km(V_app, Val(true); kT = kT) - km(V_app, Val(false); kT = kT))
 
 # return a new one with a scaled prefactor
 import Base.*
@@ -54,13 +54,13 @@ end
 ButlerVolmer() = ButlerVolmer(1.0, 0.5)
 ButlerVolmer(A) = ButlerVolmer(A, 0.5)
 
-function (bv::ButlerVolmer)(V_app, ox::Bool; kT::Real = 0.026)
-    local exp_arg
-    if ox
-        exp_arg = (bv.α .* V_app) ./ kT
-    else
-        exp_arg = -((1 - bv.α) .* V_app) ./ kT
-    end
+function (bv::ButlerVolmer)(V_app, ::Val{true}; kT::Real = 0.026)
+    exp_arg = (bv.α .* V_app) ./ kT
+    bv.A .* exp.(exp_arg)
+end
+
+function (bv::ButlerVolmer)(V_app, ::Val{false}; kT::Real = 0.026)
+    exp_arg = -((1 - bv.α) .* V_app) ./ kT
     bv.A .* exp.(exp_arg)
 end
 

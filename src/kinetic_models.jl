@@ -90,6 +90,16 @@ function (m::Marcus)(V_app, ox::Bool; kT::Real = 0.026)
     m.A .* exp.(exp_arg)
 end
 
+function (m::Marcus)(V_app, ::Val{true}; kT::Real = 0.026)
+    exp_arg = -(m.λ .+ V_app).^2 ./ (4 * m.λ * kT)
+    m.A .* exp.(exp_arg)
+end
+
+function (m::Marcus)(V_app, ::Val{false}; kT::Real = 0.026)
+    exp_arg = -(m.λ .- V_app).^2 ./ (4 * m.λ * kT)
+    m.A .* exp.(exp_arg)
+end
+
 """
     AsymptoticMarcusHushChidsey(A, λ)
     AsymptoticMarcusHushChidsey(λ)

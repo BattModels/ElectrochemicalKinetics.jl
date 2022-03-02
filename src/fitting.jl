@@ -39,9 +39,10 @@ function fit_overpotential(model::KineticModel, k, forward = true; kT = 0.026, l
             # @show "grad", V
             # gs = Zygote.jacobian(V -> sum(loss(k, compute_k(V, model; kT=kT, kwargs...))), V)[1]
             # gs = Zygote.gradient(V -> sum(loss(k, compute_k(V, model; kT=kT, kwargs...))), V)[1]
-            gs = gradient(V) do V
+            # TODO: we could speed up the case of scalar k's by dispatching to call gradient here instead
+            gs = Zygote.jacobian(V) do V
                 Zygote.forwarddiff(V) do V
-                    sum(loss(k, compute_k(V, model; kT = kT, kwargs...)))
+                    loss(k, compute_k(V, model; kT = kT, kwargs...))
                 end
             end[1]
             storage .= gs # take!(pb)(one.(V))

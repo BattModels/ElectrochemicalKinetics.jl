@@ -60,20 +60,20 @@ function get_dos(dd::Matrix; Ef=0, cut_energy=false)
 
     x = dd
     # recenter so Ef=0
-    dos_data = x[:,1] = x[:,1] .- Ef
+    x[:,1] = x[:,1] .- Ef
     
-    E_max = dos_data[end,1]
+    E_max = x[end, 1]
     if cut_energy #TODO: fix this so that it works if magnitude of upper bound is smaller
         # for now, we'll pick a symmetric energy range about 0 (i.e. the new Ef)
-        len_keep = sum(dos_data[:,1] .> -E_max)
+        len_keep = sum(x[:,1] .> -E_max)
         # cut off
-        dos_data = dos_data[end-len_keep:end,:]
+        x = x[end-len_keep:end,:]
     end
-    E_min = dos_data[1,1]
-    average_dos = mean(dos_data[:,2]) # for whole structure
+    E_min = x[1,1]
+    average_dos = mean(x[:,2]) # for whole structure
     # interpolate
-    E_step = mean(dos_data[2:end,1].-dos_data[1:end-1,1])
-    dos_interp = scale(interpolate(dos_data[:,2], BSpline(Linear())), range(E_min, E_max+0.0001, step=E_step))
+    E_step = mean(x[2:end,1].-x[1:end-1,1])
+    dos_interp = scale(interpolate(x[:,2], BSpline(Linear())), range(E_min, E_max+0.0001, step=E_step))
     return dos_interp, average_dos, E_min, E_max
 end
 

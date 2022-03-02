@@ -11,6 +11,7 @@ kms = [bv, m, amhc]
 k = 2e3
 
 # benchmarks, mean times
-@benchmark fit_overpotential($bv, $k) # ~16µs
+@benchmark fit_overpotential($bv, $k, autodiff=false) # ~16µs
+@benchmark fit_overpotential($bv, $k, autodiff=true) # ~49µs
 @benchmark fit_overpotential($m, $k) # ~30µs
 @benchmark fit_overpotential($amhc, $k) #~21µs

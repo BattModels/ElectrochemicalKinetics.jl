@@ -1,9 +1,7 @@
 using Zygote
 using Optim
-# using DiffImages
 using NLsolve
 using LinearAlgebra
-# using ForwardDiff
 
 # sum of squares loss in logarithmic coordinates
 log_loss(y, y_pred) = (log.(y) .- log.(y_pred)).^2
@@ -23,22 +21,12 @@ function fit_overpotential(model::KineticModel, k, forward = true; kT = 0.026, l
     else
         guess = -0.1
     end
-    # pb = Channel()
     function compare_k!(storage, V)
-        # @show "ck", V
-        # y, pb2 = Zygote.pullback(x -> loss(k, compute_k(x, model; kT=kT, kwargs...)), V)
-        # @show pb
-        # put!(pb, pb2)
-        # @show isready(pb)
         storage .= loss(k, compute_k(V, model; kT = kT, kwargs...))
-        # storage .= y
     end
     local Vs
     if autodiff
         function grad!(storage, V)
-            # @show "grad", V
-            # gs = Zygote.jacobian(V -> sum(loss(k, compute_k(V, model; kT=kT, kwargs...))), V)[1]
-            # gs = Zygote.gradient(V -> sum(loss(k, compute_k(V, model; kT=kT, kwargs...))), V)[1]
             # TODO: we could speed up the case of scalar k's by dispatching to call gradient here instead
             gs = Zygote.jacobian(V) do V
                 Zygote.forwarddiff(V) do V

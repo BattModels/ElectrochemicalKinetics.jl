@@ -74,8 +74,6 @@ end
 # bv = ButlerVolmer(300)
 # I_vals = 10 .^ (1.1:0.025:3.1)
 
-
-# # this line takes a few seconds with B-V but aaages with anything else...
 # pbs = [find_phase_boundaries(I, bv, T=330) for I in I_vals]
 
 # plot(vcat(pbs...), hcat(I_vals, I_vals), label="phase boundary")

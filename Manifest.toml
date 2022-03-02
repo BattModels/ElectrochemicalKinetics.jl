@@ -219,6 +219,12 @@ git-tree-sha1 = "d8a578692e3077ac998b50c0217dfd67f21d1e5f"
 uuid = "b22a6f82-2f65-5046-a5b2-351ab43fb4e5"
 version = "4.4.0+0"
 
+[[FastGaussQuadrature]]
+deps = ["LinearAlgebra", "SpecialFunctions", "StaticArrays"]
+git-tree-sha1 = "58d83dd5a78a36205bdfddb82b1bb67682e64487"
+uuid = "442a2c76-b920-505d-bb47-c5924d526838"
+version = "0.4.9"
+
 [[FileWatching]]
 uuid = "7b1f6079-737a-58dc-b8bc-7a2ca5c1b5ee"
 

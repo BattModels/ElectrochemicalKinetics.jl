@@ -66,16 +66,6 @@ function compute_k(
             E_max = max(E_max, E_max-Vq_max),
         )
     else
-        # invoke(
-        #     compute_k,
-        #     Tuple{typeof(V_app),IntegralModel,Bool},
-        #     V_app,
-        #     model,
-        #     ox;
-        #     kT = kT,
-        #     E_min = E_min,
-        #     E_max = E_max,
-        # )
         quadgk(integrand(model, V_app, ox; kT = kT), E_min, E_max)[1]
     end
 end

@@ -1,7 +1,6 @@
 using ElectrochemicalKinetics
 using Plots
 using NLsolve
-# using QuadGK
 using FastGaussQuadrature
 
 # define some constants and default parameters

@@ -1,7 +1,8 @@
 using ElectrochemicalKinetics
 using Plots
 using NLsolve
-using QuadGK
+# using QuadGK
+using FastGaussQuadrature
 
 # define some constants and default parameters
 kB = 8.617e-5
@@ -9,6 +10,9 @@ T = 298
 muoA = 0.02
 muoB = 0.03
 Ω = 0.1
+N = 1000
+quadfun = gausslegendre
+
 
 # our familiar thermodynamic functions
 hs(x;Ω=Ω) = @. x*(1-x)*Ω # enthalpy of mixing
@@ -30,35 +34,48 @@ function µ_kinetic(I, km::KineticModel; Ω=Ω, muoA=muoA, muoB=muoB, T=T)
 end
 function g_kinetic(I, km::KineticModel; Ω=Ω, muoA=muoA, muoB=muoB, T=T)
     thermo_term(x) = g_thermo(x; Ω=Ω, muoA=muoA, muoB=muoB, T=T)
-    kinetic_term(x) = quadgk.(y->fit_overpotential((1 .- y) .* Ref(km), I), zero(x), x)
-    # quadgk always returns a tuple of (val, error) (or when we broadcast, an array of such tuples) so we need these two separate dispatches to get the return type to match the input type
-    g(x::AbstractVector) = thermo_term(x) .+ [k[1] for k in kinetic_term(x)]
-    g(x::Real) = thermo_term(x) + kinetic_term(x)[1]
+    function kinetic_term(x, w, n)
+        # f(x) = ElectrochemicalKinetics.fit_overpotential_t( (1 .- x) .* Ref(km), I, 0.1)
+        f(x) = ElectrochemicalKinetics.fit_overpotential( (1 .- x) .* Ref(km), I, true)
+        map((w, n) -> sum(w .* f(n)), eachcol(w), eachcol(n))
+    end
+    # g(x::AbstractVector) = thermo_term(x) .+ kinetic_term(x)
+    g(x, w, n) = thermo_term(x) .+ kinetic_term(x, w, n)
     return g
 end
 
 # zeros of this function correspond to pairs of x's satisfying the common tangent condition for a given µ function
 # case where we just feed in two points (x should be of length two)
-function common_tangent(x::Vector, I, km::KineticModel; Ω=Ω, muoA=muoA, muoB=muoB, T=T)
+function common_tangent(x::Vector, I, km::KineticModel; Ω=Ω, muoA=muoA, muoB=muoB, T=T, nodes, weights)
     g = g_kinetic(I, km; Ω=Ω, muoA=muoA, muoB=muoB, T=T)
     µ = µ_kinetic(I, km; Ω=Ω, muoA=muoA, muoB=muoB, T=T)
-    [(g(x[2])-g(x[1]))/(x[2]-x[1]) - μ(x[1]), μ(x[2])-μ(x[1])]
+    [(g(x[2], weights, nodes) - g(x[1], weights, nodes))/(x[2] - x[1]) .- μ(x[1]), μ(x[2])-μ(x[1])]
 end
 
 # case where we want to check many points at once (shape of x should be N x 2)
-function common_tangent(x::Array, I, km::KineticModel; kwargs...)
+function common_tangent(x::Array, I, km::KineticModel; nodes, weights, kwargs...)
     g = g_kinetic(I, km; kwargs...)
     µ = µ_kinetic(I, km; kwargs...)
-    Δg = g(x[:,2]) - g(x[:,1])
+    # w1, n1 = ElectrochemicalKinetics.scale_integration_nodes(zeros.(x[:, 1]), x[:, 1])
+    # w2, n2 = ElectrochemicalKinetics.scale_integration_nodes(zero.(x[:, 2]), x[:, 2])
+    w1, n1 = weights[:, 1], nodes[:, 1]
+    w2, n2 = weights[:, 2], nodes[:, 2]
+    Δg = g(x[:,2], w2, n2) - g(x[:,1], w1, n1)
     Δx = x[:,2] - x[:,1]
     μ1 = μ(x[:,1])
     Δμ = μ(x[:,2]) - μ1
     hcat(Δg ./ Δx .- μ1, Δμ)
 end
 
-function find_phase_boundaries(I, km::KineticModel; kwargs...)
+function find_phase_boundaries(I, km::KineticModel; quadfun=quadfun, N=N, kwargs...)
+    unscaled_x, unscaled_w = quadfun(N)
+    
     function myct!(storage, x)
-        res = common_tangent(x, I, km; kwargs...)
+        nodes, weights = ElectrochemicalKinetics.scale_integration_nodes(unscaled_x,    # nodes
+                                                                         unscaled_w,    # weights
+                                                                         zero.(x),      # lb
+                                                                         x)             # ub
+        res = common_tangent(x, I, km; nodes = nodes, weights = weights, kwargs...)
         storage[1] = res[1]
         storage[2] = res[2]
     end
@@ -74,6 +91,8 @@ end
 # bv = ButlerVolmer(300)
 # I_vals = 10 .^ (1.1:0.025:3.1)
 
+
+# this line takes a few seconds with B-V but aaages with anything else...
 # pbs = [find_phase_boundaries(I, bv, T=330) for I in I_vals]
 
 # plot(vcat(pbs...), hcat(I_vals, I_vals), label="phase boundary")

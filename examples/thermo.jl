@@ -35,11 +35,9 @@ end
 function g_kinetic(I, km::KineticModel; Ω=Ω, muoA=muoA, muoB=muoB, T=T)
     thermo_term(x) = g_thermo(x; Ω=Ω, muoA=muoA, muoB=muoB, T=T)
     function kinetic_term(x, w, n)
-        # f(x) = ElectrochemicalKinetics.fit_overpotential_t( (1 .- x) .* Ref(km), I, 0.1)
         f(x) = ElectrochemicalKinetics.fit_overpotential( (1 .- x) .* Ref(km), I, true)
         map((w, n) -> sum(w .* f(n)), eachcol(w), eachcol(n))
     end
-    # g(x::AbstractVector) = thermo_term(x) .+ kinetic_term(x)
     g(x, w, n) = thermo_term(x) .+ kinetic_term(x, w, n)
     return g
 end
@@ -56,8 +54,6 @@ end
 function common_tangent(x::Array, I, km::KineticModel; nodes, weights, kwargs...)
     g = g_kinetic(I, km; kwargs...)
     µ = µ_kinetic(I, km; kwargs...)
-    # w1, n1 = ElectrochemicalKinetics.scale_integration_nodes(zeros.(x[:, 1]), x[:, 1])
-    # w2, n2 = ElectrochemicalKinetics.scale_integration_nodes(zero.(x[:, 2]), x[:, 2])
     w1, n1 = weights[:, 1], nodes[:, 1]
     w2, n2 = weights[:, 2], nodes[:, 2]
     Δg = g(x[:,2], w2, n2) - g(x[:,1], w1, n1)

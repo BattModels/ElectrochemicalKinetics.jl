@@ -127,7 +127,7 @@ end
     v2 = find_phase_boundaries(100, km, T=350)
     nodes, weights = ElectrochemicalKinetics.scale_integration_nodes(unscaled_x,     # nodes
                             unscaled_w,     # weights
-                            zero.(v1),      # lb
+                            zero.(v2),      # lb
                             v2)             # ub
     @test all(isapprox.(common_tangent_def(v2, 100, km, T=350), Ref(0.0), atol=1e-5))
     # they should get "narrower" with temperature

@@ -4,12 +4,14 @@ authors = ["Rachel Kurchin <rkurchin@cmu.edu>", "Holden Parks <hparks@andrew.cmu
 version = "0.1.0"
 
 [deps]
+BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
 Blink = "ad839575-38b3-5650-b840-f874b8c74a25"
 DataStructures = "864edb3b-99cc-5e75-8d2d-829cb0a9cfe8"
 DelimitedFiles = "8bb1440f-4735-579b-a4ab-409b98df4dab"
 Dierckx = "39dd38d3-220a-591b-8e3c-4c3a8c710a94"
-DiffImages = "f2ee3836-eb25-4a50-842c-9baeb5ea126d"
+ForwardDiff = "f6369f11-7733-5829-9624-2563aa707210"
 Interpolations = "a98d9a8b-a2ab-59e6-89dd-64a1c18fca59"
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 NLsolve = "2774e3e8-f4cf-5e23-947b-6d7e65073b56"
 Optim = "429524aa-4258-5aef-a3af-852621145aeb"
 PackageCompiler = "9b87118b-4619-50d2-8e1e-99f35a4d4d9d"
@@ -20,6 +22,7 @@ Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
 Zygote = "e88e6eb3-aa80-5325-afca-941959d7151f"
 
 [compat]
+Optim = "1"
 SpecialFunctions = "2"
 julia = "1.4"
 

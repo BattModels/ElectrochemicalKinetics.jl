@@ -1,4 +1,5 @@
 using ElectrochemicalKinetics
+using QuadGK
 using Test
 
 @testset "ElectrochemicalKinetics.jl" begin

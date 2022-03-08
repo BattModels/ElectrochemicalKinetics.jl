@@ -79,6 +79,10 @@ xs = [0.1, 0.5, 0.95]
     end
 end
 
+# Set up the integrator for `common_tangent` using defaults as in the thermo example
+unscaled_x, unscaled_w = quadfun(N)
+
+
 @testset "Kinetic g" begin
     g_200_T400_vals = Dict(
         ButlerVolmer => [0.0205857425, 0.037693617, 0.06661696], 
@@ -86,6 +90,7 @@ end
         AsymptoticMarcusHushChidsey => [0.0207838185, 0.0390031065, 0.0729910686]
         )
     g_50_2_vals = Dict(ButlerVolmer=>0.03519728018258, Marcus=>0.03395267141265, AsymptoticMarcusHushChidsey=>0.0347968044)
+    nodes_xs, weights_xs = ElectrochemicalKinetics.scale_integration_nodes(unscaled_x, unscaled_w, zero.(xs), xs)
     for km in kms
         @testset "$(typeof(km))" begin
             μ_50 = μ_kinetic(50, km)
@@ -94,24 +99,37 @@ end
 
             # integral of the derivative should be the original fcn (up to a constant, which we know)
             integrated_μs = [v[1] for v in quadgk.(μ_50, zero(xs), xs)]
-            @test g_50(xs) ≈ integrated_μs .+ muoA
+            @test all(isapprox.(g_50(xs, weights_xs, nodes_xs), integrated_μs .+ muoA, atol=1e-5))
 
             # check scalar input works
-            @test g_50(xs[2]) == g_50(xs)[2] ≈ g_50_2_vals[typeof(km)]
+            @test g_50(xs[2], weights_xs[:, 2], nodes_xs[:, 2]) == g_50(xs, weights_xs, nodes_xs)[2] 
+            @test isapprox(g_50(xs, weights_xs, nodes_xs)[2], g_50_2_vals[typeof(km)], atol=1e-5)
 
             # check a few other values
-            @test g_200_T400(xs) ≈ g_200_T400_vals[typeof(km)]
+            @test all(isapprox.(g_200_T400(xs, weights_xs, nodes_xs), g_200_T400_vals[typeof(km)], atol=1e-5))
         end
     end
 end
 
 @testset "Phase Diagram" begin
     km = bv # TODO: expand this
+
     # simplest case, just one pair of x values (this function is still pretty slow though)
     v1 = find_phase_boundaries(100, km)
-    @test all(isapprox.(common_tangent(v1, 100, km), Ref(0.0), atol=1e-8)) # not sure why this one doesnt converge as closely as the rest
+
+    nodes, weights = ElectrochemicalKinetics.scale_integration_nodes(unscaled_x,     # nodes
+                            unscaled_w,     # weights
+                            zero.(v1),      # lb
+                            v1)             # ub
+    common_tangent_def(args...; kwargs...) = common_tangent(args...; nodes = nodes, weights = weights, kwargs...)
+
+    @test all(isapprox.(common_tangent_def(v1, 100, km), Ref(0.0), atol=1e-6))
     v2 = find_phase_boundaries(100, km, T=350)
-    @test all(isapprox.(common_tangent(v2, 100, km, T=350), Ref(0.0), atol=1e-11))
+    nodes, weights = ElectrochemicalKinetics.scale_integration_nodes(unscaled_x,     # nodes
+                            unscaled_w,     # weights
+                            zero.(v2),      # lb
+                            v2)             # ub
+    @test all(isapprox.(common_tangent_def(v2, 100, km, T=350), Ref(0.0), atol=1e-5))
     # they should get "narrower" with temperature
     @test v2[1] > v1[1]
     @test v2[2] < v1[2]

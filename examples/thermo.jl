@@ -38,6 +38,7 @@ function g_kinetic(I, km::KineticModel; Ω=Ω, muoA=muoA, muoB=muoB, T=T)
         map((w, n) -> sum(w .* f(n)), eachcol(w), eachcol(n))
     end
     g(x, w, n) = thermo_term(x) .+ kinetic_term(x, w, n)
+    g(x::Real, w, n) = thermo_term(x) + kinetic_term(x, w, n)[1]
     return g
 end
 

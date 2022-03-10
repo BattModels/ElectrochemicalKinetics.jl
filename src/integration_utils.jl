@@ -11,7 +11,7 @@ function setup_integration(f, N)
     end
     function scale(lb::T, ub::T, nodes = nodes, weights = weights) where T <: AbstractVector
         ns_and_ws = scale.(lb, ub, Ref(nodes), Ref(weights))
-        ns, ws = Zygote.unzip(ns_and_ws)::Vector{Tuple{T, T}}
+        ns, ws = Zygote.unzip(ns_and_ws)::Tuple{Vector{T}, Vector{T}}
         reduce(hcat, ns), reduce(hcat, ws)
     end
 end

@@ -73,4 +73,65 @@ plot(xs, [μ_fcns[I](xs) for I in I_vals],
     margin=3mm
 )
 
-# make phase diagrams!  
+## PHASE DIAGRAM
+# first a 2D BV one
+
+I_vals = 2.5:2.5:75
+# I_vals = [2.5, 20, 75]
+pb1 = []
+pb2 = []
+for I in I_vals
+    println(I)
+    pbs = find_phase_boundaries(I, bv, T=330)
+    push!(pb1, pbs[1])
+    push!(pb2, pbs[2])
+end
+
+open("pbs_bv_T330.txt", "w") do io
+    writedlm(io, [I_vals pb1 pb2])
+end
+
+
+I_vals = 2.5:2.5:100
+pb1 = []
+pb2 = []
+for I in I_vals
+    println(I)
+    pbs = find_phase_boundaries(I, bv, T=310)
+    push!(pb1, pbs[1])
+    push!(pb2, pbs[2])
+end
+
+open("pbs_bv_T310.txt", "w") do io
+    writedlm(io, [I_vals pb1 pb2])
+end
+
+I_vals = 2.5:2.5:100
+pb1 = []
+pb2 = []
+for I in I_vals
+    println(I)
+    pbs = find_phase_boundaries(I, bv, T=320)
+    push!(pb1, pbs[1])
+    push!(pb2, pbs[2])
+end
+
+open("pbs_bv_T320.txt", "w") do io
+    writedlm(io, [I_vals pb1 pb2])
+end
+
+I_vals = 2:2:30
+for T in 350:10:430
+    pb1 = []
+    pb2 = []
+    for I in I_vals
+        println(T, I)
+        pbs = find_phase_boundaries(I, bv, T=T)
+        push!(pb1, pbs[1])
+        push!(pb2, pbs[2])
+    end
+
+    open("pbs_bv_T$T.txt", "w") do io
+        writedlm(io, [I_vals pb1 pb2])
+    end
+end

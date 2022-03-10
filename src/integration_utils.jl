@@ -9,14 +9,28 @@ function setup_integration(f, N)
         x = @. 0.5 * (ub + lb) + 0.5 * (ub - lb) * nodes
         x, w
     end
-    function scale(lb, ub, nodes = nodes, weights = weights)
+    function scale(lb::T, ub::T, nodes = nodes, weights = weights) where T <: AbstractVector
         ns_and_ws = scale.(lb, ub, Ref(nodes), Ref(weights))
-        ns, ws = Zygote.unzip(ns_and_ws)
+        ns, ws = Zygote.unzip(ns_and_ws)::Vector{Tuple{T, T}}
         reduce(hcat, ns), reduce(hcat, ws)
     end
 end
 
 const scale = setup_integration(gausslegendre, 1000)
+
+# const nodes, weights = gausslegendre(1000)
+# function scale(lb::Real, ub::Real, nodes = nodes, weights = weights)
+#     # use nodes and weights here
+#     w = @. 0.5 * (ub - lb) * weights
+#     x = @. 0.5 * (ub + lb) + 0.5 * (ub - lb) * nodes
+#     x, w
+# end
+# function scale(lb::AbstractVector, ub::AbstractVector, nodes::AbstractVector = nodes, weights::AbstractVector = weights)
+#     ns_and_ws = scale.(lb, ub, Ref(nodes), Ref(weights))
+#     @show typeof(ns_and_ws)
+#     ns, ws = Zygote.unzip(ns_and_ws)::Vector{Tuple{Vector{Float64}, Vector{Float64}}}
+#     reduce(hcat, ns), reduce(hcat, ws)
+# end
 
 # Can't get this to broadcast correctly - but this is the right sort of
 # approach to take here. Of note - this is 2x faster in the forwards pass

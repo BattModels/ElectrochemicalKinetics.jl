@@ -8,12 +8,28 @@ function scale_integration_nodes(unscaled_x, unscaled_w, lb::Real, ub::Real)
 end
 
 function scale_integration_nodes(unscaled_x, unscaled_w, lb, ub)
-	# @show lb, ub
     ns_and_ws = scale_integration_nodes.(Ref(unscaled_x), Ref(unscaled_w), lb, ub)
     ns, ws = Zygote.unzip(ns_and_ws)
     reduce(hcat, ns), reduce(hcat, ws)
 end
 
+function setup_integration(f, N)
+    nodes, weights = f(N)
+    function scale(lb::Real, ub::Real, nodes, weights)
+        # use nodes and weights here
+        w = @. 0.5 * (ub - lb) * weights
+        x = @. 0.5 * (ub + lb) + 0.5 * (ub - lb) * nodes
+        x, w
+    end
+    function scale(lb, ub)
+        ns_and_ws = scale.(lb, ub, Ref(nodes), Ref(weights))
+        ns, ws = Zygote.unzip(ns_and_ws)
+        reduce(hcat, ns), reduce(hcat, ws)
+    end
+    scale(lb::Real, ub::Real) = scale(lb, ub, nodes, weights)
+end
+
+const scale = setup_integration(gausslegendre, 1000)
 
 # Can't get this to broadcast correctly - but this is the right sort of
 # approach to take here. Of note - this is 2x faster in the forwards pass

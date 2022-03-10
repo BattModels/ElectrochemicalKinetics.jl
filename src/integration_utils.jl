@@ -1,18 +1,6 @@
 using FastGaussQuadrature
 
 # helper function to be able to "naturally" use the interval of integration that we want with FastGaussQuadrature, which returns nodes and weights for the interval [-1, 1] (see https://en.wikipedia.org/wiki/Gaussian_quadrature#Change_of_interval)
-function scale_integration_nodes(unscaled_x, unscaled_w, lb::Real, ub::Real)
-    w = @. 0.5 * (ub - lb) * unscaled_w
-    x = @. 0.5 * (ub + lb) + 0.5 * (ub - lb) * unscaled_x
-    x, w
-end
-
-function scale_integration_nodes(unscaled_x, unscaled_w, lb, ub)
-    ns_and_ws = scale_integration_nodes.(Ref(unscaled_x), Ref(unscaled_w), lb, ub)
-    ns, ws = Zygote.unzip(ns_and_ws)
-    reduce(hcat, ns), reduce(hcat, ws)
-end
-
 function setup_integration(f, N)
     nodes, weights = f(N)
     function scale(lb::Real, ub::Real, nodes, weights)

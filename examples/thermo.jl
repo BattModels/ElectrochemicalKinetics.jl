@@ -35,7 +35,7 @@ function g_kinetic(I, km::KineticModel; Ω=Ω, muoA=muoA, muoB=muoB, T=T)
     thermo_term(x) = g_thermo(x; Ω=Ω, muoA=muoA, muoB=muoB, T=T)
     function kinetic_term(x)
         f(x) = ElectrochemicalKinetics.fit_overpotential( (1 .- x) .* Ref(km), I, true)
-        w, n = ElectrochemicalKinetics.scale(x)
+        n, w = ElectrochemicalKinetics.scale(x)
         map((w, n) -> sum(w .* f(n)), eachcol(w), eachcol(n))
     end
     g(x) = thermo_term(x) .+ kinetic_term(x)

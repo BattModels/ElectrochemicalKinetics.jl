@@ -167,11 +167,11 @@ pb1 = []
 pb2 = []
 for I in I_vals
     println(I)
-    pbs = find_phase_boundaries(I, m, T=330)
+    pbs = find_phase_boundaries(I, m, T=350)
     push!(pb1, pbs[1])
     push!(pb2, pbs[2])
 end
 
-open("pbs_m_T330.txt", "w") do io
+open("pbs_m_T350.txt", "w") do io
     writedlm(io, [I_vals pb1 pb2])
 end

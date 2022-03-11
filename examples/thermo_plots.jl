@@ -73,7 +73,7 @@ plot(xs, [μ_fcns[I](xs) for I in I_vals],
     margin=3mm
 )
 
-## PHASE DIAGRAM
+## PHASE DIAGRAM - BUTLER-VOLMER
 # first a 2D BV one
 
 I_vals = 2.5:2.5:75
@@ -106,32 +106,72 @@ open("pbs_bv_T310.txt", "w") do io
     writedlm(io, [I_vals pb1 pb2])
 end
 
-I_vals = 2.5:2.5:100
+# I_vals = 2.5:2.5:100
+# pb1 = []
+# pb2 = []
+# for I in I_vals
+#     println(I)
+#     pbs = find_phase_boundaries(I, bv, T=320)
+#     push!(pb1, pbs[1])
+#     push!(pb2, pbs[2])
+# end
+
+# open("pbs_bv_T320.txt", "w") do io
+#     writedlm(io, [I_vals pb1 pb2])
+# end
+
+# I_vals = 2:2:30
+# for T in 350:10:430
+#     pb1 = []
+#     pb2 = []
+#     for I in I_vals
+#         println(T, I)
+#         pbs = find_phase_boundaries(I, bv, T=T)
+#         push!(pb1, pbs[1])
+#         push!(pb2, pbs[2])
+#     end
+
+#     open("pbs_bv_T$T.txt", "w") do io
+#         writedlm(io, [I_vals pb1 pb2])
+#     end
+# end
+
+# all_data = []
+# for T in 310:10:400    
+#     open("pbs_bv_T$T.txt", "r") do io
+#         data = readdlm(io)
+#         data = hcat(T .* ones(size(data,1)), data)
+#         push!(all_data, data)
+#     end
+# end
+
+# all_data = vcat(all_data...)
+# xy = all_data[:, 1:2]
+# z1 = all_data[:, 3]
+# z2 = all_data[:, 4]
+
+# all_data = vcat([xy z1], [xy z2])
+
+open("pbs_bv.txt", "w") do io
+    writedlm(io, all_data)
+end
+
+data = readdlm("pbs_bv.txt")
+
+# mesh3d(all_data[:,1], all_data[:,3], all_data[:,2], xlabel="T", ylabel="x", zlabel="I", zticks=[], legend=:none)
+Plots.plot(data[:,1], data[:,3], data[:,2], st = :scatter3d, xlabel="T", ylabel="x", zlabel="I", legend=:none)
+
+## PHASE DIAGRAM - MARCUS
+I_vals = 4:1:17
 pb1 = []
 pb2 = []
 for I in I_vals
     println(I)
-    pbs = find_phase_boundaries(I, bv, T=320)
+    pbs = find_phase_boundaries(I, m, T=330)
     push!(pb1, pbs[1])
     push!(pb2, pbs[2])
 end
 
-open("pbs_bv_T320.txt", "w") do io
+open("pbs_m_T330.txt", "w") do io
     writedlm(io, [I_vals pb1 pb2])
-end
-
-I_vals = 2:2:30
-for T in 350:10:430
-    pb1 = []
-    pb2 = []
-    for I in I_vals
-        println(T, I)
-        pbs = find_phase_boundaries(I, bv, T=T)
-        push!(pb1, pbs[1])
-        push!(pb2, pbs[2])
-    end
-
-    open("pbs_bv_T$T.txt", "w") do io
-        writedlm(io, [I_vals pb1 pb2])
-    end
 end

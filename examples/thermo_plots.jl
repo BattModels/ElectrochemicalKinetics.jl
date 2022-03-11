@@ -162,16 +162,16 @@ data = readdlm("pbs_bv.txt")
 Plots.plot(data[:,1], data[:,3], data[:,2], st = :scatter3d, xlabel="T", ylabel="x", zlabel="I", legend=:none)
 
 ## PHASE DIAGRAM - MARCUS
-I_vals = 4:1:17
+I_vals = 4:1:16
 pb1 = []
 pb2 = []
 for I in I_vals
     println(I)
-    pbs = find_phase_boundaries(I, m, T=350)
+    pbs = find_phase_boundaries(I, m, T=370)
     push!(pb1, pbs[1])
     push!(pb2, pbs[2])
 end
 
-open("pbs_m_T350.txt", "w") do io
+open("pbs_m_T370.txt", "w") do io
     writedlm(io, [I_vals pb1 pb2])
 end

@@ -79,10 +79,6 @@ xs = [0.1, 0.5, 0.95]
     end
 end
 
-# Set up the integrator for `common_tangent` using defaults as in the thermo example
-unscaled_x, unscaled_w = quadfun(N)
-
-
 @testset "Kinetic g" begin
     g_200_T400_vals = Dict(
         ButlerVolmer => [0.0205857425, 0.037693617, 0.06661696], 
@@ -117,18 +113,12 @@ end
     # simplest case, just one pair of x values (this function is still pretty slow though)
     v1 = find_phase_boundaries(100, km)
 
-    nodes, weights = ElectrochemicalKinetics.scale_integration_nodes(unscaled_x,     # nodes
-                            unscaled_w,     # weights
-                            zero.(v1),      # lb
-                            v1)             # ub
+    nodes, weights = ElectrochemicalKinetics.scale(zero.(v1), v1)
     common_tangent_def(args...; kwargs...) = common_tangent(args...; nodes = nodes, weights = weights, kwargs...)
 
     @test all(isapprox.(common_tangent_def(v1, 100, km), Ref(0.0), atol=1e-6))
     v2 = find_phase_boundaries(100, km, T=350)
-    nodes, weights = ElectrochemicalKinetics.scale_integration_nodes(unscaled_x,     # nodes
-                            unscaled_w,     # weights
-                            zero.(v2),      # lb
-                            v2)             # ub
+    nodes, weights = ElectrochemicalKinetics.scale(zero.(v2), v2)             
     @test all(isapprox.(common_tangent_def(v2, 100, km, T=350), Ref(0.0), atol=1e-5))
     # they should get "narrower" with temperature
     @test v2[1] > v1[1]

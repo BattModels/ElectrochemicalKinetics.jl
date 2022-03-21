@@ -86,7 +86,6 @@ end
         AsymptoticMarcusHushChidsey => [0.0207838185, 0.0390031065, 0.0729910686]
         )
     g_50_2_vals = Dict(ButlerVolmer=>0.03519728018258, Marcus=>0.03395267141265, AsymptoticMarcusHushChidsey=>0.0347968044)
-    nodes_xs, weights_xs = ElectrochemicalKinetics.scale(zero.(xs), xs)
     for km in kms
         @testset "$(typeof(km))" begin
             μ_50 = μ_kinetic(50, km)
@@ -113,13 +112,10 @@ end
     # simplest case, just one pair of x values (this function is still pretty slow though)
     v1 = find_phase_boundaries(100, km)
 
-    nodes, weights = ElectrochemicalKinetics.scale(zero.(v1), v1)
-    common_tangent_def(args...; kwargs...) = common_tangent(args...; nodes = nodes, weights = weights, kwargs...)
-
-    @test all(isapprox.(common_tangent_def(v1, 100, km), Ref(0.0), atol=1e-6))
+    @test all(isapprox.(common_tangent(vec(v1), 100, km), Ref(0.0), atol=1e-6))
     v2 = find_phase_boundaries(100, km, T=350)
     nodes, weights = ElectrochemicalKinetics.scale(vec(zero.(v2)), vec(v2))
-    @test all(isapprox.(common_tangent_def(v2, 100, km, T=350), Ref(0.0), atol=1e-5))
+    @test all(isapprox.(common_tangent(vec(v2), 100, km, T=350), Ref(0.0), atol=1e-5))
     # they should get "narrower" with temperature
     @test v2[1] > v1[1]
     @test v2[2] < v1[2]

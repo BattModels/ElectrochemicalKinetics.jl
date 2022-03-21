@@ -95,14 +95,14 @@ end
 
             # integral of the derivative should be the original fcn (up to a constant, which we know)
             integrated_μs = [v[1] for v in quadgk.(μ_50, zero(xs), xs)]
-            @test all(isapprox.(g_50(xs, weights_xs, nodes_xs), integrated_μs .+ muoA, atol=1e-5))
+            @test all(isapprox.(g_50(xs), integrated_μs .+ muoA, atol=1e-5))
 
             # check scalar input works
-            @test g_50(xs[2], weights_xs[:, 2], nodes_xs[:, 2]) == g_50(xs, weights_xs, nodes_xs)[2] 
-            @test isapprox(g_50(xs, weights_xs, nodes_xs)[2], g_50_2_vals[typeof(km)], atol=1e-5)
+            @test g_50(xs[2]) == g_50(xs)[2] 
+            @test isapprox(g_50(xs)[2], g_50_2_vals[typeof(km)], atol=1e-5)
 
             # check a few other values
-            @test all(isapprox.(g_200_T400(xs, weights_xs, nodes_xs), g_200_T400_vals[typeof(km)], atol=1e-5))
+            @test all(isapprox.(g_200_T400(xs), g_200_T400_vals[typeof(km)], atol=1e-5))
         end
     end
 end

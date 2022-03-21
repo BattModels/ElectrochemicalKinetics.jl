@@ -38,7 +38,7 @@ function g_kinetic(I, km::KineticModel; Ω=Ω, muoA=muoA, muoB=muoB, T=T)
         n, w = ElectrochemicalKinetics.scale(zero.(x), x)
         map((w, n) -> sum(w .* f(n)), eachcol(w), eachcol(n))
     end
-    g(x) = thermo_term(x) .+ kinetic_term(x)
+    g(x) = thermo_term(x) .+ kinetic_term(vec(x))
     g(x::Real) = thermo_term(x) + kinetic_term(x)[1]
     return g
 end

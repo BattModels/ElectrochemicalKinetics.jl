@@ -33,30 +33,29 @@ function µ_kinetic(I, km::KineticModel; Ω=Ω, muoA=muoA, muoB=muoB, T=T)
 end
 function g_kinetic(I, km::KineticModel; Ω=Ω, muoA=muoA, muoB=muoB, T=T)
     thermo_term(x) = g_thermo(x; Ω=Ω, muoA=muoA, muoB=muoB, T=T)
-    function kinetic_term(x, w, n)
+    function kinetic_term(x)
         f(x) = ElectrochemicalKinetics.fit_overpotential( (1 .- x) .* Ref(km), I, true)
+        n, w = ElectrochemicalKinetics.scale(zero.(x), x)
         map((w, n) -> sum(w .* f(n)), eachcol(w), eachcol(n))
     end
-    g(x, w, n) = thermo_term(x) .+ kinetic_term(x, w, n)
-    g(x::Real, w, n) = thermo_term(x) + kinetic_term(x, w, n)[1]
+    g(x) = thermo_term(x) .+ kinetic_term(vec(x))
+    g(x::Real) = thermo_term(x) + kinetic_term(x)[1]
     return g
 end
 
 # zeros of this function correspond to pairs of x's satisfying the common tangent condition for a given µ function
 # case where we just feed in two points (x should be of length two)
-function common_tangent(x::Vector, I, km::KineticModel; Ω=Ω, muoA=muoA, muoB=muoB, T=T, nodes, weights)
+function common_tangent(x::Vector, I, km::KineticModel; Ω=Ω, muoA=muoA, muoB=muoB, T=T)
     g = g_kinetic(I, km; Ω=Ω, muoA=muoA, muoB=muoB, T=T)
     µ = µ_kinetic(I, km; Ω=Ω, muoA=muoA, muoB=muoB, T=T)
-    [(g(x[2], weights, nodes) - g(x[1], weights, nodes))/(x[2] - x[1]) .- μ(x[1]), μ(x[2])-μ(x[1])]
+    [(g(x[2]) - g(x[1]))/(x[2] - x[1]) .- μ(x[1]), μ(x[2])-μ(x[1])]
 end
 
 # case where we want to check many points at once (shape of x should be N x 2)
-function common_tangent(x::Array, I, km::KineticModel; nodes, weights, kwargs...)
+function common_tangent(x::Array, I, km::KineticModel; kwargs...)
     g = g_kinetic(I, km; kwargs...)
     µ = µ_kinetic(I, km; kwargs...)
-    w1, n1 = weights[:, 1], nodes[:, 1]
-    w2, n2 = weights[:, 2], nodes[:, 2]
-    Δg = g(x[:,2], w2, n2) - g(x[:,1], w1, n1)
+    Δg = g(x[:,2]) - g(x[:,1])
     Δx = x[:,2] - x[:,1]
     μ1 = μ(x[:,1])
     Δμ = μ(x[:,2]) - μ1
@@ -64,14 +63,9 @@ function common_tangent(x::Array, I, km::KineticModel; nodes, weights, kwargs...
 end
 
 function find_phase_boundaries(I, km::KineticModel; quadfun=quadfun, N=N, kwargs...)
-    unscaled_x, unscaled_w = quadfun(N)
     
     function myct!(storage, x)
-        nodes, weights = ElectrochemicalKinetics.scale_integration_nodes(unscaled_x,    # nodes
-                                                                         unscaled_w,    # weights
-                                                                         zero.(x),      # lb
-                                                                         x)             # ub
-        res = common_tangent(x, I, km; nodes = nodes, weights = weights, kwargs...)
+        res = common_tangent(x, I, km; kwargs...)
         storage[1] = res[1]
         storage[2] = res[2]
     end

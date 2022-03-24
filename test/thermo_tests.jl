@@ -113,8 +113,7 @@ end
     v1 = find_phase_boundaries(100, km)
 
     @test all(isapprox.(common_tangent(v1, 100, km), Ref(0.0), atol=1e-6))
-    v2 = find_phase_boundaries(100, km, T=350)
-    nodes, weights = ElectrochemicalKinetics.scale(vec(zero.(v2)), vec(v2))
+    v2 = find_phase_boundaries(100, km, T=350)     
     @test all(isapprox.(common_tangent(v2, 100, km, T=350), Ref(0.0), atol=1e-5))
     # they should get "narrower" with temperature
     @test v2[1] > v1[1]

@@ -1,6 +1,6 @@
 using Statistics
 using Interpolations
-using QuadGK
+# using QuadGK
 using DelimitedFiles
 using Dierckx
 
@@ -28,7 +28,12 @@ compute_k(
     kT = 0.026,
     E_min = -100 * kT,
     E_max = 100 * kT,
-) = quadgk(integrand(model, V_app, ox; kT = kT), E_min, E_max)[1] # return format is (value, error_bound)
+) = begin
+  n, w = scale(E_min, E_max)
+  f = integrand(model, V_app, ox; kT = kT)
+  sum(w .* f(n))
+  # quadgk(integrand(model, V_app, ox; kT = kT), E_min, E_max)[1] # return format is (value, error_bound)
+end
 
 compute_k(V_app, model::KineticModel; kT = 0.026) = model(V_app; kT = kT)
 compute_k(
@@ -38,7 +43,12 @@ compute_k(
     E_min = -100 * kT,
     E_max = 100 * kT,
     kwargs...,
-) = quadgk(integrand(model, V_app; kT = kT), E_min, E_max)[1]
+) = begin
+  n, w = scale(E_min, E_max)
+  f = integrand(model, V_app; kT = kT)
+  sum(w .* f.(n))
+  # quadgk(integrand(model, V_app; kT = kT), E_min, E_max)[1]
+end
 
 function compute_k(
     V_app,
@@ -66,7 +76,10 @@ function compute_k(
             E_max = max(E_max, E_max-Vq_max),
         )
     else
-        quadgk(integrand(model, V_app, ox; kT = kT), E_min, E_max)[1]
+        n, w = scale(E_min, E_max)
+        f = integrand(model, V_app, ox; kT = kT)
+        sum(w .* f.(n))
+        # quadgk(integrand(model, V_app, ox; kT = kT), E_min, E_max)[1]
     end
 end
 
@@ -103,7 +116,10 @@ function compute_k(
         #     E_min = E_min,
         #     E_max = E_max,
         # )
-        quadgk(integrand(model, V_app; kT = kT), E_min, E_max)[1]
+        n, w = scale(E_min, E_max)
+        f = integrand(model, V_app; kT = kT)
+        sum(w .* f.(n))
+        # quadgk(integrand(model, V_app; kT = kT), E_min, E_max)[1]
     end
 end
 
@@ -127,7 +143,10 @@ function compute_k_cq(
     V_dl_interp = calculate_Vdl_interp(model.dos.interp_func, Vq_min, Vq_max, C_dl)
     V_dl = V_dl_interp(V_app)
     V_q = V_app - V_dl
-    quadgk(integrand(model, V_dl, ox; kT = kT, V_q = V_q), E_min, E_max)[1]
+    n, w = scale(E_min, E_max)
+    f = integrand(model, V_dl, ox; kT = kT, V_q = V_q)
+    sum(w .* f.(n))
+    # quadgk(integrand(model, V_dl, ox; kT = kT, V_q = V_q), E_min, E_max)[1]
 end
 
 function compute_k_cq(
@@ -143,5 +162,8 @@ function compute_k_cq(
     V_dl_interp = calculate_Vdl_interp(model.dos.interp_func, Vq_min, Vq_max, C_dl)
     V_dl = V_dl_interp(V_app)
     V_q = V_app - V_dl
-    quadgk(integrand(model, V_dl; kT = kT, V_q = V_q), E_min, E_max)[1]
+    n, w = scale(E_min, E_max)
+    f = integrand(model, V_dl; kT = kT, V_q = V_q)
+    sum(w .* f.(n))
+    # quadgk(integrand(model, V_dl; kT = kT, V_q = V_q), E_min, E_max)[1]
 end

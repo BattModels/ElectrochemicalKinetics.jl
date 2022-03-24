@@ -19,33 +19,19 @@ If the model is an `IntegralModel`, integration bounds `E_min` and `E_max` must 
 
 If calc_cq flag is passed, optionally compute voltage shifts due to quantum capacitance.
 """
-compute_k(V_app, model::KineticModel, ox::Bool; kT = 0.026) = model(V_app, ox; kT = kT)
+compute_k(V_app, model::KineticModel, args...; kT = 0.026) = model(V_app, args...; kT = kT)
 
 compute_k(
     V_app,
     model::IntegralModel,
-    ox::Bool;
-    kT = 0.026,
-    E_min = -100 * kT,
-    E_max = 100 * kT,
-) = begin
-  n, w = scale(E_min, E_max)
-  f = integrand(model, V_app, ox; kT = kT)
-  sum(w .* f(n))
-  # quadgk(integrand(model, V_app, ox; kT = kT), E_min, E_max)[1] # return format is (value, error_bound)
-end
-
-compute_k(V_app, model::KineticModel; kT = 0.026) = model(V_app; kT = kT)
-compute_k(
-    V_app,
-    model::IntegralModel;
+    args...; # would just be the ox flag
     kT = 0.026,
     E_min = -100 * kT,
     E_max = 100 * kT,
     kwargs...,
 ) = begin
   n, w = scale(E_min, E_max)
-  f = integrand(model, V_app; kT = kT)
+  f = integrand(model, V_app, args...; kT = kT)
   sum(w .* f.(n))
   # quadgk(integrand(model, V_app; kT = kT), E_min, E_max)[1]
 end

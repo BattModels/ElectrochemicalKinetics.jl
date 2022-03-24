@@ -12,7 +12,7 @@ linear_loss(y, y_pred) = (y .- y_pred).^2
 """
     fit_overpotential(model, k; kwargs...)
 
-Given values for current/rate constant and specified model parameters, find the overpotentials that must have resulted in it.
+Given values for current/rate constant and specified model parameters, find the overpotential that would have resulted in it. (This is the inverse of the `compute_k` function.)
 """
 function fit_overpotential(model::KineticModel, k, forward = true; kT = 0.026, loss = log_loss, autodiff = true, kwargs...)
     # start on the correct half of the Tafel plot

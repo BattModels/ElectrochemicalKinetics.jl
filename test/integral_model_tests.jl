@@ -7,7 +7,7 @@
         # test some values
         @test compute_k(0, mhc) == 0.0
         @test compute_k(0, mhc, true) == compute_k(0, mhc, false) ≈ 0.0061371322
-        @test compute_k(0.1, mhc) ≈ 0.031239978
+        @test isapprox(compute_k(0.1, mhc), 0.031239978, atol=1e-6)
         
         # test net rates and symmetry
         @test isapprox(compute_k(0.1, mhc, true) - compute_k(0.1, mhc, false), compute_k(0.1, mhc), atol=1e-6)

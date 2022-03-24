@@ -46,7 +46,7 @@ compute_k(
 ) = begin
   n, w = scale(E_min, E_max)
   f = integrand(model, V_app; kT = kT)
-  sum(w .* f(n))
+  sum(w .* f.(n))
   # quadgk(integrand(model, V_app; kT = kT), E_min, E_max)[1]
 end
 
@@ -78,7 +78,7 @@ function compute_k(
     else
         n, w = scale(E_min, E_max)
         f = integrand(model, V_app, ox; kT = kT)
-        sum(w .* f(n))
+        sum(w .* f.(n))
         # quadgk(integrand(model, V_app, ox; kT = kT), E_min, E_max)[1]
     end
 end
@@ -118,7 +118,7 @@ function compute_k(
         # )
         n, w = scale(E_min, E_max)
         f = integrand(model, V_app; kT = kT)
-        sum(w .* f(n))
+        sum(w .* f.(n))
         # quadgk(integrand(model, V_app; kT = kT), E_min, E_max)[1]
     end
 end
@@ -145,7 +145,7 @@ function compute_k_cq(
     V_q = V_app - V_dl
     n, w = scale(E_min, E_max)
     f = integrand(model, V_dl, ox; kT = kT, V_q = V_q)
-    sum(w .* f(n))
+    sum(w .* f.(n))
     # quadgk(integrand(model, V_dl, ox; kT = kT, V_q = V_q), E_min, E_max)[1]
 end
 
@@ -164,6 +164,6 @@ function compute_k_cq(
     V_q = V_app - V_dl
     n, w = scale(E_min, E_max)
     f = integrand(model, V_dl; kT = kT, V_q = V_q)
-    sum(w .* f(n))
+    sum(w .* f.(n))
     # quadgk(integrand(model, V_dl; kT = kT, V_q = V_q), E_min, E_max)[1]
 end

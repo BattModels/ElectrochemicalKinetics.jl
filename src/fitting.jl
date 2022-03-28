@@ -14,7 +14,7 @@ linear_loss(y, y_pred) = (y .- y_pred).^2
 
 Given values for current/rate constant and specified model parameters, find the overpotential that would have resulted in it. (This is the inverse of the `compute_k` function.)
 """
-function fit_overpotential(model::KineticModel, k, forward = true; kT = 0.026, loss = log_loss, autodiff = true, kwargs...)
+function fit_overpotential(model::KineticModel, k, forward = true; kT = 0.026, loss = log_loss, autodiff = true, verbose=false, kwargs...)
     # start on the correct half of the Tafel plot
     if forward
         guess = 0.1
@@ -36,9 +36,9 @@ function fit_overpotential(model::KineticModel, k, forward = true; kT = 0.026, l
             storage .= gs # take!(pb)(one.(V))
             nothing
         end
-        Vs = nlsolve(compare_k!, grad!, repeat([guess], length(k)))
+        Vs = nlsolve(compare_k!, grad!, repeat([guess], length(k)), show_trace=verbose)
     else
-        Vs = nlsolve(compare_k!, repeat([guess], length(k)))
+        Vs = nlsolve(compare_k!, repeat([guess], length(k)), show_trace=verbose)
     end
     if !converged(Vs)
         @warn "Overpotential fit not fully converged...you may have fed in an unreachable reaction rate!"

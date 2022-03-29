@@ -1,5 +1,6 @@
 using .DOS
 using SpecialFunctions
+using Zygote: @adjoint
 
 """
     fermi_dirac(E, kT=0.026)
@@ -57,6 +58,11 @@ ButlerVolmer(A) = ButlerVolmer(A, 0.5)
 function (bv::ButlerVolmer)(V_app, ::Val{true}; kT::Real = 0.026)
     exp_arg = (bv.α .* V_app) ./ kT
     bv.A .* exp.(exp_arg)
+end
+
+@adjoint function (bv::ButlerVolmer)(V_app, ::Val{true}; kT::Real = 0.026)
+    k = bv(V_app, Val(true); kT=kT)
+    k, x -> (nothing, x * k * bv.α / kT, nothing)
 end
 
 function (bv::ButlerVolmer)(V_app, ::Val{false}; kT::Real = 0.026)

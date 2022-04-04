@@ -1,4 +1,5 @@
 using ElectrochemicalKinetics
+using QuadGK
 using Test
 
 @testset "ElectrochemicalKinetics.jl" begin
@@ -14,5 +15,9 @@ using Test
 
     @testset "Thermo" begin
         include("thermo_tests.jl")
+    end
+
+    @testset "Integration" begin
+        include("integration.jl")
     end
 end

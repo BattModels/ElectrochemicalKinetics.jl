@@ -1,9 +1,7 @@
 using Zygote
 using Optim
-# using DiffImages
 using NLsolve
 using LinearAlgebra
-# using ForwardDiff
 
 # sum of squares loss in logarithmic coordinates
 log_loss(y, y_pred) = (log.(y) .- log.(y_pred)).^2
@@ -14,31 +12,21 @@ linear_loss(y, y_pred) = (y .- y_pred).^2
 """
     fit_overpotential(model, k; kwargs...)
 
-Given values for current/rate constant and specified model parameters, find the overpotentials that must have resulted in it.
+Given values for current/rate constant and specified model parameters, find the overpotential that would have resulted in it. (This is the inverse of the `compute_k` function.)
 """
-function fit_overpotential(model::KineticModel, k, forward = true; kT = 0.026, loss = log_loss, autodiff = true, kwargs...)
+function fit_overpotential(model::KineticModel, k, forward = true; kT = 0.026, loss = log_loss, autodiff = true, verbose=false, kwargs...)
     # start on the correct half of the Tafel plot
     if forward
         guess = 0.1
     else
         guess = -0.1
     end
-    # pb = Channel()
     function compare_k!(storage, V)
-        # @show "ck", V
-        # y, pb2 = Zygote.pullback(x -> loss(k, compute_k(x, model; kT=kT, kwargs...)), V)
-        # @show pb
-        # put!(pb, pb2)
-        # @show isready(pb)
         storage .= loss(k, compute_k(V, model; kT = kT, kwargs...))
-        # storage .= y
     end
     local Vs
     if autodiff
         function grad!(storage, V)
-            # @show "grad", V
-            # gs = Zygote.jacobian(V -> sum(loss(k, compute_k(V, model; kT=kT, kwargs...))), V)[1]
-            # gs = Zygote.gradient(V -> sum(loss(k, compute_k(V, model; kT=kT, kwargs...))), V)[1]
             # TODO: we could speed up the case of scalar k's by dispatching to call gradient here instead
             gs = Zygote.jacobian(V) do V
                 Zygote.forwarddiff(V) do V
@@ -48,9 +36,9 @@ function fit_overpotential(model::KineticModel, k, forward = true; kT = 0.026, l
             storage .= gs # take!(pb)(one.(V))
             nothing
         end
-        Vs = nlsolve(compare_k!, grad!, repeat([guess], length(k)))
+        Vs = nlsolve(compare_k!, grad!, repeat([guess], length(k)), show_trace=verbose)
     else
-        Vs = nlsolve(compare_k!, repeat([guess], length(k)))
+        Vs = nlsolve(compare_k!, repeat([guess], length(k)), show_trace=verbose)
     end
     if !converged(Vs)
         @warn "Overpotential fit not fully converged...you may have fed in an unreachable reaction rate!"

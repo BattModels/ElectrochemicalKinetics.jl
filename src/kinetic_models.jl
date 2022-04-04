@@ -186,7 +186,8 @@ function integrand(mhc::MarcusHushChidsey, V_dl, ox::Bool; kT::Real = 0.026)
         end
         exp.(exp_arg)
     end
-    E -> (mhc.A * mhc.average_dos) .* marcus_term(E) .* fermi_dirac(E; kT = kT)
+    f(E::Vector) = hcat((mhc.A * mhc.average_dos) .* marcus_term.(E) .* fermi_dirac.(E; kT = kT)...)' # will return a matrix of both E and V_dl are vectors, first index will be energies and second voltages
+    f(E::Real) = (mhc.A * mhc.average_dos) .* marcus_term.(E) .* fermi_dirac.(E; kT = kT)
 end
 
 
@@ -234,5 +235,6 @@ function integrand(
         exp.(exp_arg)
     end
     fd(E) = ox ? 1 .- fermi_dirac(E; kT = kT) : fermi_dirac(E; kT = kT)
+    # TODO: add two dispatches as with MHC above
     E -> mhcd.A .* mhcd.dos.interp_func.(E .+ V_q) .* fd(E) .* marcus_term(E)
 end

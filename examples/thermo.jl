@@ -1,7 +1,7 @@
 using ElectrochemicalKinetics
 using Plots
 using NLsolve
-using QuadGK
+using FastGaussQuadrature
 
 # define some constants and default parameters
 kB = 8.617e-5
@@ -9,6 +9,9 @@ T = 298
 muoA = 0.02
 muoB = 0.03
 Ω = 0.1
+N = 1000
+quadfun = gausslegendre
+
 
 # our familiar thermodynamic functions
 hs(x;Ω=Ω) = @. x*(1-x)*Ω # enthalpy of mixing
@@ -28,11 +31,16 @@ function µ_kinetic(I, km::KineticModel; Ω=Ω, muoA=muoA, muoB=muoB, T=T)
     μ(x::AbstractVector) = thermo_term(x) .+ fit_overpotential((1 .- x).*Ref(km), I)
     return μ
 end
+
 function g_kinetic(I, km::KineticModel; Ω=Ω, muoA=muoA, muoB=muoB, T=T)
     thermo_term(x) = g_thermo(x; Ω=Ω, muoA=muoA, muoB=muoB, T=T)
-    kinetic_term(x) = quadgk.(y->fit_overpotential((1 .- y) .* Ref(km), I), zero(x), x)
-    # quadgk always returns a tuple of (val, error) (or when we broadcast, an array of such tuples) so we need these two separate dispatches to get the return type to match the input type
-    g(x::AbstractVector) = thermo_term(x) .+ [k[1] for k in kinetic_term(x)]
+    #TODO: gradient of this term is just value of fit_overpotential(x)
+    function kinetic_term(x)
+        f(x) = ElectrochemicalKinetics.fit_overpotential( (1 .- x) .* Ref(km), I, true)
+        n, w = ElectrochemicalKinetics.scale(zero.(x), x)
+        map((w, n) -> sum(w .* f(n)), eachcol(w), eachcol(n))
+    end
+    g(x) = thermo_term(x) .+ kinetic_term(vec(x))
     g(x::Real) = thermo_term(x) + kinetic_term(x)[1]
     return g
 end
@@ -42,7 +50,7 @@ end
 function common_tangent(x::Vector, I, km::KineticModel; Ω=Ω, muoA=muoA, muoB=muoB, T=T)
     g = g_kinetic(I, km; Ω=Ω, muoA=muoA, muoB=muoB, T=T)
     µ = µ_kinetic(I, km; Ω=Ω, muoA=muoA, muoB=muoB, T=T)
-    [(g(x[2])-g(x[1]))/(x[2]-x[1]) - μ(x[1]), μ(x[2])-μ(x[1])]
+    [(g(x[2]) - g(x[1]))/(x[2] - x[1]) .- μ(x[1]), μ(x[2])-μ(x[1])]
 end
 
 # case where we want to check many points at once (shape of x should be N x 2)
@@ -56,7 +64,8 @@ function common_tangent(x::Array, I, km::KineticModel; kwargs...)
     hcat(Δg ./ Δx .- μ1, Δμ)
 end
 
-function find_phase_boundaries(I, km::KineticModel; kwargs...)
+function find_phase_boundaries(I, km::KineticModel; quadfun=quadfun, N=N, kwargs...)
+    
     function myct!(storage, x)
         res = common_tangent(x, I, km; kwargs...)
         storage[1] = res[1]
@@ -75,7 +84,7 @@ end
 # I_vals = 10 .^ (1.1:0.025:3.1)
 
 
-# # this line takes a few seconds with B-V but aaages with anything else...
+# this line takes a few seconds with B-V but aaages with anything else...
 # pbs = [find_phase_boundaries(I, bv, T=330) for I in I_vals]
 
 # plot(vcat(pbs...), hcat(I_vals, I_vals), label="phase boundary")

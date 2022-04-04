@@ -1,8 +1,6 @@
 using Statistics
 using Interpolations
-# using QuadGK
 using DelimitedFiles
-using Dierckx
 
 # TODO: think about reaction direction and quantum cap dispatches; there's probably a cleaner way to handle them...
 
@@ -33,7 +31,6 @@ compute_k(
   n, w = scale(E_min, E_max)
   f = integrand(model, V_app, args...; kT = kT)
   sum(w .* f.(n))
-  # quadgk(integrand(model, V_app; kT = kT), E_min, E_max)[1]
 end
 
 function compute_k(
@@ -65,7 +62,6 @@ function compute_k(
         n, w = scale(E_min, E_max)
         f = integrand(model, V_app, ox; kT = kT)
         sum(w .* f.(n))
-        # quadgk(integrand(model, V_app, ox; kT = kT), E_min, E_max)[1]
     end
 end
 
@@ -105,7 +101,6 @@ function compute_k(
         n, w = scale(E_min, E_max)
         f = integrand(model, V_app; kT = kT)
         sum(w .* f.(n))
-        # quadgk(integrand(model, V_app; kT = kT), E_min, E_max)[1]
     end
 end
 
@@ -132,7 +127,6 @@ function compute_k_cq(
     n, w = scale(E_min, E_max)
     f = integrand(model, V_dl, ox; kT = kT, V_q = V_q)
     sum(w .* f.(n))
-    # quadgk(integrand(model, V_dl, ox; kT = kT, V_q = V_q), E_min, E_max)[1]
 end
 
 function compute_k_cq(
@@ -151,5 +145,4 @@ function compute_k_cq(
     n, w = scale(E_min, E_max)
     f = integrand(model, V_dl; kT = kT, V_q = V_q)
     sum(w .* f.(n))
-    # quadgk(integrand(model, V_dl; kT = kT, V_q = V_q), E_min, E_max)[1]
 end

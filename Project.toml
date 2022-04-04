@@ -4,9 +4,6 @@ authors = ["Rachel Kurchin <rkurchin@cmu.edu>", "Holden Parks <hparks@andrew.cmu
 version = "0.1.0"
 
 [deps]
-BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
-Blink = "ad839575-38b3-5650-b840-f874b8c74a25"
-DataStructures = "864edb3b-99cc-5e75-8d2d-829cb0a9cfe8"
 DelimitedFiles = "8bb1440f-4735-579b-a4ab-409b98df4dab"
 Dierckx = "39dd38d3-220a-591b-8e3c-4c3a8c710a94"
 FastGaussQuadrature = "442a2c76-b920-505d-bb47-c5924d526838"
@@ -31,8 +28,8 @@ SpecialFunctions = "2"
 julia = "1.4"
 
 [extras]
-Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 QuadGK = "1fd47b50-473d-5c70-9696-f719f8f3bcdc"
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
 test = ["Test", "QuadGK"]

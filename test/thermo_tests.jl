@@ -1,4 +1,5 @@
 include("../examples/thermo.jl")
+using QuadGK
 
 @testset "Basic free energy functions" begin
     # enthalpy of mixing

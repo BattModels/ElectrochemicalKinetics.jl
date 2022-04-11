@@ -14,13 +14,7 @@ linear_loss(y, y_pred) = (y .- y_pred).^2
 
 Given values for current/rate constant and specified model parameters, find the overpotential that would have resulted in it. (This is the inverse of the `compute_k` function.)
 """
-function fit_overpotential(model::KineticModel, k, forward = true; kT = 0.026, loss = log_loss, autodiff = true, verbose=false, kwargs...)
-    # start on the correct half of the Tafel plot
-    if forward
-        guess = 0.1
-    else
-        guess = -0.1
-    end
+function fit_overpotential(model::KineticModel, k, guess = fill(0.1, length(k)); kT = 0.026, loss = log_loss, autodiff = true, verbose=false, kwargs...)
     function compare_k!(storage, V)
         storage .= loss(k, compute_k(V, model; kT = kT, kwargs...))
     end
@@ -28,17 +22,17 @@ function fit_overpotential(model::KineticModel, k, forward = true; kT = 0.026, l
     if autodiff
         function grad!(storage, V)
             # TODO: we could speed up the case of scalar k's by dispatching to call gradient here instead
-            gs = Zygote.jacobian(V) do V
+            gs = Zygote.gradient(V[1]) do V
                 Zygote.forwarddiff(V) do V
                     loss(k, compute_k(V, model; kT = kT, kwargs...))
                 end
             end[1]
-            storage .= gs # take!(pb)(one.(V))
+            storage .= gs
             nothing
         end
-        Vs = nlsolve(compare_k!, grad!, repeat([guess], length(k)), show_trace=verbose)
+        Vs = nlsolve(compare_k!, grad!, guess, show_trace=verbose)
     else
-        Vs = nlsolve(compare_k!, repeat([guess], length(k)), show_trace=verbose)
+        Vs = nlsolve(compare_k!, guess, show_trace=verbose)
     end
     if !converged(Vs)
         @warn "Overpotential fit not fully converged...you may have fed in an unreachable reaction rate!"
@@ -51,8 +45,26 @@ function fit_overpotential(model::KineticModel, k, forward = true; kT = 0.026, l
     end
 end
 
+inv!(x) = x .= inv.(x)
+
+Zygote.@adjoint function fit_overpotential(model, k, guess; loss = log_loss, kT = 0.026, autodiff = true, verbose = false, kw...)
+  Vs = fit_overpotential(model, k, guess; loss, verbose, autodiff, kT, kw...)
+  function back(vs)
+    gs = Zygote.jacobian(vs) do V
+      Zygote.forwarddiff(V) do V
+        compute_k(V, model; kw...)
+      end
+    end[1]
+    inv.(gs)
+  end
+  Vs, Δ -> (nothing, nothing, Δ .* back(Vs))
+end
+
+# basically the gradient of fit_overpotential should just be the inverse of the gradient of the forward solve at that point, i.e. if compute_k(V, model) ==k then fit_overpotential(model, k)==V , so we don’t need to diff through the actual solve in fit_overpotential because the gradient should just be the inverse of the gradient of compute_k at V
+
+
 # multiple models, one k value (used in thermo example)
-fit_overpotential(models::Vector{<:KineticModel}, k::Real, forward=true; kwargs...) = fit_overpotential.(models, Ref(k), Ref(forward); kwargs...)
+fit_overpotential(models::Vector{<:KineticModel}, k::Real, guess=fill(0.1, length(k)); kwargs...) = fit_overpotential.(models, Ref(k), Ref(guess); kwargs...)
 
 fitting_params(t::Type{<:KineticModel}) = fieldnames(t)
 fitting_params(::Type{MarcusHushChidsey}) = (:A, :λ)

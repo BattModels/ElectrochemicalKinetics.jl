@@ -1,12 +1,11 @@
-include("../examples/thermo.jl")
 using QuadGK
 
 @testset "Basic free energy functions" begin
     # enthalpy of mixing
-    @test hs(0.5) == 0.025 # value
-    @test hs(0.1) ≈ hs(0.9) # symmetry
-    @test hs([0.1, 0.2, 0.7]) ≈ [0.009, 0.016, 0.021] # vector input
-    @test hs(0.5; Ω=1) == 0.25 # kwargs
+    @test h(0.5) == 0.025 # value
+    @test h(0.1) ≈ hs(0.9) # symmetry
+    @test h([0.1, 0.2, 0.7]) ≈ [0.009, 0.016, 0.021] # vector input
+    @test h(0.5; Ω=1) == 0.25 # kwargs
 
     # similar set for entropy...
     @test s(0.5) ≈ -kB * 2 * 0.5 * log(0.5)

@@ -1,6 +1,6 @@
 name = "ElectrochemicalKinetics"
 uuid = "a2c6e634-85ca-418a-9c67-9b5417ce2d04"
-authors = ["Rachel Kurchin <rkurchin@cmu.edu>", "Holden Parks <hparks@andrew.cmu.edu>"]
+authors = ["Rachel Kurchin <rkurchin@cmu.edu>", "Holden Parks <hparks@andrew.cmu.edu>", "Dhairya Gandhi <dhairya@juliacomputing.com>"]
 version = "0.1.0"
 
 [deps]

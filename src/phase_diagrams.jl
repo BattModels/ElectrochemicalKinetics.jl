@@ -5,13 +5,12 @@ using FastGaussQuadrature
 
 # define some constants and default parameters
 const kB = 8.617e-5
-room_T = 298
-muoA_default = 0.02
-muoB_default = 0.03
-Ω_default = 0.1
+const room_T = 298
+const muoA_default = 0.02
+const muoB_default = 0.03
+const Ω_default = 0.1
 N = 1000
 quadfun = gausslegendre
-
 
 # our familiar thermodynamic functions
 h(x;Ω=Ω_default) = @. x*(1-x)*Ω # enthalpy of mixing

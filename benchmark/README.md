@@ -45,5 +45,14 @@ BenchmarkTools.save("params.json", params(suite))
 loadparams!(JogElectrochemicalKinetics.suite(), BenchmarkTools.load("params.json")[1], :evals, :samples);
 ```
 
-## Running more exhaustive benchmarks
+## Other options
+### Running more exhaustive benchmarks
 Want better stats? Change the value of `time_mult` to be something larger. Similarly, make it smaller to run more quickly, but note that you may get very few samples on some of the benchmarks, leading to noisy results.
+
+### Running a subset of benchmarks
+To just run certain tags,  do e.g.
+```julia
+using BenchmarkTools
+suite = JogElectrochemicalKinetics.suite()[@tagged "tag1" && "tag2"] # for example
+run(suite) # or pretune, etc. first
+```

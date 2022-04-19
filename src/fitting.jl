@@ -2,8 +2,6 @@ using Zygote
 using Optim
 using NLsolve
 using LinearAlgebra
-using Optimisers
-using Flux
 
 # sum of squares loss in logarithmic coordinates
 log_loss(y, y_pred) = (log.(y) .- log.(y_pred)).^2

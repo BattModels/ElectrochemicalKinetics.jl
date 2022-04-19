@@ -13,8 +13,8 @@ using Test
         include("fitting_tests.jl")
     end
 
-    @testset "Thermo" begin
-        include("thermo_tests.jl")
+    @testset "Phase Diagrams" begin
+        include("phase_diagram_tests.jl")
     end
 
     @testset "Integration" begin

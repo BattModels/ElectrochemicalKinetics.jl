@@ -4,20 +4,19 @@ using NLsolve
 using FastGaussQuadrature
 
 # define some constants and default parameters
-kB = 8.617e-5
-T = 298
-muoA = 0.02
-muoB = 0.03
-Ω = 0.1
+const kB = 8.617e-5
+const room_T = 298
+const muoA_default = 0.02
+const muoB_default = 0.03
+const Ω_default = 0.1
 N = 1000
 quadfun = gausslegendre
 
-
 # our familiar thermodynamic functions
-hs(x;Ω=Ω) = @. x*(1-x)*Ω # enthalpy of mixing
+h(x;Ω=Ω_default) = @. x*(1-x)*Ω # enthalpy of mixing
 s(x) = @. -kB*(x*log(x+eps(Float64)) + (1-x)*log(1-x+eps(Float64))) # entropy per particle...added epsilons in the hopes that things will be less obnoxious at the edges
-g_thermo(x; Ω=Ω, muoA=muoA, muoB=muoB, T=T) = @. hs(x;Ω=Ω) - T*s(x)+ muoA*(1-x) + muoB*x # Gibbs free energy per particle
-μ_thermo(x; Ω=Ω, muoA=muoA, muoB=muoB, T=T) = @. (1-2*x)*Ω + kB*T*log(x/(1-x)) + muoB-muoA # chemical potential
+g_thermo(x; Ω=Ω_default, muoA=muoA_default, muoB=muoB_default, T=room_T) = @. h(x;Ω=Ω_default) - T*s(x)+ muoA*(1-x) + muoB*x # Gibbs free energy per particle
+μ_thermo(x; Ω=Ω_default, muoA=muoA_default, muoB=muoB_default, T=room_T) = @. (1-2*x)*Ω + kB*T*log(x/(1-x)) + muoB-muoA # chemical potential
 
 """
 µ and g with kinetic constributions, can be modeled using any <:KineticModel object
@@ -25,14 +24,14 @@ g_thermo(x; Ω=Ω, muoA=muoA, muoB=muoB, T=T) = @. hs(x;Ω=Ω) - T*s(x)+ muoA*(1
 These functions return single-argument functions (to easily use common-tangent function below while
 still being able to swap out model parameters by calling "function-builders" with different arguments).
 """
-function µ_kinetic(I, km::KineticModel; Ω=Ω, muoA=muoA, muoB=muoB, T=T)
+function µ_kinetic(I, km::KineticModel; Ω=Ω_default, muoA=muoA_default, muoB=muoB_default, T=room_T)
     thermo_term(x) = μ_thermo(x; Ω=Ω, muoA=muoA, muoB=muoB, T=T)
     μ(x::Real) = thermo_term(x) .+ fit_overpotential((1-x)*km, I)
     μ(x::AbstractVector) = thermo_term(x) .+ fit_overpotential((1 .- x).*Ref(km), I)
     return μ
 end
 
-function g_kinetic(I, km::KineticModel; Ω=Ω, muoA=muoA, muoB=muoB, T=T)
+function g_kinetic(I, km::KineticModel; Ω=Ω_default, muoA=muoA_default, muoB=muoB_default, T=room_T)
     thermo_term(x) = g_thermo(x; Ω=Ω, muoA=muoA, muoB=muoB, T=T)
     #TODO: gradient of this term is just value of fit_overpotential(x)
     function kinetic_term(x)
@@ -47,7 +46,7 @@ end
 
 # zeros of this function correspond to pairs of x's satisfying the common tangent condition for a given µ function
 # case where we just feed in two points (x should be of length two)
-function common_tangent(x::Vector, I, km::KineticModel; Ω=Ω, muoA=muoA, muoB=muoB, T=T)
+function common_tangent(x::Vector, I, km::KineticModel; Ω=Ω_default, muoA=muoA_default, muoB=muoB_default, T=room_T)
     g = g_kinetic(I, km; Ω=Ω, muoA=muoA, muoB=muoB, T=T)
     µ = µ_kinetic(I, km; Ω=Ω, muoA=muoA, muoB=muoB, T=T)
     [(g(x[2]) - g(x[1]))/(x[2] - x[1]) .- μ(x[1]), μ(x[2])-μ(x[1])]

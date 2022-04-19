@@ -21,6 +21,10 @@ include("fitting.jl")
 include("integration_utils.jl")
 export fitting_params, fit_model, fit_overpotential, is_dosmodel
 
+include("phase_diagrams.jl")
+export kB, h, s, g_thermo, µ_thermo 
+export µ_kinetic, g_kinetic, common_tangent, find_phase_boundaries
+
 include("plot_fcns.jl")
 export plot_models, plot_exp_and_models
 

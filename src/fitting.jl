@@ -2,6 +2,8 @@ using Zygote
 using Optim
 using NLsolve
 using LinearAlgebra
+using Optimisers
+using Flux
 
 # sum of squares loss in logarithmic coordinates
 log_loss(y, y_pred) = (log.(y) .- log.(y_pred)).^2
@@ -18,19 +20,30 @@ function fit_overpotential(model::KineticModel, k, guess = fill(0.1, length(k));
     function compare_k!(storage, V)
         storage .= loss(k, compute_k(V, model; kT = kT, kwargs...))
     end
-    local Vs
-    if autodiff
-        function grad!(storage, V)
-            # TODO: we could speed up the case of scalar k's by dispatching to call gradient here instead
-            gs = Zygote.gradient(V[1]) do V
-                Zygote.forwarddiff(V) do V
-                    loss(k, compute_k(V, model; kT = kT, kwargs...))
+
+    Vs = if autodiff
+        function myfun!(F, J, V)
+            if J == nothing
+                F .= loss(k, compute_k(V, model; kT = kT, kwargs...))
+            elseif F == nothing && !isnothing(J)
+                # TODO: we could speed up the case of scalar k's by dispatching to call gradient here instead
+                gs = Zygote.gradient(V) do V
+                    Zygote.forwarddiff(V) do V
+                        loss(k, compute_k(V, model; kT = kT, kwargs...)) |> sum
+                    end
+                end[1]
+                J .= gs
+            else
+                y, back = Zygote.pullback(V) do V
+                    Zygote.forwarddiff(V) do V
+                        loss(k, compute_k(V, model; kT = kT, kwargs...)) |> sum
+                    end
                 end
-            end[1]
-            storage .= gs
-            nothing
+                F .= y
+                J .= back(one.(y))[1]
+            end
         end
-        Vs = nlsolve(compare_k!, grad!, guess, show_trace=verbose)
+        Vs = nlsolve(only_fj!(myfun!), guess, show_trace=verbose)
     else
         Vs = nlsolve(compare_k!, guess, show_trace=verbose)
     end

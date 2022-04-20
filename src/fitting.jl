@@ -25,14 +25,14 @@ function fit_overpotential(model::KineticModel, k, guess = fill(0.1, length(k));
                 F .= loss(k, compute_k(V, model; kT = kT, kwargs...))
             elseif F == nothing && !isnothing(J)
                 # TODO: we could speed up the case of scalar k's by dispatching to call gradient here instead
-                gs = Zygote.gradient(V) do V
+                gs = Zygote.gradient(V[1]) do V
                     Zygote.forwarddiff(V) do V
                         loss(k, compute_k(V, model; kT = kT, kwargs...)) |> sum
                     end
                 end[1]
                 J .= gs
             else
-                y, back = Zygote.pullback(V) do V
+                y, back = Zygote.pullback(V[1]) do V
                     Zygote.forwarddiff(V) do V
                         loss(k, compute_k(V, model; kT = kT, kwargs...)) |> sum
                     end

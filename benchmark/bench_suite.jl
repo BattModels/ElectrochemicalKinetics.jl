@@ -26,7 +26,7 @@ for km in ni_kms
     suite["rate constants"]["non-integral models"]["vector V"][modeltype] = @benchmarkable compute_k(0.01:0.01:0.2, $km) seconds=time_mult
 end
 
-mhc = MarcusHushChidsey(70000, 0.3)
+mhc = MarcusHushChidsey(70000, 0.3, 1.0)
 mhcd_flatdos = MarcusHushChidseyDOS(70000, 0.3, [-5 1; 5 1])
 mhcd_Cu = MarcusHushChidseyDOS(10000, 0.3, string(@__DIR__, "/../data/DOSes/Cu_111_dos.txt"))
 i_kms = [mhc, mhcd_flatdos, mhcd_Cu]

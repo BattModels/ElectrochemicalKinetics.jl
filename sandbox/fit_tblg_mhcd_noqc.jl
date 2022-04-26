@@ -16,7 +16,7 @@ k_func = LinearInterpolation(exp_data[:,1], exp_data[:,2])
 # "fit" prefactor to 5.0° twist data, assuming an overpotential of 0.07 V and reorganization energy of 0.82 eV
 A = exp_data[12,2] / compute_k(0.07, MarcusHushChidseyDOS(1.0, 0.82, "../data/babar_data/dos_AB_5.0.txt"))
 
-# now fit overpotential at each twist angle...with the A determined as above, this currently fails anywhere remotely near the magic angle :(
+# now fit overpotential at each twist angle
 η_vals = []
 for theta in theta_list
     ldos = readdlm("../data/babar_data/dos_AB_" * string(theta) * ".txt");

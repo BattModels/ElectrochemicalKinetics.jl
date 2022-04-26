@@ -2,6 +2,10 @@ using Interpolations
 using MAT
 using ElectrochemicalKinetics
 using Plots
+using DelimitedFiles
+
+data_path = dirname(pathof(ElectrochemicalKinetics))*"/../data/babar_data/"
+dos_prefix = "dos_" # change to "dos_AA_" or "dos_AB_" as desired
 
 theta_list = [0.42, 0.77, 1.15, 1.34, 1.5, 2.39, 2.6, 3, 5];
 
@@ -10,16 +14,17 @@ ef_data=[[0.22 -2.7201e-18];[0.43 -0.0017];[0.57 -0.0042];[0.8 -0.0057];[1.1 -0.
 ef_func = LinearInterpolation(ef_data[:,1], ef_data[:,2])
 
 # interpolate experimental data because 0.42° is missing
-exp_data = read(matopen("../data/babar_data/ko_exp_paper.mat"))["ko_exp_paper"]
+exp_data = read(matopen(data_path*"ko_exp_paper.mat"))["ko_exp_paper"]
 k_func = LinearInterpolation(exp_data[:,1], exp_data[:,2])
 
+
 # "fit" prefactor to 5.0° twist data, assuming an overpotential of 0.07 V and reorganization energy of 0.82 eV
-A = exp_data[12,2] / compute_k(0.07, MarcusHushChidseyDOS(1.0, 0.82, "../data/babar_data/dos_AB_5.0.txt"))
+A = exp_data[12,2] / compute_k(0.07, MarcusHushChidseyDOS(1.0, 0.82, data_path*dos_prefix*"5.0.txt"))
 
 # now fit overpotential at each twist angle
 η_vals = []
 for theta in theta_list
-    ldos = readdlm("../data/babar_data/dos_AB_" * string(theta) * ".txt");
+    ldos = readdlm(data_path * dos_prefix * string(theta) * ".txt");
     mhcd = MarcusHushChidseyDOS(A, 0.82, ldos, Ef=ef_func(theta))
     append!(η_vals, fit_overpotential(mhcd, k_func(theta)))
 end

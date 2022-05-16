@@ -1,6 +1,6 @@
 module ElectrochemicalKinetics
 
-include("dos.jl")
+include("utils/dos.jl")
 export DOS
 using .DOS: DOSData, get_dos
 export DOSData, get_dos
@@ -11,14 +11,10 @@ export fermi_dirac
 export integrand
 export KineticModel, IntegralModel
 export Marcus, MarcusHushChidsey, MarcusHushChidseyDOS
-
-include("quantum_capacitance.jl")
-
-include("rate_constant.jl")
 export compute_k, compute_k_cq
 
 include("fitting.jl")
-include("integration_utils.jl")
+include("utils/integration_utils.jl")
 export fitting_params, fit_model, fit_overpotential, is_dosmodel
 
 include("phase_diagrams.jl")

@@ -1,5 +1,8 @@
 using .DOS
 using SpecialFunctions
+using Statistics
+using Interpolations
+using DelimitedFiles
 
 """
     fermi_dirac(E, kT=0.026)
@@ -8,6 +11,11 @@ Compute the value of the Fermi-Dirac distribution at energy `E` (relative to the
 """
 fermi_dirac(E; kT = 0.026) = inv.(1 .+ exp.(E ./ kT))
 
+"""
+    KineticModel
+
+Abstract base class for kinetic models. All subtypes need to dispatch the `compute_k` function.
+"""
 abstract type KineticModel end
 
 # dispatch for net rates, returns absolute value
@@ -37,6 +45,11 @@ function Base.show(io::IO, m::KineticModel)
     print(io, s)
 end
 
+"""
+    IntegralModel
+
+Abstract base class for "Marcus-like" kinetic models that require computation of an energy integral. All subtypes need to dispatch the `compute_k` function directly, or dispatch the `integrand` function and use the default `compute_k` dispatch.
+"""
 abstract type IntegralModel <: KineticModel end # "Marcus-like"
 
 # check to catch missed dispatches for new types
@@ -50,6 +63,34 @@ integrand(km::IntegralModel, V_dl; kwargs...) =
         integrand(km, V_dl, true; kwargs...)(E) - integrand(km, V_dl, false; kwargs...)(E),
     )
 
+    """
+    compute_k(V_app, model::KineticModel, ox::Bool; kwargs...)
+    compute_k(V_app, model::KineticModel; kwargs...)
+    compute_k(E_min, E_max, V_app, model::IntegralModel, ox::Bool; kwargs...)
+    compute_k(E_min, E_max, V_app, model::IntegralModel; kwargs...)
+    compute_k(E_min, E_max, V_app, model::MarcusHushChidseyDOS, calc_cq::Bool=false; C_dl = 10.0, Vq_min = -0.5, Vq_max = 0.5, kwargs...)
+
+Compute the rate constant k predicted by a given kinetic model at a applied voltage `V_app`. If a flag for reaction direction `ox` is supplied, `true` gives the oxidative and `false` the reductive direction, while omitting this flag will yield net reaction rate (absolute value thereof).
+
+If the model is an `IntegralModel`, integration bounds `E_min` and `E_max` must be supplied. Integration is done via GK quadrature.
+
+If calc_cq flag is passed, optionally compute voltage shifts due to quantum capacitance.
+"""
+compute_k(V_app, model::KineticModel, args...; kT = 0.026) = model(V_app, args...; kT = kT)
+
+compute_k(
+    V_app,
+    model::IntegralModel,
+    args...; # would just be the ox flag
+    kT = 0.026,
+    E_min = -100 * kT,
+    E_max = 100 * kT,
+    kwargs...,
+) = begin
+  n, w = scale(E_min, E_max)
+  f = integrand(model, V_app, args...; kT = kT)
+  sum(w .* f.(n))
+end
 
 include("ButlerVolmer.jl")
 include("Marcus.jl")

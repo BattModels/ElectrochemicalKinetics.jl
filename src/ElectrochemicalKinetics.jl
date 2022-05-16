@@ -5,7 +5,7 @@ export DOS
 using .DOS: DOSData, get_dos
 export DOSData, get_dos
 
-include("kinetic_models.jl")
+include("kinetic_models/kinetic_models.jl")
 export ButlerVolmer, AsymptoticMarcusHushChidsey
 export fermi_dirac
 export integrand

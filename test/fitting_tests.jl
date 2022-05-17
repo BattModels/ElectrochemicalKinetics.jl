@@ -6,19 +6,19 @@
             # test a number less than the initial guess
             V1 = 0.05
             k1 = compute_k(V1, m)
-            @test isapprox(fit_overpotential(m, k1)[1], V1, atol=1e-5)
+            @test isapprox(fit_overpotential(k1, m)[1], V1, atol=1e-5)
             # and one greater
             V2 = 0.15
             k2 = compute_k(V2, m)
-            @test isapprox(fit_overpotential(m, k2)[1], V2, atol=1e-5)
+            @test isapprox(fit_overpotential(k2, m)[1], V2, atol=1e-5)
             # test that vectorized fitting works...first for one model and multiple k's
             # this test is turned off for now because better adjoint of fit_overpotential currently doesn't work with it...
             # @test isapprox(fit_overpotential(m, [k1, k2]), [V1, V2], atol=5e-4)
             # TODO: figure out sensible and consistent way to vectorize over k and/or V (e.g. use a matrix?)
             # now test for one k and multiple models
-            @test isapprox(fit_overpotential([m, m], k1), [V1, V1], atol=5e-4)
+            @test isapprox(fit_overpotential(k1, [m, m]), [V1, V1], atol=5e-4)
             # make sure that both fails since indexing would be ambiguous
-            @test_throws MethodError fit_overpotential([m, m], [k1, k2])
+            @test_throws MethodError fit_overpotential([k1, k2], [m, m])
         end
     end
     # for now, writing these separately to test different input DOSes
@@ -34,12 +34,12 @@
             m = MarcusHushChidseyDOS(0.25, dos)
             V1 = 0.05
             k1 = compute_k(V1, m)
-            @test isapprox(fit_overpotential(m, k1)[1], V1, atol=1e-5)
+            @test isapprox(fit_overpotential(k1, m)[1], V1, atol=1e-5)
             V2 = 0.15
             k2 = compute_k(V2, m)
-            @test isapprox(fit_overpotential(m, k2)[1], V2, atol=1e-5)
+            @test isapprox(fit_overpotential(k2, m)[1], V2, atol=1e-5)
             # this one is disabled for now for same reason as above
-            # @test isapprox(fit_overpotential(m, [k1, k2]), [V1, V2], atol=5e-4)
+            # @test isapprox(fit_overpotential([k1, k2], m), [V1, V2], atol=5e-4)
         end
     end
 end

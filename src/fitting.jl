@@ -14,7 +14,7 @@ linear_loss(y, y_pred) = (y .- y_pred).^2
 
 Given values for current/rate constant and specified model parameters, find the overpotential that would have resulted in it. (This is the inverse of the `compute_k` function.)
 """
-function fit_overpotential(model::KineticModel, k, guess = fill(0.1, length(k)); kT = 0.026, loss = log_loss, autodiff = true, verbose=false, kwargs...)
+function fit_overpotential(k, model::KineticModel, guess = fill(0.1, length(k)); kT = 0.026, loss = log_loss, autodiff = true, verbose=false, kwargs...)
     function compare_k!(storage, V)
         storage .= loss(k, compute_k(V, model; kT = kT, kwargs...))
     end
@@ -58,7 +58,7 @@ end
 
 inv!(x) = x .= inv.(x)
 
-Zygote.@adjoint function fit_overpotential(model, k, guess; loss = log_loss, kT = 0.026, autodiff = true, verbose = false, kw...)
+Zygote.@adjoint function fit_overpotential(k, model, guess; loss = log_loss, kT = 0.026, autodiff = true, verbose = false, kw...)
   Vs = fit_overpotential(model, k, guess; loss, verbose, autodiff, kT, kw...)
   function back(vs)
     gs = Zygote.jacobian(vs) do V
@@ -75,7 +75,7 @@ end
 
 
 # multiple models, one k value (used in thermo example)
-fit_overpotential(models::Vector{<:KineticModel}, k::Real, guess=fill(0.1, length(k)); kwargs...) = fit_overpotential.(models, Ref(k), Ref(guess); kwargs...)
+fit_overpotential(k::Real, models::Vector{<:KineticModel}, guess=fill(0.1, length(k)); kwargs...) = fit_overpotential.(Ref(k), models, Ref(guess); kwargs...)
 
 fitting_params(t::Type{<:KineticModel}) = fieldnames(t)
 fitting_params(::Type{MarcusHushChidsey}) = (:A, :λ)

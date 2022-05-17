@@ -26,31 +26,28 @@ MarcusHushChidseyDOS(A, λ, dos_file::Union{Matrix,String}; kwargs...) =
 
 MarcusHushChidseyDOS(λ, dos_file::Union{Matrix,String}; kwargs...) = MarcusHushChidseyDOS(1.0, λ, DOSData(dos_file; kwargs...))
 
+# TODO: make one version of this for the whole package, currently there are some sign convention differences between this and the MHC version 
+marcus_term(V, E, λ, ::Val{true}, kT) = exp.(-(( (λ .- V) .+ E) .^ 2) ./ (4 * λ * kT))
+marcus_term(V, E, λ, ::Val{false}, kT) = exp.(-(( (λ .+ V) .- E) .^ 2) ./ (4 * λ * kT))
+
+# Fermi-Dirac function or the complement thereof
+fd(E, ::Val{true}, kT) = 1 .- fermi_dirac(E; kT = kT)
+fd(E, ::Val{false}, kT) = fermi_dirac(E; kT = kT)
+
 function integrand(
     mhcd::MarcusHushChidseyDOS,
     V_dl,
-    ox::Bool;
-    kT::Real = 0.026,
+    ox::Val;
+    kT = 0.026,
     V_q = 0.0,
 )
-    function marcus_term(E)
-        local exp_arg
-        if ox
-            exp_arg = -(( (mhcd.λ .- V_dl) .+ E) .^ 2) ./ (4 * mhcd.λ * kT)
-        else
-            exp_arg = -(( (mhcd.λ .+ V_dl) .- E) .^ 2) ./ (4 * mhcd.λ * kT)
-        end
-        exp.(exp_arg)
-    end
-    fd(E) = ox ? 1 .- fermi_dirac(E; kT = kT) : fermi_dirac(E; kT = kT)
-    # TODO: add two dispatches as with MHC above
-    E -> mhcd.A .* mhcd.dos.interp_func.(E .+ V_q) .* fd(E) .* marcus_term(E)
+    E -> mhcd.A .* mhcd.dos.interp_func.(E .+ V_q) .* fd(E, ox, kT) .* marcus_term(V_dl, E, mhcd.λ, ox, kT)
 end
 
 function compute_k(
     V_app,
     model::MarcusHushChidseyDOS,
-    ox::Bool;
+    args...;
     kT = 0.026,
     E_min = model.dos.E_min,
     E_max = model.dos.E_max,
@@ -64,7 +61,7 @@ function compute_k(
         compute_k_cq(
             V_app,
             model,
-            ox;
+            args...;
             C_dl = C_dl,
             Vq_min = Vq_min,
             Vq_max = Vq_max,
@@ -74,46 +71,7 @@ function compute_k(
         )
     else
         n, w = scale(E_min, E_max)
-        f = integrand(model, V_app, ox; kT = kT)
-        sum(w .* f.(n))
-    end
-end
-
-function compute_k(
-    V_app,
-    model::MarcusHushChidseyDOS;
-    kT = 0.026,
-    E_min = model.dos.E_min,
-    E_max = model.dos.E_max,
-    calc_cq::Bool = false,
-    C_dl = 10.0,
-    Vq_min = -0.5,
-    Vq_max = 0.5,
-    kwargs...,
-)
-    if calc_cq
-        compute_k_cq(
-            V_app,
-            model;
-            kT = kT,
-            E_min = max(E_min, E_min-Vq_min),
-            E_max = min(E_max, E_max-Vq_max),
-            C_dl = C_dl,
-            Vq_min = Vq_min,
-            Vq_max = Vq_max,
-        )
-    else
-        # invoke(
-        #     compute_k,
-        #     Tuple{typeof(V_app),IntegralModel},
-        #     V_app,
-        #     model;
-        #     kT = kT,
-        #     E_min = E_min,
-        #     E_max = E_max,
-        # )
-        n, w = scale(E_min, E_max)
-        f = integrand(model, V_app; kT = kT)
+        f = integrand(model, V_app, args...; kT = kT)
         sum(w .* f.(n))
     end
 end
@@ -143,6 +101,7 @@ function compute_k_cq(
     sum(w .* f.(n))
 end
 
+# TODO: clean these up...but add tests first
 function compute_k_cq(
     V_app,
     model::MarcusHushChidseyDOS;

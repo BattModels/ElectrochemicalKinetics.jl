@@ -1,7 +1,8 @@
 # all these numbers are just references evaluated as of 2/22/22
+# TODO: add tests of `integrand` function
 
 @testset "Integral Models" begin
-    @testset "MHC" begin
+    @testset "MarcusHushChidsey" begin
         mhc = MarcusHushChidsey(0.25)
 
         # test some values
@@ -18,7 +19,7 @@
         @test all(isapprox.(compute_k(Vs, mhc), compute_k(Vs, amhc), atol=2e-4))
     end
 
-    @testset "MHC+DOS" begin
+    @testset "MarcusHushChidseyDOS" begin
         # test that a uniform DOS version matches MHC
         flat_dos = [-5 1; 5 1]
         mhcd = MarcusHushChidseyDOS(0.25, flat_dos)

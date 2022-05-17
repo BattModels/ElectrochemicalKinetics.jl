@@ -6,7 +6,7 @@ Computes asymptotic solution to MHC model, as described in Zeng et al.: 10.1016/
 
 If initialized with one argument, assumes this to be the reorganization energy λ and sets the prefactor to 1.0.
 """
-struct AsymptoticMarcusHushChidsey <: KineticModel
+struct AsymptoticMarcusHushChidsey <: NonIntegralModel
     A::Float64
     λ::Float64
 end
@@ -14,7 +14,7 @@ end
 # default prefactor is 1
 AsymptoticMarcusHushChidsey(λ) = AsymptoticMarcusHushChidsey(1.0, λ)
 
-function (amhc::AsymptoticMarcusHushChidsey)(V_app, ox::Bool; kT::Real = 0.026)
+function compute_k(V_app, amhc::AsymptoticMarcusHushChidsey, ox::Bool; kT::Real = 0.026)
     η = (2 * ox - 1) .* V_app ./ kT
     λ_nondim = amhc.λ / kT
     a = 1 + sqrt(λ_nondim)
@@ -23,8 +23,8 @@ function (amhc::AsymptoticMarcusHushChidsey)(V_app, ox::Bool; kT::Real = 0.026)
     return kT * amhc.A .* pref .* erfc.(arg)
 end
 
-
-function (amhc::AsymptoticMarcusHushChidsey)(V_app; kT::Real = 0.026)
+# direct dispatch for net rates
+function compute_k(V_app, amhc::AsymptoticMarcusHushChidsey; kT::Real = 0.026)
     η = V_app ./ kT
     λ_nondim = amhc.λ / kT
     a = 1 + sqrt(λ_nondim)

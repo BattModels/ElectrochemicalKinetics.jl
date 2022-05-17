@@ -9,7 +9,7 @@ include("kinetic_models/kinetic_models.jl")
 export ButlerVolmer, AsymptoticMarcusHushChidsey
 export fermi_dirac
 export integrand
-export KineticModel, IntegralModel
+export KineticModel, NonIntegralModel, IntegralModel
 export Marcus, MarcusHushChidsey, MarcusHushChidseyDOS
 export compute_k, compute_k_cq
 

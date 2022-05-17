@@ -12,12 +12,12 @@
 
             # oxidative
             for bv in [bv1, bv2, bv3]
-                @test bv(.026/bv.α, Val(true)) ≈ bv.A * ℯ
+                @test bv(.026/bv.α, true) ≈ bv.A * ℯ
             end
 
             # reductive
             for bv in [bv1, bv2, bv3]
-                @test bv(-.026/(1-bv.α), Val(false)) ≈ bv.A * ℯ
+                @test bv(-.026/(1-bv.α), false) ≈ bv.A * ℯ
             end
 
             # net
@@ -27,7 +27,7 @@
         end
 
         @testset "Vector Arguments" begin
-            @test bv1(.026 .* collect(0:2:6), Val(true)) == exp.(0:3)
+            @test bv1(.026 .* collect(0:2:6), true) == exp.(0:3)
             @test bv1(.026 .* collect(0:2:6)) == exp.(0:3) - exp.(-(0:3))
             # TODO: test bv2, bv3
         end
@@ -37,8 +37,8 @@
         # TODO: this could all be more thorough, I literally just picked some arbitrary points
         m = Marcus(0.25)
         @test m(0.0) == 0.0
-        @test isapprox(m(0.05, Val(true)), 0.031381, atol=1e-6)
-        @test isapprox(m(0.2, Val(false)), 0.908324, atol=1e-6)
+        @test isapprox(m(0.05, true), 0.031381, atol=1e-6)
+        @test isapprox(m(0.2, false), 0.908324, atol=1e-6)
         @test isapprox(m(0.13), 0.570862, atol=1e-6)
         @test m(0.13) == m(-0.13)
 

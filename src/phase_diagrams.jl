@@ -26,16 +26,16 @@ still being able to swap out model parameters by calling "function-builders" wit
 """
 function µ_kinetic(I, km::KineticModel; Ω=Ω_default, muoA=muoA_default, muoB=muoB_default, T=room_T)
     thermo_term(x) = μ_thermo(x; Ω=Ω, muoA=muoA, muoB=muoB, T=T)
-    μ(x::Real) = thermo_term(x) .+ fit_overpotential(I, (1-x)*km)
-    μ(x::AbstractVector) = thermo_term(x) .+ fit_overpotential(I, (1 .- x).*Ref(km))
+    μ(x::Real) = thermo_term(x) .+ overpotential(I, (1-x)*km)
+    μ(x::AbstractVector) = thermo_term(x) .+ overpotential(I, (1 .- x).*Ref(km))
     return μ
 end
 
 function g_kinetic(I, km::KineticModel; Ω=Ω_default, muoA=muoA_default, muoB=muoB_default, T=room_T)
     thermo_term(x) = g_thermo(x; Ω=Ω, muoA=muoA, muoB=muoB, T=T)
-    #TODO: gradient of this term is just value of fit_overpotential(x)
+    #TODO: gradient of this term is just value of overpotential(x)
     function kinetic_term(x)
-        f(x) = ElectrochemicalKinetics.fit_overpotential(I, (1 .- x) .* Ref(km))
+        f(x) = ElectrochemicalKinetics.overpotential(I, (1 .- x) .* Ref(km))
         n, w = ElectrochemicalKinetics.scale(zero.(x), x)
         map((w, n) -> sum(w .* f(n)), eachcol(w), eachcol(n))
     end

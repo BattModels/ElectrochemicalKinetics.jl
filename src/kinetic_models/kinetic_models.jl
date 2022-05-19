@@ -44,14 +44,14 @@ end
 """
     NonIntegralModel
 
-Abstract base class for kinetic models whose rates can be computed directly from an input voltage without requiring an energy integral. All subtypes must dispatch the `compute_k` function.
+Abstract base class for kinetic models whose rates can be computed directly from an input voltage without requiring an energy integral. All subtypes must dispatch the `rate_constant` function.
 """
 abstract type NonIntegralModel <: KineticModel end
 
 """
     IntegralModel
 
-Abstract base class for "Marcus-like" kinetic models that require computation of an energy integral. All subtypes need to dispatch the `compute_k` function directly, or dispatch the `integrand` function and use the default `compute_k` dispatch.
+Abstract base class for "Marcus-like" kinetic models that require computation of an energy integral. All subtypes need to dispatch the `rate_constant` function directly, or dispatch the `integrand` function and use the default `rate_constant` dispatch.
 """
 abstract type IntegralModel <: KineticModel end
 
@@ -68,9 +68,9 @@ integrand(km::IntegralModel, V; kwargs...) =
 integrand(km::IntegralModel, V, ox::Bool; kwargs...) = integrand(km, V, Val(ox); kwargs...)
 
 """
-    compute_k(V_app, model::KineticModel, ox::Bool; kwargs...)
-    compute_k(V_app, model::KineticModel; kwargs...)
-    compute_k(E_min, E_max, V_app, model::MarcusHushChidseyDOS, calc_cq::Bool=false; C_dl = 10.0, Vq_min = -0.5, Vq_max = 0.5, kwargs...)
+    rate_constant(V_app, model::KineticModel, ox::Bool; kwargs...)
+    rate_constant(V_app, model::KineticModel; kwargs...)
+    rate_constant(E_min, E_max, V_app, model::MarcusHushChidseyDOS, calc_cq::Bool=false; C_dl = 10.0, Vq_min = -0.5, Vq_max = 0.5, kwargs...)
 
 Compute the rate constant k predicted by a given kinetic model at a applied voltage `V_app`. If a flag for reaction direction `ox` is supplied, `true` gives the oxidative and `false` the reductive direction, while omitting this flag will yield net reaction rate (absolute value thereof).
 
@@ -78,17 +78,17 @@ If the model is an `IntegralModel`, integration bounds `E_min` and `E_max` may b
 
 If calc_cq flag is passed, optionally compute voltage shifts due to quantum capacitance (only applicable to `MarcusHushChidseyDOS` models).
 """
-compute_k(V_app, model::NonIntegralModel, ox::Bool; kwargs...) = compute_k(V_app, model, Val(ox); kwargs...)
+rate_constant(V_app, model::NonIntegralModel, ox::Bool; kwargs...) = rate_constant(V_app, model, Val(ox); kwargs...)
 
 # default dispatch for net rates, returns absolute value
-compute_k(V_app, model::NonIntegralModel; kwargs...) =
-    abs.(compute_k(V_app, model, Val(true); kwargs...) - compute_k(V_app, model, Val(false); kwargs...))
+rate_constant(V_app, model::NonIntegralModel; kwargs...) =
+    abs.(rate_constant(V_app, model, Val(true); kwargs...) - rate_constant(V_app, model, Val(false); kwargs...))
 
 # TODO: add tests that both args and kwargs are correctly captured here (also for the Val thing)
 # "callable" syntax
-(m::KineticModel)(V_app, args...; kwargs...) = compute_k(V_app, m, args...; kwargs...)
+(m::KineticModel)(V_app, args...; kwargs...) = rate_constant(V_app, m, args...; kwargs...)
 
-function compute_k(
+function rate_constant(
     V_app,
     model::IntegralModel,
     args...; # would just be the ox flag, if present

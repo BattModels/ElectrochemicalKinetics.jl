@@ -3,8 +3,8 @@ using QuadGK
 using Test
 
 function test_vector_voltages(model, voltages)
-    @test isapprox(compute_k(voltages, model), compute_k.(voltages, Ref(model)))
-    @test isapprox(compute_k(voltages, model, kT=0.4), compute_k.(voltages, Ref(model), kT=0.4))
+    @test isapprox(rate_constant(voltages, model), rate_constant.(voltages, Ref(model)))
+    @test isapprox(rate_constant(voltages, model, kT=0.4), rate_constant.(voltages, Ref(model), kT=0.4))
 end
 
 @testset "ElectrochemicalKinetics.jl" begin

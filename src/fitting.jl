@@ -10,31 +10,31 @@ log_loss(y, y_pred) = (log.(y) .- log.(y_pred)).^2
 linear_loss(y, y_pred) = (y .- y_pred).^2
 
 """
-    fit_overpotential(model, k; kwargs...)
+    overpotential(model, k; kwargs...)
 
-Given values for current/rate constant and specified model parameters, find the overpotential that would have resulted in it. (This is the inverse of the `compute_k` function.)
+Given values for current/rate constant and specified model parameters, find the overpotential that would have resulted in it. (This is the inverse of the `rate_constant` function.)
 """
-function fit_overpotential(k, model::KineticModel, guess = fill(0.1, length(k)); kT = 0.026, loss = log_loss, autodiff = true, verbose=false, kwargs...)
+function overpotential(k, model::KineticModel, guess = fill(0.1, length(k)); kT = 0.026, loss = log_loss, autodiff = true, verbose=false, kwargs...)
     function compare_k!(storage, V)
-        storage .= loss(k, compute_k(V, model; kT = kT, kwargs...))
+        storage .= loss(k, rate_constant(V, model; kT = kT, kwargs...))
     end
 
     Vs = if autodiff
         function myfun!(F, J, V)
             if J == nothing
-                F .= loss(k, compute_k(V, model; kT = kT, kwargs...))
+                F .= loss(k, rate_constant(V, model; kT = kT, kwargs...))
             elseif F == nothing && !isnothing(J)
                 # TODO: we could speed up the case of scalar k's by dispatching to call gradient here instead
                 gs = Zygote.gradient(V[1]) do V
                     Zygote.forwarddiff(V) do V
-                        loss(k, compute_k(V, model; kT = kT, kwargs...)) |> sum
+                        loss(k, rate_constant(V, model; kT = kT, kwargs...)) |> sum
                     end
                 end[1]
                 J .= gs
             else
                 y, back = Zygote.pullback(V[1]) do V
                     Zygote.forwarddiff(V) do V
-                        loss(k, compute_k(V, model; kT = kT, kwargs...)) |> sum
+                        loss(k, rate_constant(V, model; kT = kT, kwargs...)) |> sum
                     end
                 end
                 F .= y
@@ -58,12 +58,12 @@ end
 
 inv!(x) = x .= inv.(x)
 
-Zygote.@adjoint function fit_overpotential(k, model, guess; loss = log_loss, kT = 0.026, autodiff = true, verbose = false, kw...)
-  Vs = fit_overpotential(model, k, guess; loss, verbose, autodiff, kT, kw...)
+Zygote.@adjoint function overpotential(k, model, guess; loss = log_loss, kT = 0.026, autodiff = true, verbose = false, kw...)
+  Vs = overpotential(model, k, guess; loss, verbose, autodiff, kT, kw...)
   function back(vs)
     gs = Zygote.jacobian(vs) do V
       Zygote.forwarddiff(V) do V
-        compute_k(V, model; kw...)
+        rate_constant(V, model; kw...)
       end
     end[1]
     inv.(gs)
@@ -71,11 +71,11 @@ Zygote.@adjoint function fit_overpotential(k, model, guess; loss = log_loss, kT 
   Vs, Δ -> (nothing, nothing, Δ .* back(Vs))
 end
 
-# basically the gradient of fit_overpotential should just be the inverse of the gradient of the forward solve at that point, i.e. if compute_k(V, model) ==k then fit_overpotential(model, k)==V , so we don’t need to diff through the actual solve in fit_overpotential because the gradient should just be the inverse of the gradient of compute_k at V
+# basically the gradient of overpotential should just be the inverse of the gradient of the forward solve at that point, i.e. if rate_constant(V, model) ==k then overpotential(model, k)==V , so we don’t need to diff through the actual solve in overpotential because the gradient should just be the inverse of the gradient of rate_constant at V
 
 
 # multiple models, one k value (used in thermo example)
-fit_overpotential(k::Real, models::Vector{<:KineticModel}, guess=fill(0.1, length(k)); kwargs...) = fit_overpotential.(Ref(k), models, Ref(guess); kwargs...)
+overpotential(k::Real, models::Vector{<:KineticModel}, guess=fill(0.1, length(k)); kwargs...) = overpotential.(Ref(k), models, Ref(guess); kwargs...)
 
 fitting_params(t::Type{<:KineticModel}) = fieldnames(t)
 fitting_params(::Type{MarcusHushChidsey}) = (:A, :λ)
@@ -106,7 +106,7 @@ function fit_model(
     kwargs...
 )
     V_vals = exp_data[:, 1]
-    eval_model(model) = [compute_k(V, model; kT = kT) for V in V_vals]
+    eval_model(model) = [rate_constant(V, model; kT = kT) for V in V_vals]
     _fit_model(exp_data, model_type, param_bounds, eval_model)
 end
 
@@ -121,7 +121,7 @@ function fit_model(
     kwargs...,
 )
     V_vals = exp_data[:, 1]
-    eval_model(model) = compute_k(V_vals,
+    eval_model(model) = rate_constant(V_vals,
                                   model;
                                   kT = kT,
                                   E_min = E_min,

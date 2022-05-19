@@ -11,11 +11,11 @@ export fermi_dirac
 export integrand
 export KineticModel, NonIntegralModel, IntegralModel
 export Marcus, MarcusHushChidsey, MarcusHushChidseyDOS
-export compute_k, compute_k_cq
+export rate_constant, rate_constant_cq
 
 include("fitting.jl")
 include("utils/integration_utils.jl")
-export fitting_params, fit_model, fit_overpotential, is_dosmodel
+export fitting_params, fit_model, overpotential, is_dosmodel
 
 include("phase_diagrams.jl")
 export kB, h, s, g_thermo, µ_thermo 

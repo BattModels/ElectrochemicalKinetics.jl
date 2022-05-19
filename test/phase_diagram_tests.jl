@@ -73,7 +73,7 @@ xs = [0.1, 0.5, 0.95]
             # test that the right (approximate) relationships hold
             μs = μ_50_vals[typeof(km)]
             for x in xs
-                @test μ_50(x) ≈ μs[x] ≈ μ_thermo(x) + fit_overpotential(50, (1-x)*km)
+                @test μ_50(x) ≈ μs[x] ≈ μ_thermo(x) + overpotential(50, (1-x)*km)
             end
 
             # test vector inputs

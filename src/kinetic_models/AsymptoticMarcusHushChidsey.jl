@@ -14,7 +14,7 @@ end
 # default prefactor is 1
 AsymptoticMarcusHushChidsey(λ) = AsymptoticMarcusHushChidsey(1.0, λ)
 
-function compute_k(V_app, amhc::AsymptoticMarcusHushChidsey, ox::Bool; kT::Real = 0.026)
+function rate_constant(V_app, amhc::AsymptoticMarcusHushChidsey, ox::Bool; kT::Real = 0.026)
     η = (2 * ox - 1) .* V_app ./ kT
     λ_nondim = amhc.λ / kT
     a = 1 .+ sqrt.(λ_nondim)
@@ -24,7 +24,7 @@ function compute_k(V_app, amhc::AsymptoticMarcusHushChidsey, ox::Bool; kT::Real 
 end
 
 # direct dispatch for net rates
-function compute_k(V_app, amhc::AsymptoticMarcusHushChidsey; kT::Real = 0.026)
+function rate_constant(V_app, amhc::AsymptoticMarcusHushChidsey; kT::Real = 0.026)
     η = V_app / kT
     λ_nondim = amhc.λ / kT
     a = 1 .+ sqrt.(λ_nondim)

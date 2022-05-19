@@ -46,7 +46,7 @@ function integrand(
     E -> mhcd.A .* mhcd.dos.interp_func.(E .+ V_q) .* fd(E, ox, kT) .* marcus_term(V_dl, E, mhcd.λ, ox, kT)
 end
 
-function compute_k(
+function rate_constant(
     V_app,
     model::MarcusHushChidseyDOS,
     args...;
@@ -60,7 +60,7 @@ function compute_k(
     kwargs...,
 )
     if calc_cq
-        compute_k_cq(
+        rate_constant_cq(
             V_app,
             model,
             args...;
@@ -79,12 +79,12 @@ function compute_k(
 end
 
 """
-    compute_k_cq(E_min, E_max, V_app, model::MarcusHushChidseyDOS, ox::Bool; C_dl=10.0, Vq_min=-0.5, Vq_max=0.5, kwargs...)
-    compute_k_cq(E_min, E_max, V_app, model::MarcusHushChidseyDOS; C_dl=10.0, Vq_min=-0.5, Vq_max=0.5, kwargs...)
+    rate_constant_cq(E_min, E_max, V_app, model::MarcusHushChidseyDOS, ox::Bool; C_dl=10.0, Vq_min=-0.5, Vq_max=0.5, kwargs...)
+    rate_constant_cq(E_min, E_max, V_app, model::MarcusHushChidseyDOS; C_dl=10.0, Vq_min=-0.5, Vq_max=0.5, kwargs...)
 
 Compute the rate constant k predicted by a `MarcusHushChidseyDOS` model at a applied voltage `V_app`, including the effects of quantum capacitance. If a flag for reaction direction `ox` is supplied, `true` gives the oxidative and `false` the reductive direction, while omitting this flag will yield net reaction rate.
 """
-function compute_k_cq(
+function rate_constant_cq(
     V_app,
     model::MarcusHushChidseyDOS,
     ox::Bool;
@@ -104,7 +104,7 @@ function compute_k_cq(
 end
 
 # TODO: clean these up...but add tests first
-function compute_k_cq(
+function rate_constant_cq(
     V_app,
     model::MarcusHushChidseyDOS;
     C_dl = 10.0,

@@ -26,7 +26,7 @@ MarcusHushChidseyDOS(A=20.0, λ=0.2)
 ```
 In this case, since `MarcusHushChidseyDOS<:IntegralModel`, we can't directly evaluate the object as a callable because it's ambiguous if we want the integrand or the full integrated rate constant, and we must specify:
 ```julia
-julia> compute_k(0.1, mhcd)
+julia> rate_constant(0.1, mhcd)
 3.426690873746331
 ```
 By default, the integration bounds are chosen to be the energy bounds over which the DOS is defined, which we can easily check:
@@ -42,7 +42,7 @@ Another feature we support for `MarcusHushChidseyDOS` models is incorporating th
 julia> mhcd = MarcusHushChidseyDOS(0.82, "data/DOSes/bernal_graphene.txt")
 MarcusHushChidseyDOS(A=1.0, λ=0.82)
 
-julia> compute_k(0.4, mhcd; calc_cq=true, Vq_min=-0.45, Vq_max=0.45)
+julia> rate_constant(0.4, mhcd; calc_cq=true, Vq_min=-0.45, Vq_max=0.45)
 0.00044958691359217384
 ```
 

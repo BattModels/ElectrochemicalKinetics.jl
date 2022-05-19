@@ -1,22 +1,27 @@
 # all these numbers are just references evaluated as of 2/22/22
 # TODO: add tests of `integrand` function
-
+# TODO: throughout, add tests of varying kT
 @testset "Integral Models" begin
     @testset "MarcusHushChidsey" begin
         mhc = MarcusHushChidsey(0.25)
+        @testset "Scalars" begin
+            # test some values
+            @test compute_k(0, mhc) == 0.0
+            @test compute_k(0, mhc, true) == compute_k(0, mhc, false) ≈ 0.0061371322
+            @test isapprox(compute_k(0.1, mhc), 0.031239978, atol=1e-6)
+            
+            # test net rates and symmetry
+            @test isapprox(compute_k(0.1, mhc, true) - compute_k(0.1, mhc, false), compute_k(0.1, mhc), atol=1e-6)
+            @test compute_k(-0.1, mhc) == compute_k(0.1, mhc)
+        end
 
-        # test some values
-        @test compute_k(0, mhc) == 0.0
-        @test compute_k(0, mhc, true) == compute_k(0, mhc, false) ≈ 0.0061371322
-        @test isapprox(compute_k(0.1, mhc), 0.031239978, atol=1e-6)
-        
-        # test net rates and symmetry
-        @test isapprox(compute_k(0.1, mhc, true) - compute_k(0.1, mhc, false), compute_k(0.1, mhc), atol=1e-6)
-        @test compute_k(-0.1, mhc) == compute_k(0.1, mhc)
-
-        # test that it's close to asymptotic version, also that vector inputs work appropriately
-        amhc = AsymptoticMarcusHushChidsey(0.25)
-        @test all(isapprox.(compute_k(Vs, mhc), compute_k(Vs, amhc), atol=2e-4))
+        @testset "Vector Voltages" begin
+            test_vector_voltages(mhc, Vs)
+            @test isapprox(mhc(Vs), mhc(-Vs)) #symmetry
+            # test that it's close to asymptotic version
+            amhc = AsymptoticMarcusHushChidsey(0.25)
+            @test all(isapprox.(compute_k(Vs, mhc), compute_k(Vs, amhc), atol=2e-4))
+        end
     end
 
     @testset "MarcusHushChidseyDOS" begin

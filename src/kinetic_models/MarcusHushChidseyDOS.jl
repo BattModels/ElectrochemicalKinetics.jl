@@ -4,17 +4,19 @@ include("../utils/quantum_capacitance.jl")
     MarcusHushChidseyDOS(A=1.0, λ, dos)
     MarcusHushChidseyDOS(A=1.0, λ, dos_file)
 
-Computes Marcus-Hush-Chidsey + DOS kinetics as described in Kurchin and Viswanathan: 10.1063/5.0023611 
+Computes Marcus-Hush-Chidsey + DOS kinetics as described in Kurchin and Viswanathan: 10.1063/5.0023611
+
+NB: At the moment, this will allow for vector `A` and `λ` parameters, but will presume that all models correspond to the same DOS.
 """
 struct MarcusHushChidseyDOS <: IntegralModel
-    A::Float64
-    λ::Float64
+    A
+    λ
     dos::DOSData
 end
 
 function Base.show(io::IO, mhcd::MarcusHushChidseyDOS)
     s = repr(typeof(mhcd)) * "("
-    s *= "A=$(round(mhcd.A, sigdigits=3)), λ=$(round(mhcd.λ, sigdigits=3)))"
+    s *= "A=$(round.(mhcd.A, sigdigits=3)), λ=$(round(mhcd.λ, sigdigits=3)))"
     print(io, s)
 end
 

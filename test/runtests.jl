@@ -2,6 +2,11 @@ using ElectrochemicalKinetics
 using QuadGK
 using Test
 
+function test_vector_voltages(model, voltages)
+    @test isapprox(compute_k(voltages, model), compute_k.(voltages, Ref(model)))
+    @test isapprox(compute_k(voltages, model, kT=0.4), compute_k.(voltages, Ref(model), kT=0.4))
+end
+
 @testset "ElectrochemicalKinetics.jl" begin
     global Vs = 0.01:0.01:0.1
     @testset "Rate constant computation" begin

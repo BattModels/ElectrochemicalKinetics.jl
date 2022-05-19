@@ -34,7 +34,7 @@ function Base.show(io::IO, m::KineticModel)
             s *
             string(field) *
             "=" *
-            string(round(getproperty(m, field), sigdigits = 3)) *
+            string(round.(getproperty(m, field), sigdigits = 3)) *
             ", "
     end
     s = s[1:end-2] * ")"

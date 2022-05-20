@@ -7,7 +7,7 @@ Computes Marcus-Hush-Chidsey kinetics: 10.1126/science.251.4996.919
 
 Note that for "typical" reorganization energy values (in the vicinity of 10*kT at typical temperatures, i.e. a few tenths of an eV), `AsymptoticMarcusHushChidsey` is comparably accurate to and much faster to evaluate than this model. 
 
-If either the prefactor or the average dos are omitted, their values are assumed to be 1. Note that strictly speaking, `average_dos` and the prefactor `A` are redundant. They are both included primarily to facilitate comparisons with similarly parametrized Marcus-like models such as `MarcusHushChidseyDOS`.
+If either the prefactor or both the prefactor and the average dos are omitted, their values are assumed to be 1. Note that strictly speaking, `average_dos` and the prefactor `A` are redundant. They are both included primarily to facilitate comparisons with similarly parametrized Marcus-like models such as `MarcusHushChidseyDOS`.
 """
 struct MarcusHushChidsey <: IntegralModel
     A
@@ -26,8 +26,9 @@ MarcusHushChidsey(A, λ, dos_file::Union{Matrix,String}; kwargs...) =
 
 # TODO: Check that both this and +DOS versions still match original paper
 function integrand(mhc::MarcusHushChidsey, V_dl, ox::Val; kT::Real = 0.026)
-    marcus_term(E, ::Val{true}) = exp.(-((E .- mhc.λ .+ V_dl) .^ 2) ./ (4 .* mhc.λ .* kT))
-    marcus_term(E, ::Val{false}) = exp.(-((E .- mhc.λ .- V_dl) .^2) ./ (4 .* mhc.λ .* kT))
-    f(E::Vector) = hcat((mhc.A * mhc.average_dos) .* marcus_term.(E, ox) .* fermi_dirac.(E; kT = kT)...)' # will return a matrix of both E and V_dl are vectors, first index will be energies and second voltages
-    f(E::Real) = (mhc.A * mhc.average_dos) .* marcus_term.(E, ox) .* fermi_dirac.(E; kT = kT)
+    mhc_f((E, ps, V), ::Val{true}) = ps[1] * exp.(-((E .- ps[2] .+ V) .^ 2) ./ (4 .* ps[2] .* kT)) * fermi_dirac(E; kT=kT)
+    mhc_f((E, ps, V), ::Val{false}) = ps[1] * exp.(-((E .- ps[2] .- V) .^2) ./ (4 .* ps[2] .* kT)) * fermi_dirac(E; kT=kT)
+    pref = mhc.A .* mhc.average_dos
+    # TODO: decide if this ordering makes sense (possibly flip model params and V?)
+    f(E) = mhc_f.(Iterators.product(E, zip(pref, mhc.λ), V_dl), Ref(ox))
 end

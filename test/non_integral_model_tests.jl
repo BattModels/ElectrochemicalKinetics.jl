@@ -40,16 +40,12 @@
             @testset "Vector Models" begin
                 A_vals = [1.0, 2.0]
                 α_vals = [0.4, 0.5, 0.6]
-                bvv1 = ButlerVolmer(A_vals) # autopopulate α, combine scalar/vector
-                bvv2 = ButlerVolmer(A_vals, α_vals[1:2]) # both vectors
-                bvv3 = ButlerVolmer(A_vals, α_vals) # invalid, different lengths
+                test_vector_models(ButlerVolmer, [A_vals, α_vals[1:2]])
 
-                # test that it's equivalent to the scalar model version
-                @test rate_constant(0.1, bvv1) == rate_constant.(Ref(0.1), ButlerVolmer.(A_vals))
-                @test rate_constant(0.1, bvv2) == rate_constant.(Ref(0.1), ButlerVolmer.(A_vals, α_vals[1:2]))
+                bvv = ButlerVolmer(A_vals, α_vals) # invalid, different lengths
 
                 # test that correct error is thrown
-                @test_throws DimensionMismatch rate_constant(0, bvv3)
+                @test_throws DimensionMismatch rate_constant(0, bvv)
             end
             @testset "Vector Voltages and Models" begin
                 # TODO: this
@@ -80,11 +76,7 @@
             @testset "Vector Models" begin
                 A_vals = [1, 100, 10000]
                 λ_vals = [0.1, 0.3, 0.7]
-                mv1 = Marcus(λ_vals)
-                mv2 = Marcus(A_vals, λ_vals)
-
-                @test rate_constant(0.1, mv1) == rate_constant.(Ref(0.1), Marcus.(λ_vals))
-                @test rate_constant(0.1, mv2) == rate_constant.(Ref(0.1), Marcus.(A_vals, λ_vals))
+                test_vector_models(Marcus, [A_vals, λ_vals])
             end
             @testset "Vector Voltages and Models" begin
                 # TODO: this
@@ -108,11 +100,7 @@
         @testset "Vector Models" begin
             A_vals = [1, 100, 10000]
             λ_vals = [0.1, 0.3, 0.7]
-            amhc1 = AsymptoticMarcusHushChidsey(λ_vals)
-            amhc2 = AsymptoticMarcusHushChidsey(A_vals, λ_vals)
-
-            @test rate_constant(0.1, amhc1) == rate_constant.(Ref(0.1), AsymptoticMarcusHushChidsey.(λ_vals))
-            @test rate_constant(0.1, amhc2) == rate_constant.(Ref(0.1), AsymptoticMarcusHushChidsey.(A_vals, λ_vals))
+            test_vector_models(AsymptoticMarcusHushChidsey, [A_vals, λ_vals])
         end
         @testset "Vector Voltages and Models" begin
             # TODO: this

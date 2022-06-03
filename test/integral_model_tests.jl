@@ -18,9 +18,16 @@
         @testset "Vector Voltages" begin
             test_vector_voltages(mhc, Vs)
             @test isapprox(mhc(Vs), mhc(-Vs)) #symmetry
-            # test that it's close to asymptotic version
+            # test that it's close to asymptotic version...arguably this should perhaps be in the AMHC tests
             amhc = AsymptoticMarcusHushChidsey(0.25)
             @test all(isapprox.(rate_constant(Vs, mhc), rate_constant(Vs, amhc), atol=2e-4))
+        end
+        
+        @testset "Vector Models" begin
+            A_vals = [1, 10, 1000]
+            λ_vals = [0.1, 0.4, 0.7]
+            avg_dos_val = 1.0
+            test_vector_models(MarcusHushChidsey, [A_vals, λ_vals, avg_dos_val])
         end
     end
 

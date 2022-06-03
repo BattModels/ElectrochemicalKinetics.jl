@@ -29,12 +29,12 @@ MarcusHushChidseyDOS(A, λ, dos_file::Union{Matrix,String}; kwargs...) =
 MarcusHushChidseyDOS(λ, dos_file::Union{Matrix,String}; kwargs...) = MarcusHushChidseyDOS(1.0, λ, DOSData(dos_file; kwargs...))
 
 # TODO: make one version of this for the whole package, currently there are some sign convention differences between this and the MHC version 
-marcus_term(V, E, λ, ::Val{true}, kT) = exp.(-(( (λ .- V) .+ E) .^ 2) ./ (4 * λ * kT))
-marcus_term(V, E, λ, ::Val{false}, kT) = exp.(-(( (λ .+ V) .- E) .^ 2) ./ (4 * λ * kT))
+marcus_term_ox(V, E, λ, kT) = exp.(-(( (λ .- V) .+ E) .^ 2) ./ (4 * λ * kT))
+marcus_term_red(V, E, λ, kT) = exp.(-(( (λ .+ V) .- E) .^ 2) ./ (4 * λ * kT))
 
 # Fermi-Dirac function or the complement thereof
-fd(E, ::Val{true}, kT) = 1 .- fermi_dirac(E; kT = kT)
-fd(E, ::Val{false}, kT) = fermi_dirac(E; kT = kT)
+fd_ox(E, kT) = 1 .- fermi_dirac(E; kT = kT)
+fd_red(E, kT) = fermi_dirac(E; kT = kT)
 
 function integrand(
     mhcd::MarcusHushChidseyDOS,
@@ -43,7 +43,10 @@ function integrand(
     kT = 0.026,
     V_q = 0.0,
 )
-    E -> mhcd.A .* mhcd.dos.interp_func.(E .+ V_q) .* fd(E, ox, kT) .* marcus_term(V_dl, E, mhcd.λ, ox, kT)
+    mhcd_f((E, ps, V), ::Val{true}) = ps[1] * mhcd.dos.interp_func(E + V_q) * fd_ox(E, kT) * marcus_term_ox(V, E, ps[2], kT)
+    mhcd_f((E, ps, V), ::Val{false}) = ps[1] * mhcd.dos.interp_func(E + V_q) * fd_red(E, kT) * marcus_term_red(V, E, ps[2], kT)
+
+    f(E) = mhcd_f.(Iterators.product(E, iterate_props(mhcd, exclude_props = [:dos]), V_dl), Ref(ox))
 end
 
 function rate_constant(
@@ -60,7 +63,7 @@ function rate_constant(
     kwargs...,
 )
     if calc_cq
-        rate_constant_cq(
+        res = rate_constant_cq(
             V_app,
             model,
             args...;
@@ -74,7 +77,13 @@ function rate_constant(
     else
         n, w = scale(E_min, E_max)
         f = integrand(model, V_app, args...; kT = kT)
-        sum(w .* f.(n))
+        res = sum(w .* f.(n))
+    end
+
+    if size(res) == (1,)
+        return res[1]
+    else
+        return res
     end
 end
 

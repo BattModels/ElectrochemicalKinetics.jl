@@ -29,6 +29,8 @@ DOSData(dos_file; Ef=0, cut_energy=false) = DOSData(get_dos(dos_file; Ef, cut_en
 # pretty printing
 Base.show(io::IO, dd::DOSData) = print(io, "DOSData: avg value $(round(dd.average_value, sigdigits=3)) from energy $(round(dd.E_min, sigdigits=2)) to $(round(dd.E_max, sigdigits=2))")
 
+Base.length(::DOSData) = 1
+
 (dd::DOSData)(E::Real) = dd.interp_func(E)
 
 """

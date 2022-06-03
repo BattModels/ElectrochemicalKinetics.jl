@@ -14,12 +14,7 @@ end
 # default prefactor is 1
 Marcus(λ) = Marcus(1.0, λ)
 
-function rate_constant(V_app, m::Marcus, ::Val{true}; kT = 0.026)
-    exp_arg = -(m.λ .+ V_app).^2 ./ (4 .* m.λ .* kT)
-    m.A .* exp.(exp_arg)
-end
+m_f((ps, V), ::Val{true}; kT = 0.026) = ps[1] .* exp.(-(ps[2].+ V).^2 ./ (4 .* ps[2] .* kT))
+m_f((ps, V), ::Val{false}; kT = 0.026) = ps[1] .* exp.(-(ps[2].- V).^2 ./ (4 .* ps[2] .* kT))
 
-function rate_constant(V_app, m::Marcus, ::Val{false}; kT = 0.026)
-    exp_arg = -(m.λ .- V_app).^2 ./ (4 .* m.λ .* kT)
-    m.A .* exp.(exp_arg)
-end
+rate_f(::Marcus) = m_f

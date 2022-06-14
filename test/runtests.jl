@@ -7,7 +7,6 @@ function test_vector_voltages(model, voltages)
     @test isapprox(rate_constant(voltages, model, kT=0.1), rate_constant.(voltages, Ref(model), kT=0.1)')
 end
 
-# TODO: make this make more sense...(I think it currently relies on first argument of params being 1 :/)
 function test_vector_models(ModelType, params)
     model1 = ModelType(params[2:end]...)
     model2 = ModelType(params...)

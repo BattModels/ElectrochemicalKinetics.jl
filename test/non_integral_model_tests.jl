@@ -37,7 +37,7 @@
                     @test isapprox(model(Vs), model(-Vs)) #symmetry
                 end
             end
-            A_vals = [1.0, 2.0]
+            A_vals = [0.5, 2.0]
             α_vals = [0.4, 0.5, 0.6]
             @testset "Vector Models" begin
                 test_vector_models(ButlerVolmer, [A_vals, α_vals[1:2]])

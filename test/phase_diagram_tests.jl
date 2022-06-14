@@ -32,7 +32,7 @@ T = 298
 end
 
 # prefactors are set so that k vs. η plots roughly line up for small η
-bv = ButlerVolmer(300)
+bv = ButlerVolmer(300, 0.5)
 m = Marcus(5000, 0.3)
 amhc = AsymptoticMarcusHushChidsey(70000, 0.3)
 kms = [bv, m, amhc]

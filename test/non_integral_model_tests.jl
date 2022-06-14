@@ -5,8 +5,8 @@
 @testset "Non-Integral Models" begin
     @testset "Butler-Volmer" begin
         bv1 = ButlerVolmer()
-        bv2 = ButlerVolmer(3.0)
-        bv3 = ButlerVolmer(1.0, 0.2)
+        bv2 = ButlerVolmer(3.0, 0.5)
+        bv3 = ButlerVolmer(0.2)
 
         @testset "Scalars" begin
             # zero voltage

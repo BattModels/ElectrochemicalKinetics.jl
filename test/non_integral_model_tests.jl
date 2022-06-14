@@ -37,18 +37,18 @@
                     @test isapprox(model(Vs), model(-Vs)) #symmetry
                 end
             end
+            A_vals = [1.0, 2.0]
+            α_vals = [0.4, 0.5, 0.6]
             @testset "Vector Models" begin
-                A_vals = [1.0, 2.0]
-                α_vals = [0.4, 0.5, 0.6]
                 test_vector_models(ButlerVolmer, [A_vals, α_vals[1:2]])
 
                 bvv = ButlerVolmer(A_vals, α_vals) # invalid, different lengths
 
-                # test that correct error is thrown
+                # test that error is thrown
                 @test_throws AssertionError rate_constant(0, bvv)
             end
             @testset "Vector Voltages and Models" begin
-                # TODO: this
+                test_vector_both(ButlerVolmer, [A_vals, α_vals[1:2]], Vs)
             end
         end
     end
@@ -70,16 +70,17 @@
                 test_vector_voltages(m1, Vs)
                 test_vector_voltages(m2, Vs)
                 for model in [m1, m2]
-                    @test isapprox(model(Vs), model(-Vs)) #symmetry
+                    #symmetry
+                    @test isapprox(model(Vs), model(-Vs)) 
                 end
             end
+            A_vals = [1, 100, 10000]
+            λ_vals = [0.1, 0.3, 0.7]
             @testset "Vector Models" begin
-                A_vals = [1, 100, 10000]
-                λ_vals = [0.1, 0.3, 0.7]
                 test_vector_models(Marcus, [A_vals, λ_vals])
             end
             @testset "Vector Voltages and Models" begin
-                # TODO: this
+                test_vector_both(ButlerVolmer, [A_vals, λ_vals], Vs)
             end
         end
     end
@@ -97,13 +98,13 @@
             test_vector_voltages(amhc, Vs)
             @test isapprox(amhc(Vs), amhc(-Vs)) #symmetry
         end
+        A_vals = [1, 100, 10000]
+        λ_vals = [0.1, 0.3, 0.7]
         @testset "Vector Models" begin
-            A_vals = [1, 100, 10000]
-            λ_vals = [0.1, 0.3, 0.7]
             test_vector_models(AsymptoticMarcusHushChidsey, [A_vals, λ_vals])
         end
         @testset "Vector Voltages and Models" begin
-            # TODO: this
+            test_vector_both(AsymptoticMarcusHushChidsey, [A_vals, λ_vals], Vs)
         end
     end
 end

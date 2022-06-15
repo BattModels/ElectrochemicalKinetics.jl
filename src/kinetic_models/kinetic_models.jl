@@ -120,7 +120,7 @@ If the model is an `IntegralModel`, integration bounds `E_min` and `E_max` may b
 If calc_cq flag is passed, optionally compute voltage shifts due to quantum capacitance (only applicable to `MarcusHushChidseyDOS` models).
 """
 function rate_constant(V_app, km::NonIntegralModel, ox::Val; kT = 0.026)
-    res = rate_f(km).(Iterators.product(iterate_props(km), V_app), Ref(ox); kT=kT)
+    res = rate_f(km).(Iterators.product(V_app, iterate_props(km)), Ref(ox); kT=kT)
     if size(res) == (1,)
         return res[1]
     else

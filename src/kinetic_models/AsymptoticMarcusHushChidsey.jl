@@ -14,7 +14,7 @@ end
 # default prefactor is 1
 AsymptoticMarcusHushChidsey(λ) = AsymptoticMarcusHushChidsey(1.0, λ)
 
-function amhc_f((ps, V), ::Val{ox}; kT = 0.026) where ox
+function amhc_f((V, ps), ::Val{ox}; kT = 0.026) where ox
     η = (2 * ox - 1) .* V ./ kT
     λ_nondim = ps[2] / kT
     a = 1 .+ sqrt.(λ_nondim)
@@ -24,7 +24,7 @@ function amhc_f((ps, V), ::Val{ox}; kT = 0.026) where ox
 end
 
 # direct dispatch for net rates
-function amhc_f((ps, V); kT = 0.026)
+function amhc_f((V, ps); kT = 0.026)
     η = V/ kT
     λ_nondim = ps[2] / kT
     a = 1 .+ sqrt.(λ_nondim)
@@ -37,7 +37,7 @@ rate_f(::AsymptoticMarcusHushChidsey) = amhc_f
 
 # and we have to directly dispatch this case too for it to use the custom net rate case...not the most elegant
 function rate_constant(V_app, amhc::AsymptoticMarcusHushChidsey; kT = 0.026)
-    res = amhc_f.(Iterators.product(iterate_props(amhc), V_app); kT=kT)
+    res = amhc_f.(Iterators.product(V_app, iterate_props(amhc)); kT=kT)
     if size(res) == (1,)
         return res[1]
     else

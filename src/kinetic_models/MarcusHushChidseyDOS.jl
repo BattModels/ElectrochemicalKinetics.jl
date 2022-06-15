@@ -43,10 +43,10 @@ function integrand(
     kT = 0.026,
     V_q = 0.0,
 )
-    mhcd_f((E, ps, V), ::Val{true}) = ps[1] * mhcd.dos.interp_func(E + V_q) * fd_ox(E, kT) * marcus_term_ox(V, E, ps[2], kT)
-    mhcd_f((E, ps, V), ::Val{false}) = ps[1] * mhcd.dos.interp_func(E + V_q) * fd_red(E, kT) * marcus_term_red(V, E, ps[2], kT)
+    mhcd_f((E, V, ps), ::Val{true}) = ps[1] * mhcd.dos.interp_func(E + V_q) * fd_ox(E, kT) * marcus_term_ox(V, E, ps[2], kT)
+    mhcd_f((E, V, ps), ::Val{false}) = ps[1] * mhcd.dos.interp_func(E + V_q) * fd_red(E, kT) * marcus_term_red(V, E, ps[2], kT)
 
-    f(E) = mhcd_f.(Iterators.product(E, iterate_props(mhcd, exclude_props = [:dos]), V_dl), Ref(ox))
+    f(E) = mhcd_f.(Iterators.product(E, V_dl, iterate_props(mhcd, exclude_props = [:dos])), Ref(ox))
 end
 
 function rate_constant(

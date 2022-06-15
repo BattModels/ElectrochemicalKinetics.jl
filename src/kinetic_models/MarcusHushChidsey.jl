@@ -26,9 +26,9 @@ MarcusHushChidsey(A, λ, dos_file::Union{Matrix,String}; kwargs...) =
 
 # TODO: Check that both this and +DOS versions still match original paper
 function integrand(mhc::MarcusHushChidsey, V_dl, ox::Val; kT::Real = 0.026)
-    mhc_f((E, ps, V), ::Val{true}) = ps[1] * exp.(-((E .- ps[2] .+ V) .^ 2) ./ (4 .* ps[2] .* kT)) * fermi_dirac(E; kT=kT)
-    mhc_f((E, ps, V), ::Val{false}) = ps[1] * exp.(-((E .- ps[2] .- V) .^2) ./ (4 .* ps[2] .* kT)) * fermi_dirac(E; kT=kT)
+    mhc_f((E, V, ps), ::Val{true}) = ps[1] * exp.(-((E .- ps[2] .+ V) .^ 2) ./ (4 .* ps[2] .* kT)) * fermi_dirac(E; kT=kT)
+    mhc_f((E, V, ps), ::Val{false}) = ps[1] * exp.(-((E .- ps[2] .- V) .^2) ./ (4 .* ps[2] .* kT)) * fermi_dirac(E; kT=kT)
     pref = mhc.A .* mhc.average_dos
     # TODO: decide if this ordering makes sense (possibly flip model params and V?)
-    f(E) = mhc_f.(Iterators.product(E, iterate_props(mhc), V_dl), Ref(ox))
+    f(E) = mhc_f.(Iterators.product(E, V_dl, iterate_props(mhc)), Ref(ox))
 end

@@ -3,8 +3,8 @@ using QuadGK
 using Test
 
 function test_vector_voltages(model, voltages)
-    @test isapprox(rate_constant(voltages, model), rate_constant.(voltages, Ref(model))')
-    @test isapprox(rate_constant(voltages, model, kT=0.1), rate_constant.(voltages, Ref(model), kT=0.1)')
+    @test isapprox(rate_constant(voltages, model), rate_constant.(voltages, Ref(model)))
+    @test isapprox(rate_constant(voltages, model, kT=0.1), rate_constant.(voltages, Ref(model), kT=0.1))
 end
 
 function test_vector_models(ModelType, params)
@@ -20,9 +20,9 @@ function test_vector_both(ModelType, params, voltages)
     vec_model = ModelType(params...)
     model_vec = [ModelType(p...) for p in zip(params...)]
     res1 = rate_constant(voltages, vec_model)
-    res2 = map(t->rate_constant(t...), Iterators.product(voltages , model_vec))' # TODO: not transpose
+    res2 = map(t->rate_constant(t...), Iterators.product(voltages, model_vec))
     @test all(res1 .== res2)
-    @test size(res1) == (length(vec_model), length(voltages))
+    @test size(res1) == (length(voltages), length(vec_model))
 end
 
 @testset "ElectrochemicalKinetics.jl" begin

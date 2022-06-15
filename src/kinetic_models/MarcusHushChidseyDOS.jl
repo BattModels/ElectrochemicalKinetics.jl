@@ -14,9 +14,12 @@ struct MarcusHushChidseyDOS <: IntegralModel
     dos::DOSData
 end
 
+# construct from a tuple
+# MarcusHushChidseyDOS(t::Tuple) = MarcusHushChidseyDOS(t...)
+
 function Base.show(io::IO, mhcd::MarcusHushChidseyDOS)
     s = repr(typeof(mhcd)) * "("
-    s *= "A=$(round.(mhcd.A, sigdigits=3)), λ=$(round(mhcd.λ, sigdigits=3)))"
+    s *= "A=$(round.(mhcd.A, sigdigits=3)), λ=$(round.(mhcd.λ, sigdigits=3)))"
     print(io, s)
 end
 

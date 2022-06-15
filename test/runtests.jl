@@ -10,15 +10,24 @@ end
 function test_vector_models(ModelType, params)
     model1 = ModelType(params[2:end]...)
     model2 = ModelType(params...)
-    @test isapprox(rate_constant(0.1, model1), rate_constant.(Ref(0.1), ModelType.(params[2:end]...)))
-    @test isapprox(rate_constant(0.1, model1, kT=0.1), rate_constant.(Ref(0.1), ModelType.(params[2:end]...), kT=0.1))
-    @test isapprox(rate_constant(0.1, model2), rate_constant.(Ref(0.1), ModelType.(params...)))
-    @test isapprox(rate_constant(0.1, model2, kT=0.1), rate_constant.(Ref(0.1), ModelType.(params...), kT=0.1))
+    # @test isapprox(rate_constant(0.1, model1), rate_constant.(Ref(0.1), ModelType.(ElectrochemicalKinetics.iterate_props(model1, exclude_props = [:A]))))
+    broadcast_params = []
+    for p in params
+        if length(p) == 1
+            push!(broadcast_params, Ref(p))
+        else
+            push!(broadcast_params, p)
+        end
+    end
+    @test isapprox(rate_constant(0.1, model1), rate_constant.(Ref(0.1), ModelType.(broadcast_params[2:end]...)))
+    @test isapprox(rate_constant(0.1, model1, kT=0.1), rate_constant.(Ref(0.1), ModelType.(broadcast_params[2:end]...), kT=0.1))
+    @test isapprox(rate_constant(0.1, model2), rate_constant.(Ref(0.1), ModelType.(broadcast_params...)))
+    @test isapprox(rate_constant(0.1, model2, kT=0.1), rate_constant.(Ref(0.1), ModelType.(broadcast_params...), kT=0.1))
 end
 
 function test_vector_both(ModelType, params, voltages)
     vec_model = ModelType(params...)
-    model_vec = [ModelType(p...) for p in zip(params...)]
+    model_vec = [ModelType(p...) for p in ElectrochemicalKinetics.iterate_props(vec_model)]
     res1 = rate_constant(voltages, vec_model)
     res2 = map(t->rate_constant(t...), Iterators.product(voltages, model_vec))
     @test all(res1 .== res2)

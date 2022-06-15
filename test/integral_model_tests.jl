@@ -22,12 +22,16 @@
             amhc = AsymptoticMarcusHushChidsey(0.25)
             @test all(isapprox.(rate_constant(Vs, mhc), rate_constant(Vs, amhc), atol=2e-4))
         end
-        
+
+        A_vals = [1, 10, 1000]
+        λ_vals = [0.1, 0.4, 0.7]
+        avg_dos_val = 1.0
         @testset "Vector Models" begin
-            A_vals = [1, 10, 1000]
-            λ_vals = [0.1, 0.4, 0.7]
-            avg_dos_val = 1.0
             test_vector_models(MarcusHushChidsey, [A_vals, λ_vals, avg_dos_val])
+        end
+
+        @testset "Vector Voltages and Models" begin
+            test_vector_both(MarcusHushChidsey, [A_vals, λ_vals, avg_dos_val], Vs)
         end
     end
 
@@ -53,6 +57,10 @@
         dos = hcat(Es .+ 1, dos[:,2])
         mhcd = MarcusHushChidseyDOS(0.25, dos)
         @test all(rate_constant(-Vs, mhcd) .> rate_constant(Vs, mhcd))
+
+        params = [[2, 20], [0.05, 0.1], DOSData(dos)]
+        test_vector_models(MarcusHushChidseyDOS, params)
+        test_vector_both(MarcusHushChidseyDOS, params, Vs)
     end
 
     @testset "Quantum Capacitance" begin

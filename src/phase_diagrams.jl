@@ -24,18 +24,20 @@ g_thermo(x; Ω=Ω_default, muoA=muoA_default, muoB=muoB_default, T=room_T) = @. 
 These functions return single-argument functions (to easily use common-tangent function below while
 still being able to swap out model parameters by calling "function-builders" with different arguments).
 """
-function µ_kinetic(I, km::KineticModel; Ω=Ω_default, muoA=muoA_default, muoB=muoB_default, T=room_T)
+function µ_kinetic(I, km::KineticModel; intercalate=true, Ω=Ω_default, muoA=muoA_default, muoB=muoB_default, T=room_T)
     thermo_term(x) = μ_thermo(x; Ω=Ω, muoA=muoA, muoB=muoB, T=T)
-    μ(x::Real) = thermo_term(x) .+ overpotential(I, (1-x)*km)
-    μ(x::AbstractVector) = thermo_term(x) .+ overpotential(I, (1 .- x).*Ref(km))
+    prefactor(x) = intercalate ? (1 .- x) : x
+    μ(x::Real) = thermo_term(x) .+ overpotential(I, prefactor(x)*km)
+    μ(x::AbstractVector) = thermo_term(x) .+ overpotential(I, prefactor(x).*Ref(km))
     return μ
 end
 
-function g_kinetic(I, km::KineticModel; Ω=Ω_default, muoA=muoA_default, muoB=muoB_default, T=room_T)
+function g_kinetic(I, km::KineticModel; intercalate=true, Ω=Ω_default, muoA=muoA_default, muoB=muoB_default, T=room_T)
     thermo_term(x) = g_thermo(x; Ω=Ω, muoA=muoA, muoB=muoB, T=T)
+    prefactor(x) = intercalate ? (1 .- x) : x
     #TODO: gradient of this term is just value of overpotential(x)
     function kinetic_term(x)
-        f(x) = ElectrochemicalKinetics.overpotential(I, (1 .- x) .* Ref(km))
+        f(x) = ElectrochemicalKinetics.overpotential(I, prefactor(x) .* Ref(km))
         n, w = ElectrochemicalKinetics.scale(zero.(x), x)
         map((w, n) -> sum(w .* f(n)), eachcol(w), eachcol(n))
     end
@@ -79,8 +81,8 @@ function phase_diagram(km::KineticModel; kwargs...)
     # TODO: write this, lol
 end
 
-# bv = ButlerVolmer(300)
-# I_vals = 10 .^ (1.1:0.025:3.1)
+# bv = ButlerVolmer(300, 0.5)
+# I_vals = 10 .^ (1.1:0.1:3.1)
 
 
 # this line takes a few seconds with B-V but aaages with anything else...

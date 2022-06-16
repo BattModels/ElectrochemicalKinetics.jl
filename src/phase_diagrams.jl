@@ -35,11 +35,14 @@ end
 function g_kinetic(I, km::KineticModel; intercalate=true, Ω=Ω_default, muoA=muoA_default, muoB=muoB_default, T=room_T)
     thermo_term(x) = g_thermo(x; Ω=Ω, muoA=muoA, muoB=muoB, T=T)
     prefactor(x) = intercalate ? (1 .- x) : x
-    #TODO: gradient of this term is just value of overpotential(x)
+    #TODO: test this adjoint
     function kinetic_term(x)
         f(x) = ElectrochemicalKinetics.overpotential(I, prefactor(x) .* Ref(km))
         n, w = ElectrochemicalKinetics.scale(zero.(x), x)
         map((w, n) -> sum(w .* f(n)), eachcol(w), eachcol(n))
+    end
+    Zygote.@adjoint function kinetic_term(x)
+        kinetic_term(x), Δ -> Δ .* ElectrochemicalKinetics.overpotential(I, prefactor(x) .* Ref(km))
     end
     g(x) = thermo_term(x) .+ kinetic_term(vec(x))
     g(x::Real) = thermo_term(x) + kinetic_term(x)[1]

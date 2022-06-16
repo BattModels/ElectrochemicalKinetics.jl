@@ -15,7 +15,7 @@ quadfun = gausslegendre
 # our familiar thermodynamic functions
 h(x;Ω=Ω_default) = @. x*(1-x)*Ω # enthalpy of mixing
 s(x) = @. -kB*(x*log(x+eps(Float64)) + (1-x)*log(1-x+eps(Float64))) # entropy per particle...added epsilons in the hopes that things will be less obnoxious at the edges
-g_thermo(x; Ω=Ω_default, muoA=muoA_default, muoB=muoB_default, T=room_T) = @. h(x;Ω=Ω_default) - T*s(x)+ muoA*(1-x) + muoB*x # Gibbs free energy per particle
+g_thermo(x; Ω=Ω_default, muoA=muoA_default, muoB=muoB_default, T=room_T) = @. h(x;Ω=Ω) - T*s(x)+ muoA*(1-x) + muoB*x # Gibbs free energy per particle
 μ_thermo(x; Ω=Ω_default, muoA=muoA_default, muoB=muoB_default, T=room_T) = @. (1-2*x)*Ω + kB*T*log(x/(1-x)) + muoB-muoA # chemical potential
 
 """

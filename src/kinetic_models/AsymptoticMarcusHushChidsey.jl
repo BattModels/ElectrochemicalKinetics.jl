@@ -30,7 +30,7 @@ function amhc_f((V, ps); kT = 0.026)
     a = 1 .+ sqrt.(λ_nondim)
     arg = (λ_nondim .- sqrt.(a .+ η.^2)) ./ (2 .* sqrt.(λ_nondim))
     pref = sqrt.(π .* λ_nondim) .* tanh.(η/2)
-    return abs.(kT * ps[1] .* pref .* erfc.(arg))
+    return kT * ps[1] .* pref .* erfc.(arg)
 end
 
 rate_f(::AsymptoticMarcusHushChidsey) = amhc_f

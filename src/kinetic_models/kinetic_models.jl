@@ -103,9 +103,7 @@ abstract type IntegralModel <: KineticModel end
 # TODO: check that this passes through both kT and V_q appropriately
 # dispatch for net rates
 integrand(km::IntegralModel, V; kwargs...) =
-    E -> abs.(
-        integrand(km, V, Val(true); kwargs...)(E) .- integrand(km, V, Val(false); kwargs...)(E)
-    )
+    E -> integrand(km, V, Val(true); kwargs...)(E) .- integrand(km, V, Val(false); kwargs...)(E)
 integrand(km::IntegralModel, V, ox::Bool; kwargs...) = integrand(km, V, Val(ox); kwargs...)
 
 """
@@ -133,7 +131,7 @@ rate_constant(V_app, model::NonIntegralModel, ox::Bool; kwargs...) = rate_consta
 
 # default dispatch for net rates, returns absolute value
 rate_constant(V_app, model::NonIntegralModel; kwargs...) =
-    abs.(rate_constant(V_app, model, Val(true); kwargs...) .- rate_constant(V_app, model, Val(false); kwargs...))
+    rate_constant(V_app, model, Val(true); kwargs...) .- rate_constant(V_app, model, Val(false); kwargs...)
 
 # TODO: add tests that both args and kwargs are correctly captured here (also for the Val thing)
 # "callable" syntax

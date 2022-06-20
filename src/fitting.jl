@@ -78,6 +78,7 @@ Zygote.@adjoint function overpotential(k, model, guess; loss = log_loss, kT = 0.
     end[1]
     inv.(gs)
   end
+  # TODO: check this, I think order of outputs is wrong
   Vs, Δ -> (nothing, nothing, Δ .* back(Vs))
 end
 

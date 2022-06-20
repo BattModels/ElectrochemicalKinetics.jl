@@ -20,47 +20,41 @@ g_thermo(x; Ω=Ω_default, muoA=muoA_default, muoB=muoB_default, T=room_T) = @. 
 
 """
 µ and g with kinetic constributions, can be modeled using any <:KineticModel object
-
-These functions return single-argument functions (to easily use common-tangent function below while
-still being able to swap out model parameters by calling "function-builders" with different arguments).
 """
-function µ_kinetic(I, km::KineticModel; intercalate=true, Ω=Ω_default, muoA=muoA_default, muoB=muoB_default, T=room_T)
-    thermo_term(x) = μ_thermo(x; Ω=Ω, muoA=muoA, muoB=muoB, T=T)
+function µ_kinetic(x, I, km::KineticModel; intercalate=true, Ω=Ω_default, muoA=muoA_default, muoB=muoB_default, T=room_T)
     prefactor(x) = intercalate ? (1 .- x) : x
-    μ(x::Real) = thermo_term(x) .+ overpotential(I, prefactor(x)*km)
-    μ(x::AbstractVector) = thermo_term(x) .+ overpotential(I, prefactor(x).*Ref(km))
-    return μ
+    return μ_thermo(x; Ω=Ω, muoA=muoA, muoB=muoB, T=T) .+ overpotential(I, prefactor(x).*Ref(km))
 end
 
-function g_kinetic(I, km::KineticModel; intercalate=true, Ω=Ω_default, muoA=muoA_default, muoB=muoB_default, T=room_T)
-    thermo_term(x) = g_thermo(x; Ω=Ω, muoA=muoA, muoB=muoB, T=T)
+# TODO: test cases of vector/scalar x/I
+function g_kinetic(x, I, km::KineticModel; intercalate=true, Ω=Ω_default, muoA=muoA_default, muoB=muoB_default, T=room_T)
     prefactor(x) = intercalate ? (1 .- x) : x
-    #TODO: test this adjoint
-    function kinetic_term(x)
-        f(x) = ElectrochemicalKinetics.overpotential(I, prefactor(x) .* Ref(km))
-        n, w = ElectrochemicalKinetics.scale(zero.(x), x)
-        map((w, n) -> sum(w .* f(n)), eachcol(w), eachcol(n))
-    end
-    Zygote.@adjoint function kinetic_term(x)
-        kinetic_term(x), Δ -> Δ .* ElectrochemicalKinetics.overpotential(I, prefactor(x) .* Ref(km))
-    end
-    g(x) = thermo_term(x) .+ kinetic_term(vec(x))
-    g(x::Real) = thermo_term(x) + kinetic_term(x)[1]
-    return g
+    # g(x) = thermo_term(x) .+ kinetic_term(vec(x))
+    # g(x::Real) = thermo_term(x) + kinetic_term(x)[1]
+    f(x) = ElectrochemicalKinetics.overpotential(I, prefactor(x) .* Ref(km))
+    n, w = ElectrochemicalKinetics.scale(zero.(x), x) # nodes and weights
+    return g_thermo(x; Ω=Ω, muoA=muoA, muoB=muoB, T=T) .+ map((w, n) -> sum(w .* f(n)), eachcol(w), eachcol(n))
+end
+
+#TODO: finish this, need term for thermo part in derivative wrt x and also derivative wrt I, currently set to nothing which is very much incorrect
+Zygote.@adjoint function g_kinetic(x, I, km::KineticModel; intercalate=true, Ω=Ω_default, muoA=muoA_default, muoB=muoB_default, T=room_T)
+    res = g_kinetic(x, I, km::KineticModel; intercalate, Ω, muoA, muoB, T)
+    res, Δ -> (Δ .* ElectrochemicalKinetics.overpotential(I, prefactor(x) .* Ref(km)), nothing, nothing)
 end
 
 # zeros of this function correspond to pairs of x's satisfying the common tangent condition for a given µ function
 # case where we just feed in two points (x should be of length two)
-function common_tangent(x::Vector, I, km::KineticModel; Ω=Ω_default, muoA=muoA_default, muoB=muoB_default, T=room_T)
-    g = g_kinetic(I, km; Ω=Ω, muoA=muoA, muoB=muoB, T=T)
-    µ = µ_kinetic(I, km; Ω=Ω, muoA=muoA, muoB=muoB, T=T)
+# probably don't actually need this separate version, keeping it here for sanity check for now
+function common_tangent(x::Vector, I, km::KineticModel; kwargs...)
+    g(x) = x -> g_kinetic(x, I, km; kwargs...)
+    µ(x) = x -> µ_kinetic(x, I, km; kwargs...)
     [(g(x[2]) - g(x[1]))/(x[2] - x[1]) .- μ(x[1]), μ(x[2])-μ(x[1])]
 end
 
 # case where we want to check many points at once (shape of x should be N x 2)
 function common_tangent(x::Array, I, km::KineticModel; kwargs...)
-    g = g_kinetic(I, km; kwargs...)
-    µ = µ_kinetic(I, km; kwargs...)
+    g(x) = x -> g_kinetic(x, I, km; kwargs...)
+    µ(x) = x -> µ_kinetic(x, I, km; kwargs...)
     Δg = g(x[:,2]) - g(x[:,1])
     Δx = x[:,2] - x[:,1]
     μ1 = μ(x[:,1])

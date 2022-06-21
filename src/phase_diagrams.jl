@@ -31,16 +31,20 @@ function g_kinetic(x, I, km::KineticModel; intercalate=true, Ω=Ω_default, muoA
     prefactor(x) = intercalate ? (1 .- x) : x
     # g(x) = thermo_term(x) .+ kinetic_term(vec(x))
     # g(x::Real) = thermo_term(x) + kinetic_term(x)[1]
-    f(x) = ElectrochemicalKinetics.overpotential(I, prefactor(x) .* Ref(km))
+    f(x) = ElectrochemicalKinetics.overpotential(I, prefactor(x) * km)
     n, w = ElectrochemicalKinetics.scale(zero.(x), x) # nodes and weights
-    return g_thermo(x; Ω=Ω, muoA=muoA, muoB=muoB, T=T) .+ map((w, n) -> sum(w .* f(n)), eachcol(w), eachcol(n))
+    # return g_thermo(x; Ω=Ω, muoA=muoA, muoB=muoB, T=T) .+ map((w, n) -> sum(w .* f(n)), eachcol(w), eachcol(n))
+    return map((w, n) -> sum(w .* f(n)), eachcol(w), eachcol(n)) # just kinetic part for now
 end
 
 #TODO: finish this, need term for thermo part in derivative wrt x and also derivative wrt I, currently set to nothing which is very much incorrect
-Zygote.@adjoint function g_kinetic(x, I, km::KineticModel; intercalate=true, Ω=Ω_default, muoA=muoA_default, muoB=muoB_default, T=room_T)
-    res = g_kinetic(x, I, km::KineticModel; intercalate, Ω, muoA, muoB, T)
-    res, Δ -> (Δ .* ElectrochemicalKinetics.overpotential(I, prefactor(x) .* Ref(km)), nothing, nothing)
-end
+# Zygote.@adjoint function g_kinetic(x, I, km::KineticModel; kwargs...)
+#     y, pb = Zygote.pullback(x -> g_kinetic(x, I, km::KineticModel; kwargs...), I) # I want "default" behavior wrt I
+#     y, function(D) # I don't understand what `D` represents above so I'm just copying it
+#         custom_grad = value_at_bound(x, I, km; kwargs...) # this is my Leibniz rule thing
+#         (custom_grad, pb(D), nothing) # x, I, km args give adjoints of custom, default, nothing
+#     end
+# end
 
 # zeros of this function correspond to pairs of x's satisfying the common tangent condition for a given µ function
 # case where we just feed in two points (x should be of length two)

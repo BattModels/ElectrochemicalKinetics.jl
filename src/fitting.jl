@@ -20,31 +20,35 @@ function janky_log_loss(y, y_pred)
 end
 
 """
-    overpotential(model, k; kwargs...)
+    overpotential(k, model; kwargs...)
 
 Given values for current/rate constant and specified model parameters, find the overpotential that would have resulted in it. (This is the inverse of the `rate_constant` function.)
+
+NB: Currently works for models with vectors of parameters but only for scalar k's. To work with vector k's, `rate_constant` would need to take matrix inputs for voltages, which is not currently implemented.
 """
-function overpotential(k, model::KineticModel, guess = fill(0.1, length(k)); kT = 0.026, loss = janky_log_loss, autodiff = true, verbose=false, kwargs...)
+function overpotential(k::Real, model::KineticModel, guess = fill(0.1, length(model)); kT = 0.026, loss = janky_log_loss, autodiff = true, verbose=false, kwargs...)
     function compare_k!(storage, V)
-        storage .= loss(k, rate_constant(V, model; kT = kT, kwargs...))
+        storage .= loss(k, rate_constant.(V, model; kT = kT, kwargs...))
     end
 
     Vs = if autodiff
         function myfun!(F, J, V)
-            if J == nothing
-                F .= loss(k, rate_constant(V, model; kT = kT, kwargs...))
-            elseif F == nothing && !isnothing(J)
-                # TODO: we could speed up the case of scalar k's by dispatching to call gradient here instead
-                gs = Zygote.gradient(V[1]) do V
+            if isnothing(J)
+                # println("branch 1")
+                F .= loss(k, rate_constant.(V, model; kT = kT, kwargs...))
+            elseif isnothing(F) && !isnothing(J)
+                # println("branch 2")
+                gs = Zygote.gradient(V) do V
                     Zygote.forwarddiff(V) do V
-                        loss(k, rate_constant(V, model; kT = kT, kwargs...)) |> sum
+                        loss(k, rate_constant.(V, model; kT = kT, kwargs...)) |> sum
                     end
                 end[1]
                 J .= gs
             else
-                y, back = Zygote.pullback(V[1]) do V
+                # println("branch 3")
+                y, back = Zygote.pullback(V) do V
                     Zygote.forwarddiff(V) do V
-                        loss(k, rate_constant(V, model; kT = kT, kwargs...)) |> sum
+                        loss(k, rate_constant.(V, model; kT = kT, kwargs...))
                     end
                 end
                 F .= y
@@ -58,18 +62,13 @@ function overpotential(k, model::KineticModel, guess = fill(0.1, length(k)); kT 
     if !converged(Vs)
         @warn "Overpotential fit not fully converged...you may have fed in an unreachable reaction rate!"
     end
-    # this is janky but the broadcast doesn't work otherwise
-    if typeof(k) <: Array
-        Vs.zero
-    else
-        Vs.zero[1]
-    end
+    Vs.zero
 end
 
 inv!(x) = x .= inv.(x)
 
 Zygote.@adjoint function overpotential(k, model, guess; loss = log_loss, kT = 0.026, autodiff = true, verbose = false, kw...)
-  Vs = overpotential(model, k, guess; loss, verbose, autodiff, kT, kw...)
+  Vs = overpotential(k, model, guess; loss, verbose, autodiff, kT, kw...)
   function back(vs)
     gs = Zygote.jacobian(vs) do V
       Zygote.forwarddiff(V) do V
@@ -83,10 +82,6 @@ Zygote.@adjoint function overpotential(k, model, guess; loss = log_loss, kT = 0.
 end
 
 # basically the gradient of overpotential should just be the inverse of the gradient of the forward solve at that point, i.e. if rate_constant(V, model) ==k then overpotential(model, k)==V , so we don’t need to diff through the actual solve in overpotential because the gradient should just be the inverse of the gradient of rate_constant at V
-
-
-# multiple models, one k value (used in thermo example)
-overpotential(k::Real, models::Vector{<:KineticModel}, guess=fill(0.1, length(k)); kwargs...) = overpotential.(Ref(k), models, Ref(guess); kwargs...)
 
 fitting_params(t::Type{<:KineticModel}) = fieldnames(t)
 fitting_params(::Type{MarcusHushChidsey}) = (:A, :λ)

@@ -20,7 +20,7 @@ abstract type KineticModel end
 
 # return a new one with a scaled prefactor
 import Base.*
-function *(c::Real, km::KineticModel)
+function *(c, km::KineticModel)
     new_A = c*km.A
     other_params = getfield.([km], propertynames(km))[2:end]
     typeof(km)(new_A, other_params...)

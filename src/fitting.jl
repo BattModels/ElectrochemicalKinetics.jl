@@ -43,7 +43,7 @@ function overpotential(k::Real, model::KineticModel, guess = fill(0.1, length(mo
                         loss(k, rate_constant.(V, model; kT = kT, kwargs...)) |> sum
                     end
                 end[1]
-                J .= gs'
+                J .= diagm(gs)
             else
                 # println("branch 3")
                 y, back = Zygote.pullback(V) do V
@@ -52,7 +52,7 @@ function overpotential(k::Real, model::KineticModel, guess = fill(0.1, length(mo
                     end
                 end
                 F .= y
-                J .= back(one.(y))[1]'
+                J .= diagm(back(one.(y))[1])
             end
         end
         Vs = nlsolve(only_fj!(myfun!), guess, show_trace=verbose, store_trace = true, extended_trace=true)

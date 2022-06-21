@@ -34,10 +34,8 @@ function overpotential(k::Real, model::KineticModel, guess = fill(0.1, length(mo
     Vs = if autodiff
         function myfun!(F, J, V)
             if isnothing(J)
-                # println("branch 1")
                 F .= loss(k, rate_constant.(V, model; kT = kT, kwargs...))
             elseif isnothing(F) && !isnothing(J)
-                # println("branch 2")
                 gs = Zygote.gradient(V) do V
                     Zygote.forwarddiff(V) do V
                         loss(k, rate_constant.(V, model; kT = kT, kwargs...)) |> sum
@@ -45,7 +43,6 @@ function overpotential(k::Real, model::KineticModel, guess = fill(0.1, length(mo
                 end[1]
                 J .= diagm(gs)
             else
-                # println("branch 3")
                 y, back = Zygote.pullback(V) do V
                     Zygote.forwarddiff(V) do V
                         loss(k, rate_constant.(V, model; kT = kT, kwargs...))
@@ -56,29 +53,6 @@ function overpotential(k::Real, model::KineticModel, guess = fill(0.1, length(mo
             end
         end
         Vs = nlsolve(only_fj!(myfun!), guess, show_trace=verbose, store_trace = true, extended_trace=true)
-        # function f!(F, V)
-        #     F .= loss(k, rate_constant.(V, model; kT = kT, kwargs...))
-        # end
-        # function j!(J, V)
-        #     gs = Zygote.gradient(V) do V
-        #         Zygote.forwarddiff(V) do V
-        #             loss(k, rate_constant.(V, model; kT = kT, kwargs...)) |> sum
-        #         end
-        #     end[1]
-        #     J .= gs'
-        # end
-        # function fj!(F, J, V)
-        #     y, back = Zygote.pullback(V) do V
-        #         Zygote.forwarddiff(V) do V
-        #             loss(k, rate_constant.(V, model; kT = kT, kwargs...))
-        #         end
-        #     end
-        #     F .= y
-        #     J .= back(one.(y))[1]'
-        # end
-        # init_F = loss(k, rate_constant.(guess, model; kT = kT, kwargs...))
-        # df = OnceDifferentiable(f!, j!, fj!, guess, init_F)
-        # Vs = nlsolve(df, guess, show_trace=verbose)
     else
         Vs = nlsolve(compare_k!, guess, show_trace=verbose, store_trace=true, extended_trace=true)
     end

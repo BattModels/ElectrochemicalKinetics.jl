@@ -21,17 +21,18 @@ g_thermo(x; Ω=Ω_default, muoA=muoA_default, muoB=muoB_default, T=room_T) = @. 
 """
 µ and g with kinetic constributions, can be modeled using any <:KineticModel object
 """
-function µ_kinetic(x, I, km::KineticModel; intercalate=true, Ω=Ω_default, muoA=muoA_default, muoB=muoB_default, T=room_T)
+function µ_kinetic(x, I, km::KineticModel; intercalate=true, kwargs...)
     prefactor(x) = intercalate ? (1 .- x) : x
-    return μ_thermo(x; Ω=Ω, muoA=muoA, muoB=muoB, T=T) .+ overpotential(I, prefactor(x).*Ref(km))
+    return μ_thermo(x; kwargs...) .+ overpotential(I, prefactor(x) * km)
 end
 
 # TODO: test cases of vector/scalar x/I
-function g_kinetic(x, I, km::KineticModel; intercalate=true, Ω=Ω_default, muoA=muoA_default, muoB=muoB_default, T=room_T)
+# TODO: make notation here consistent (µ_kinetic includes thermo and kinetic, this currently only includes kinetic...)
+function g_kinetic(x, I, km::KineticModel; intercalate=true, kwargs...)
     prefactor(x) = intercalate ? (1 .- x) : x
     # g(x) = thermo_term(x) .+ kinetic_term(vec(x))
     # g(x::Real) = thermo_term(x) + kinetic_term(x)[1]
-    f(x) = ElectrochemicalKinetics.overpotential(I, prefactor(x) * km)
+    f(x) = ElectrochemicalKinetics.overpotential(I, km, prefactor(x); kwargs...)
     n, w = ElectrochemicalKinetics.scale(zero.(x), x) # nodes and weights
     # return g_thermo(x; Ω=Ω, muoA=muoA, muoB=muoB, T=T) .+ map((w, n) -> sum(w .* f(n)), eachcol(w), eachcol(n))
     return map((w, n) -> sum(w .* f(n)), eachcol(w), eachcol(n)) # just kinetic part for now

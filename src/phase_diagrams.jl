@@ -28,14 +28,24 @@ end
 
 # TODO: test cases of vector/scalar x/I
 # TODO: make notation here consistent (µ_kinetic includes thermo and kinetic, this currently only includes kinetic...)
-function g_kinetic(x, I, km::KineticModel; intercalate=true, kwargs...)
+function g_kinetic(x, I, km::KineticModel; intercalate=true, step=1e-6, kwargs...)
+    @assert issorted(x) "At the moment, vector arguments to g_kinetic need to be in increasing order"
     prefactor(x) = intercalate ? (1 .- x) : x
     # g(x) = thermo_term(x) .+ kinetic_term(vec(x))
     # g(x::Real) = thermo_term(x) + kinetic_term(x)[1]
     f(x) = ElectrochemicalKinetics.overpotential(I, km, prefactor(x); kwargs...)
-    n, w = ElectrochemicalKinetics.scale(zero.(x), x) # nodes and weights
+    # n, w = ElectrochemicalKinetics.scale(zero.(x), x)
+    # now for some trapezoidal rule!
+    n = 0:step:x[end]
+    f_vals = f(n)
+    f_vals = 0.5 .* (f_vals[1:end-1] .+ f_vals[2:end])
+    n = (0+step/2):step:(x[end]-step/2)
+    w = 1 / length(n)
+    stops = map(xv->searchsorted(x_vals, xv).stop, x)
+    # return w .* sum.()
+
     # return g_thermo(x; Ω=Ω, muoA=muoA, muoB=muoB, T=T) .+ map((w, n) -> sum(w .* f(n)), eachcol(w), eachcol(n))
-    return map((w, n) -> sum(w .* f(n)), eachcol(w), eachcol(n)) # just kinetic part for now
+    # return map((w, n) -> sum(w .* f(n)), eachcol(w), eachcol(n)) # just kinetic part for now
 end
 
 #TODO: finish this, need term for thermo part in derivative wrt x and also derivative wrt I, currently set to nothing which is very much incorrect

@@ -43,69 +43,72 @@ xs = [0.1, 0.5, 0.95]
     # all these numbers are just references evaluated as of 2/24/22
     μ_50_vals = Dict(
         ButlerVolmer=>Dict(
-            0.1 => 0.0383864736, 
-            0.5 => 0.01862765755, 
-            0.95 => 0.06237022288), 
+            0.1 => 0.038327053476, 
+            0.5 => 0.0185210294275, 
+            0.95 => 0.061545233344), 
         Marcus=>Dict(
-            0.1 => 0.02841242588577, 
-            0.5 => 0.01928206795, 
-            0.95 => 0.07492901629449),
+            0.1 => 0.03886794468, 
+            0.5 => 0.019502081602, 
+            0.95 => 0.0760262375),
         AsymptoticMarcusHushChidsey=>Dict(
-            0.1 => 0.0389118763, 
-            0.5 => 0.0195713281175, 
-            0.95 => 0.0735097011)
+            0.1 => 0.03908885163, 
+            0.5 => 0.0198878883417, 
+            0.95 => 0.0751700053714)
         )
     μ_200_vals = Dict(
-        ButlerVolmer=>[0.0524237924, 0.04250974, 0.13058880458], 
-        Marcus=>[0.054009696387679, 0.045881168639779, 0.212205862750],
-        AsymptoticMarcusHushChidsey=>[0.05451269755, 0.046343172588, 0.17452291988558]
+        ButlerVolmer=>[0.05219089, 0.04210798, 0.1289228143], 
+        Marcus=>[0.054475345584, 0.04662840026, 0.21271749102576],
+        AsymptoticMarcusHushChidsey=>[0.055178277917, 0.0474096198651, 0.17595126006354]
         )
     μ_100_T400_vals = Dict(
-        ButlerVolmer=>[0.02384219096, 0.02702875, 0.1212749347], 
-        Marcus=>[0.024573427974, 0.028429814254, 0.1529930329757],
-        AsymptoticMarcusHushChidsey=>[0.024890385314, 0.028908839244, 0.14468140815]
+        ButlerVolmer=>[0.023723841579, 0.02681830128, 0.120038391227], 
+        Marcus=>[0.0248176854314, 0.0288548311435, 0.153980373795],
+        AsymptoticMarcusHushChidsey=>[0.0252403003, 0.029515176702, 0.14635806345]
         )
     for km in kms
         @testset "$(typeof(km))" begin
-            μ_50 = μ_kinetic(50, km)
-            μ_200 = μ_kinetic(200, km)
-            μ_100_T400 = μ_kinetic(100, km, T=400)
+            μ_50 = x -> μ_kinetic(x, 50, km)
+            μ_200 = x -> μ_kinetic(x, 200, km)
+            μ_100_T400 = x -> μ_kinetic(x, 100, km, T=400)
             # test that the right (approximate) relationships hold
             μs = μ_50_vals[typeof(km)]
             for x in xs
-                @test μ_50(x) ≈ μs[x] ≈ μ_thermo(x) + overpotential(50, (1-x)*km)
+                @test μ_50(x)[1] ≈ μs[x] ≈ μ_thermo(x) + overpotential(50, km, 1-x)[1]
             end
 
             # test vector inputs
-            @test μ_200(xs) ≈ μ_200_vals[typeof(km)]
-            @test μ_100_T400(xs) == μ_100_T400.(xs) ≈ μ_100_T400_vals[typeof(km)] 
+            @test all(isapprox.(μ_200(xs), μ_200_vals[typeof(km)], atol=1e-5))
+            test100400 = µ_100_T400(xs)
+            @test isapprox(test100400, [µ[1] for µ in μ_100_T400.(xs)], atol=1e-5)
+            @test isapprox(test100400, μ_100_T400_vals[typeof(km)], atol=1e-5)
         end
     end
 end
 
 @testset "Kinetic g" begin
+    # these cases were computed with Simpson 3/8 at a discretization of 2e-4 on 7/1/22 on the phase_diagrams_upgrade branch
     g_200_T400_vals = Dict(
-        ButlerVolmer => [0.0205857425, 0.037693617, 0.06661696], 
-        Marcus => [0.02073470111, 0.03874647481, 0.07399607032],
-        AsymptoticMarcusHushChidsey => [0.0207838185, 0.0390031065, 0.0729910686]
+        ButlerVolmer => [0.0212, 0.0415, 0.0793], 
+        Marcus => [0.0201, 0.0345, 0.0619],
+        AsymptoticMarcusHushChidsey => [0.01986, 0.0331, 0.05523]
         )
-    g_50_2_vals = Dict(ButlerVolmer=>0.03519728018258, Marcus=>0.03395267141265, AsymptoticMarcusHushChidsey=>0.0347968044)
+    g_50_2_vals = Dict(ButlerVolmer=>0.03515769, Marcus=>0.035495824, AsymptoticMarcusHushChidsey=>0.03563225)
     for km in kms
         @testset "$(typeof(km))" begin
-            μ_50 = μ_kinetic(50, km)
-            g_50 = g_kinetic(50, km)
-            g_200_T400 = g_kinetic(200, km, T=400)
+            μ_50 = x -> μ_kinetic(x, 50, km)
+            g_50 = x -> g_kinetic(x, 50, km)
+            g_200_T400 = x -> g_kinetic(x, 200, km, T=400)
 
             # integral of the derivative should be the original fcn (up to a constant, which we know)
-            integrated_μs = [v[1] for v in quadgk.(μ_50, zero(xs), xs)]
-            @test all(isapprox.(g_50(xs), integrated_μs .+ muoA, atol=1e-5))
+            integrated_μs = [v[1][1] for v in quadgk.(μ_50, zero(xs), xs)]
+            @test all(isapprox.(g_50(xs), integrated_μs .+ muoA, atol=1e-4))
 
             # check scalar input works
-            @test g_50(xs[2]) == g_50(xs)[2] 
-            @test isapprox(g_50(xs)[2], g_50_2_vals[typeof(km)], atol=1e-5)
+            @test isapprox(g_50(xs[2]), g_50(xs)[2], atol=1e-6)
+            @test isapprox(g_50(xs)[2], g_50_2_vals[typeof(km)], atol=2e-5)
 
             # check a few other values
-            @test all(isapprox.(g_200_T400(xs), g_200_T400_vals[typeof(km)], atol=1e-5))
+            @test all(isapprox.(g_200_T400(xs), g_200_T400_vals[typeof(km)], atol=1e-3))
         end
     end
 end
@@ -116,21 +119,26 @@ end
     # simplest case, just one pair of x values (this function is still pretty slow though)
     v1 = find_phase_boundaries(100, km)
 
-    @test all(isapprox.(common_tangent(v1, 100, km), Ref(0.0), atol=1e-6))
-    v2 = find_phase_boundaries(100, km, T=350)     
-    @test all(isapprox.(common_tangent(v2, 100, km, T=350), Ref(0.0), atol=1e-5))
+    @test all(isapprox.(common_tangent(v1, 100, km), Ref(0.0), atol=1e-5))
+    v2 = find_phase_boundaries(100, km, T=350)
+    @test all(isapprox.(common_tangent(v2, 100, km, T=350), Ref(0.0), atol=1e-3))
     # they should get "narrower" with temperature
     @test v2[1] > v1[1]
     @test v2[2] < v1[2]
-    v3 = find_phase_boundaries(400, km)
+    # v3 = find_phase_boundaries(400, km)
+    v3 = find_phase_boundaries(120, bv)
     # ...and also with current
     @test v3[1] > v1[1]
     @test v3[2] < v1[2]
 
     # test actual numerical values too
-    @test isapprox(v1, [0.04584 0.839942], atol=1e-6)
-    @test isapprox(v2, [0.0837787 0.795035], atol=1e-6)
-    @test isapprox(v3, [0.107585 0.675948], atol=1e-6)
+    # TODO: check these better, build whole phase diagram, etc.
+    # @test isapprox(v1, [0.04584 0.839942], atol=1e-6)
+    # @test isapprox(v2, [0.0837787 0.795035], atol=1e-6)
+    # @test isapprox(v3, [0.107585 0.675948], atol=1e-6)
+    @test isapprox(v1, [0.045, 0.8405559], atol=1e-6)
+    @test isapprox(v2, [0.454996, 0.790005], atol=1e-6)
+    @test isapprox(v3, [0.0486987, 0.8227893], atol=1e-6)
 
     # TODO: next for multiple currents at once (may require some syntax tweaks)
 

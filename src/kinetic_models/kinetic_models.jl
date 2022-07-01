@@ -5,11 +5,11 @@ using Interpolations
 using DelimitedFiles
 
 """
-    fermi_dirac(E, kT=0.026)
+    fermi_dirac(E, T=298)
 
-Compute the value of the Fermi-Dirac distribution at energy `E` (relative to the Fermi energy) and thermal energy `kT`.
+Compute the value of the Fermi-Dirac distribution at energy `E` (relative to the Fermi energy) and temperature `T`.
 """
-fermi_dirac(E; kT = 0.026) = inv.(1 .+ exp.(E ./ kT))
+fermi_dirac(E; T=298) = inv.(1 .+ exp.(E ./ (kB * T)))
 
 """
     KineticModel
@@ -54,9 +54,9 @@ function Base.getindex(km::KineticModel, i)
     for prop in propertynames(km)
         val = getproperty(km, prop)
         if length(val) == 1
-            append!(props, val)
+            push!(props, val)
         else
-            append!(props, val[i])
+            push!(props, val[i])
         end
     end
     return typeof(km)(props...)
@@ -100,7 +100,7 @@ abstract type IntegralModel <: KineticModel end
 # integrand(km::IntegralModel, V_dl, ox::Bool; kwargs...) =
 #     error("An integral-based kinetic model must dispatch the `integrand` function!")
 
-# TODO: check that this passes through both kT and V_q appropriately
+# TODO: check that this passes through both T and V_q appropriately
 # dispatch for net rates
 integrand(km::IntegralModel, V; kwargs...) =
     E -> integrand(km, V, Val(true); kwargs...)(E) .- integrand(km, V, Val(false); kwargs...)(E)
@@ -117,8 +117,8 @@ If the model is an `IntegralModel`, integration bounds `E_min` and `E_max` may b
 
 If calc_cq flag is passed, optionally compute voltage shifts due to quantum capacitance (only applicable to `MarcusHushChidseyDOS` models).
 """
-function rate_constant(V_app, km::NonIntegralModel, ox::Val; kT = 0.026)
-    res = rate_f(km).(Iterators.product(V_app, iterate_props(km)), Ref(ox); kT=kT)
+function rate_constant(V_app, km::NonIntegralModel, ox::Val; T = 298)
+    res = rate_f(km).(Iterators.product(V_app, iterate_props(km)), Ref(ox); T=T)
     if size(res) == (1,)
         return res[1]
     else
@@ -141,12 +141,12 @@ function rate_constant(
     V_app,
     model::IntegralModel,
     args...; # would just be the ox flag, if present
-    kT = 0.026,
-    E_min = -100 * kT,
-    E_max = 100 * kT
+    T = 298,
+    E_min = -100 * kB * T,
+    E_max = 100 * kB * T
 )
     n, w = scale(E_min, E_max)
-    f = integrand(model, V_app, args...; kT = kT)
+    f = integrand(model, V_app, args...; T=T)
     res = sum(w .* f.(n))
     if size(res) == (1,)
         return res[1]

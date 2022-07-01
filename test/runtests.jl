@@ -4,7 +4,7 @@ using Test
 
 function test_vector_voltages(model, voltages)
     @test isapprox(rate_constant(voltages, model), rate_constant.(voltages, Ref(model)))
-    @test isapprox(rate_constant(voltages, model, kT=0.1), rate_constant.(voltages, Ref(model), kT=0.1))
+    @test isapprox(rate_constant(voltages, model, T=1000), rate_constant.(voltages, Ref(model), T=1000))
 end
 
 function test_vector_models(ModelType, params)
@@ -20,9 +20,9 @@ function test_vector_models(ModelType, params)
         end
     end
     @test isapprox(rate_constant(0.1, model1), rate_constant.(Ref(0.1), ModelType.(broadcast_params[2:end]...)))
-    @test isapprox(rate_constant(0.1, model1, kT=0.1), rate_constant.(Ref(0.1), ModelType.(broadcast_params[2:end]...), kT=0.1))
+    @test isapprox(rate_constant(0.1, model1, T=1000), rate_constant.(Ref(0.1), ModelType.(broadcast_params[2:end]...), T=1000))
     @test isapprox(rate_constant(0.1, model2), rate_constant.(Ref(0.1), ModelType.(broadcast_params...)))
-    @test isapprox(rate_constant(0.1, model2, kT=0.1), rate_constant.(Ref(0.1), ModelType.(broadcast_params...), kT=0.1))
+    @test isapprox(rate_constant(0.1, model2, T=1000), rate_constant.(Ref(0.1), ModelType.(broadcast_params...), T=1000))
 end
 
 function test_vector_both(ModelType, params, voltages)

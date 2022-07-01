@@ -1,3 +1,5 @@
+# TODO: add tests for negative overpotentials
+
 @testset "Overpotential Fitting" begin
     params = Dict(ButlerVolmer=>[], Marcus=>[0.25], AsymptoticMarcusHushChidsey=>[0.25], MarcusHushChidsey=>[0.25])
     for model_type in [ButlerVolmer] #, Marcus, AsymptoticMarcusHushChidsey, MarcusHushChidsey]
@@ -14,11 +16,7 @@
             # test that vectorized fitting works...first for one model and multiple k's
             # this test is turned off for now because better adjoint of overpotential currently doesn't work with it...
             # @test isapprox(overpotential(m, [k1, k2]), [V1, V2], atol=5e-4)
-            # TODO: figure out sensible and consistent way to vectorize over k and/or V (e.g. use a matrix?)
-            # now test for one k and multiple models
-            @test isapprox(overpotential(k1, [m, m]), [V1, V1], atol=5e-4)
-            # make sure that both fails since indexing would be ambiguous
-            @test_throws MethodError overpotential([k1, k2], [m, m])
+            # TODO: add tests for vector model case
         end
     end
     # for now, writing these separately to test different input DOSes
@@ -38,8 +36,6 @@
             V2 = 0.15
             k2 = rate_constant(V2, m)
             @test isapprox(overpotential(k2, m)[1], V2, atol=1e-5)
-            # this one is disabled for now for same reason as above
-            # @test isapprox(overpotential([k1, k2], m), [V1, V2], atol=5e-4)
         end
     end
 end

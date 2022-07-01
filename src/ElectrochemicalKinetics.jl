@@ -1,5 +1,7 @@
 module ElectrochemicalKinetics
 
+const kB = 8.617e-5
+
 include("utils/dos.jl")
 export DOS
 using .DOS: DOSData, get_dos

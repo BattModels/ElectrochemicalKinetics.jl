@@ -19,7 +19,7 @@ end
 ButlerVolmer() = ButlerVolmer(1.0, 0.5)
 ButlerVolmer(α) = ButlerVolmer(1.0, α)
 
-bv_f((V, ps), ::Val{true}; kT = 0.026) = ps[1] .* exp.((ps[2] .* V) / kT)
-bv_f((V, ps), ::Val{false}; kT = 0.026) = ps[1] .* exp.(-((1 .- ps[2]) .* V) / kT)
+bv_f((V, ps), ::Val{true}; T=298) = ps[1] .* exp.((ps[2] .* V) / (kB*T))
+bv_f((V, ps), ::Val{false}; T = 298) = ps[1] .* exp.(-((1 .- ps[2]) .* V) / (kB*T))
 
 rate_f(::ButlerVolmer) = bv_f

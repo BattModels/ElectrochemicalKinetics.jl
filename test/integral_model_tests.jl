@@ -7,17 +7,17 @@
         @testset "Scalars" begin
             # test some values
             @test rate_constant(0, mhc) == 0.0
-            @test rate_constant(0, mhc, true) == rate_constant(0, mhc, false) ≈ 0.0061371322
-            @test isapprox(rate_constant(0.1, mhc), 0.031239978, atol=1e-6)
+            @test rate_constant(0, mhc, true) == rate_constant(0, mhc, false) ≈ 0.005891990578
+            @test isapprox(rate_constant(0.1, mhc), 0.0306227, atol=1e-6)
             
             # test net rates and symmetry
             @test isapprox(rate_constant(0.1, mhc, true) - rate_constant(0.1, mhc, false), rate_constant(0.1, mhc), atol=1e-6)
-            @test rate_constant(-0.1, mhc) == rate_constant(0.1, mhc)
+            @test rate_constant(-0.1, mhc) == -rate_constant(0.1, mhc)
         end
 
         @testset "Vector Voltages" begin
             test_vector_voltages(mhc, Vs)
-            @test isapprox(mhc(Vs), mhc(-Vs)) #symmetry
+            @test isapprox(mhc(Vs), -mhc(-Vs)) #symmetry
             # test that it's close to asymptotic version...arguably this should perhaps be in the AMHC tests
             amhc = AsymptoticMarcusHushChidsey(0.25)
             @test all(isapprox.(rate_constant(Vs, mhc), rate_constant(Vs, amhc), atol=2e-4))
@@ -52,11 +52,11 @@
         dos = hcat(Es, gaussian.(0.7 .*(Es .- 2)) .+ gaussian.(0.7 .*(Es .+ 2)))
         mhcd = MarcusHushChidseyDOS(0.25, dos)
         # this should be symmetric
-        @test all(isapprox.(rate_constant(Vs, mhcd), rate_constant(-Vs, mhcd), atol=1e-6))
+        @test all(isapprox.(rate_constant(Vs, mhcd), -rate_constant(-Vs, mhcd), atol=1e-6))
         # now try an asymmetric one
         dos = hcat(Es .+ 1, dos[:,2])
         mhcd = MarcusHushChidseyDOS(0.25, dos)
-        @test all(rate_constant(-Vs, mhcd) .> rate_constant(Vs, mhcd))
+        @test all(-rate_constant(-Vs, mhcd) .> rate_constant(Vs, mhcd))
 
         params = [[2, 20], [0.05, 0.1], DOSData(dos)]
         test_vector_models(MarcusHushChidseyDOS, params)

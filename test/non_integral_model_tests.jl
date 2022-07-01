@@ -14,17 +14,17 @@
 
             # oxidative
             for bv in [bv1, bv2, bv3]
-                @test bv(.026/bv.α, true) ≈ bv.A * ℯ
+                @test bv(kB*298/bv.α, true) ≈ bv.A * ℯ
             end
 
             # reductive
             for bv in [bv1, bv2, bv3]
-                @test bv(-.026/(1-bv.α), false) ≈ bv.A * ℯ
+                @test bv(-kB*298/(1-bv.α), false) ≈ bv.A * ℯ
             end
 
             # net
             for bv in [bv1, bv2, bv3]
-                @test bv(.026/bv.α) ≈ bv.A * (ℯ - exp((bv.α-1)/bv.α))
+                @test bv(kB*298/bv.α) ≈ bv.A * (ℯ - exp((bv.α-1)/bv.α))
             end
         end
 
@@ -34,7 +34,7 @@
                 test_vector_voltages(bv2, Vs)
                 test_vector_voltages(bv3, Vs)
                 for model in [bv1, bv2] # bv3 won't be symmetrical
-                    @test isapprox(model(Vs), model(-Vs)) #symmetry
+                    @test isapprox(model(Vs), -model(-Vs)) #symmetry
                 end
             end
             A_vals = [0.5, 2.0]
@@ -59,10 +59,10 @@
         @testset "Scalars" begin
             # TODO: this could all be more thorough, I literally just picked some arbitrary points
             @test m1(0.0) == 0.0
-            @test isapprox(m1(0.05, true), 0.031381, atol=1e-6)
-            @test isapprox(m1(0.2, false), 0.908324, atol=1e-6)
-            @test isapprox(m1(0.13), 0.570862, atol=1e-6)
-            @test isapprox(m2(0.13), 5.708625, atol=1e-6)
+            @test isapprox(m1(0.05, false), 0.0300511, atol=1e-6)
+            @test isapprox(m1(0.2, true), 0.90723197, atol=1e-6)
+            @test isapprox(m1(0.13), 0.5671529, atol=1e-6)
+            @test isapprox(m2(0.13), 5.671529, atol=1e-6)
         end
 
         @testset "Vectors" begin
@@ -71,7 +71,7 @@
                 test_vector_voltages(m2, Vs)
                 for model in [m1, m2]
                     #symmetry
-                    @test isapprox(model(Vs), model(-Vs)) 
+                    @test isapprox(model(Vs), -model(-Vs)) 
                 end
             end
             A_vals = [1, 100, 10000]
@@ -89,14 +89,14 @@
         amhc = AsymptoticMarcusHushChidsey(0.25)
         @testset "Scalars" begin
             @test amhc(0.0) == 0.0
-            @test amhc(0.0, true) == amhc(0.0, false) ≈ 0.00596440064
-            @test amhc(0.2) == amhc(-0.2) ≈ 0.1006330238
-            @test amhc(0.2, kT=.015) ≈ 0.06360960459
-            @test amhc(0.2, kT=.03) ≈ 0.11255129857   
+            @test amhc(0.0, true) == amhc(0.0, false) ≈ 0.0057342145
+            @test amhc(0.2) == -amhc(-0.2) ≈ 0.09964439759
+            @test amhc(0.2, T=175) ≈ 0.063907157
+            @test amhc(0.2, T=350) ≈ 0.113011956647 
         end
         @testset "Vector Voltages" begin
             test_vector_voltages(amhc, Vs)
-            @test isapprox(amhc(Vs), amhc(-Vs)) #symmetry
+            @test isapprox(amhc(Vs), -amhc(-Vs)) #symmetry
         end
         A_vals = [1, 100, 10000]
         λ_vals = [0.1, 0.3, 0.7]

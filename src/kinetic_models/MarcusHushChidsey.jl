@@ -25,9 +25,10 @@ MarcusHushChidsey(A, λ, dos_file::Union{Matrix,String}; kwargs...) =
     MarcusHushChidsey(A, λ, DOSData(dos_file; kwargs...))
 
 # TODO: Check that both this and +DOS versions still match original paper
-function integrand(mhc::MarcusHushChidsey, V_dl, ox::Val; kT::Real = 0.026)
-    mhc_f((E, V, ps), ::Val{true}) = ps[1] * exp.(-((E .- ps[2] .+ V) .^ 2) ./ (4 .* ps[2] .* kT)) * fermi_dirac(E; kT=kT)
-    mhc_f((E, V, ps), ::Val{false}) = ps[1] * exp.(-((E .- ps[2] .- V) .^2) ./ (4 .* ps[2] .* kT)) * fermi_dirac(E; kT=kT)
+function integrand(mhc::MarcusHushChidsey, V_dl, ox::Val; T::Real=298)
+    kT = kB * T
+    mhc_f((E, V, ps), ::Val{true}) = ps[1] * exp.(-((E .- ps[2] .+ V) .^ 2) ./ (4 .* ps[2] .* kT)) * fermi_dirac(E; T=T)
+    mhc_f((E, V, ps), ::Val{false}) = ps[1] * exp.(-((E .- ps[2] .- V) .^2) ./ (4 .* ps[2] .* kT)) * fermi_dirac(E; T=T)
     pref = mhc.A .* mhc.average_dos
     # TODO: decide if this ordering makes sense (possibly flip model params and V?)
     f(E) = mhc_f.(Iterators.product(E, V_dl, iterate_props(mhc)), Ref(ox))

@@ -3,6 +3,7 @@ module DOS
 using Interpolations
 using DelimitedFiles
 using Statistics
+import Base: length
 # using Zygote
 
 export DOSData, get_dos

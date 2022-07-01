@@ -32,22 +32,22 @@ MarcusHushChidseyDOS(A, λ, dos_file::Union{Matrix,String}; kwargs...) =
 MarcusHushChidseyDOS(λ, dos_file::Union{Matrix,String}; kwargs...) = MarcusHushChidseyDOS(1.0, λ, DOSData(dos_file; kwargs...))
 
 # TODO: make one version of this for the whole package, currently there are some sign convention differences between this and the MHC version 
-marcus_term_ox(V, E, λ, kT) = exp.(-(( (λ .- V) .+ E) .^ 2) ./ (4 * λ * kT))
-marcus_term_red(V, E, λ, kT) = exp.(-(( (λ .+ V) .- E) .^ 2) ./ (4 * λ * kT))
+marcus_term_ox(V, E, λ, T) = exp.(-(( (λ .- V) .+ E) .^ 2) ./ (4 * λ * kB * T))
+marcus_term_red(V, E, λ, T) = exp.(-(( (λ .+ V) .- E) .^ 2) ./ (4 * λ * kB * T))
 
 # Fermi-Dirac function or the complement thereof
-fd_ox(E, kT) = 1 .- fermi_dirac(E; kT = kT)
-fd_red(E, kT) = fermi_dirac(E; kT = kT)
+fd_ox(E, T) = 1 .- fermi_dirac(E; T = T)
+fd_red(E, T) = fermi_dirac(E; T = T)
 
 function integrand(
     mhcd::MarcusHushChidseyDOS,
     V_dl,
     ox::Val;
-    kT = 0.026,
+    T = 298,
     V_q = 0.0,
 )
-    mhcd_f((E, V, ps), ::Val{true}) = ps[1] * mhcd.dos.interp_func(E + V_q) * fd_ox(E, kT) * marcus_term_ox(V, E, ps[2], kT)
-    mhcd_f((E, V, ps), ::Val{false}) = ps[1] * mhcd.dos.interp_func(E + V_q) * fd_red(E, kT) * marcus_term_red(V, E, ps[2], kT)
+    mhcd_f((E, V, ps), ::Val{true}) = ps[1] * mhcd.dos.interp_func(E + V_q) * fd_ox(E, T) * marcus_term_ox(V, E, ps[2], T)
+    mhcd_f((E, V, ps), ::Val{false}) = ps[1] * mhcd.dos.interp_func(E + V_q) * fd_red(E, T) * marcus_term_red(V, E, ps[2], T)
 
     f(E) = mhcd_f.(Iterators.product(E, V_dl, iterate_props(mhcd, exclude_props = [:dos])), Ref(ox))
 end
@@ -56,7 +56,7 @@ function rate_constant(
     V_app,
     model::MarcusHushChidseyDOS,
     args...;
-    kT = 0.026,
+    T = 298,
     E_min = model.dos.E_min,
     E_max = model.dos.E_max,
     calc_cq::Bool = false,
@@ -73,13 +73,13 @@ function rate_constant(
             C_dl = C_dl,
             Vq_min = Vq_min,
             Vq_max = Vq_max,
-            kT = kT,
+            T = T,
             E_min = min(E_min, E_min-Vq_min),
             E_max = max(E_max, E_max-Vq_max),
         )
     else
         n, w = scale(E_min, E_max)
-        f = integrand(model, V_app, args...; kT = kT)
+        f = integrand(model, V_app, args...; T = T)
         res = sum(w .* f.(n))
     end
 
@@ -103,7 +103,7 @@ function rate_constant_cq(
     C_dl = 10.0,
     Vq_min = -0.5,
     Vq_max = 0.5,
-    kT = 0.026,
+    T = 298,
     E_min = model.dos.E_min,
     E_max = model.dos.E_max,
 )
@@ -111,7 +111,7 @@ function rate_constant_cq(
     V_dl = V_dl_interp(V_app)
     V_q = V_app - V_dl
     n, w = scale(E_min, E_max)
-    f = integrand(model, V_dl, ox; kT = kT, V_q = V_q)
+    f = integrand(model, V_dl, ox; T = T, V_q = V_q)
     sum(w .* f.(n))
 end
 
@@ -122,7 +122,7 @@ function rate_constant_cq(
     C_dl = 10.0,
     Vq_min = -0.5,
     Vq_max = 0.5,
-    kT = 0.026,
+    T = 298,
     E_min = model.dos.E_min,
     E_max = model.dos.E_max,
 )
@@ -130,6 +130,6 @@ function rate_constant_cq(
     V_dl = V_dl_interp(V_app)
     V_q = V_app - V_dl
     n, w = scale(E_min, E_max)
-    f = integrand(model, V_dl; kT = kT, V_q = V_q)
+    f = integrand(model, V_dl; T = T, V_q = V_q)
     sum(w .* f.(n))
 end

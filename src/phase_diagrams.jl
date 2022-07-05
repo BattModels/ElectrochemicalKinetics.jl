@@ -30,7 +30,7 @@ function g_kinetic(x, I, km::KineticModel; intercalate=true, stepsize=1e-3, kwar
     prefactor(x) = intercalate ? (1 .- x) : x
     # g(x) = thermo_term(x) .+ kinetic_term(vec(x))
     # g(x::Real) = thermo_term(x) + kinetic_term(x)[1]
-    f(x) = ElectrochemicalKinetics.overpotential(I, km, prefactor(x); kwargs...)
+    f(x) = overpotential(I, km, prefactor(x); kwargs...)
     # n, w = ElectrochemicalKinetics.scale(zero.(x), x)
     n = 0:stepsize:maximum(x)
     f_vals = f(n)
@@ -45,20 +45,20 @@ function g_kinetic(x, I, km::KineticModel; intercalate=true, stepsize=1e-3, kwar
 
     w = stepsize
     stops = map(xv->searchsorted(n, xv).stop, x)
-    kinetic_part = w .* map(x->sum(f_vals[1:x]), stops)
-    return g_thermo(x; kwargs...) + kinetic_part
+    return g_thermo(x; kwargs...) + w .* map(x->sum(f_vals[1:x]), stops)
     # return g_thermo(x; Ω=Ω, muoA=muoA, muoB=muoB, T=T) .+ map((w, n) -> sum(w .* f(n)), eachcol(w), eachcol(n))
     # return map((w, n) -> sum(w .* f(n)), eachcol(w), eachcol(n)) # just kinetic part for now
 end
 
-#TODO: finish this, need term for thermo part in derivative wrt x and also derivative wrt I, currently set to nothing which is very much incorrect
-# Zygote.@adjoint function g_kinetic(x, I, km::KineticModel; kwargs...)
-#     y, pb = Zygote.pullback(x -> g_kinetic(x, I, km::KineticModel; kwargs...), I) # I want "default" behavior wrt I
-#     y, function(D) # I don't understand what `D` represents above so I'm just copying it
-#         custom_grad = value_at_bound(x, I, km; kwargs...) # this is my Leibniz rule thing
-#         (custom_grad, pb(D), nothing) # x, I, km args give adjoints of custom, default, nothing
-#     end
-# end
+#TODO: finish/test this
+Zygote.@adjoint function g_kinetic(x, I, km::KineticModel; intercalate=true, stepsize=1e-3, kwargs...)
+    y, pb = Zygote.pullback(j -> g_kinetic(x, j, km; intercalate=intercalate, stepsize=stepsize, kwargs...), I) # "default" behavior wrt I
+    y, function(Δ)
+        prefactor(x) = intercalate ? (1 .- x) : x
+        custom_grad = overpotential(I, km, prefactor(x); kwargs...) # Leibniz rule
+        (Δ .* custom_grad, Δ .* pb(Δ), nothing)
+    end
+end
 
 # zeros of this function correspond to pairs of x's satisfying the common tangent condition for a given µ function
 # case where we just feed in two points (x should be of length two)

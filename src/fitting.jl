@@ -1,6 +1,6 @@
 using Zygote
 using Optim
-using NLsolve
+using NLSolvers
 using LinearAlgebra
 
 # sum of squares loss in logarithmic coordinates
@@ -26,41 +26,52 @@ Given values for current/rate constant and specified model parameters, find the 
 
 NB: currently only works with vector-parameter model and scalar mult or vice versa.
 """
-function overpotential(k::Real, model::KineticModel, mult=1; guess = fill(0.1, length(mult*model)), T = 298, loss = janky_log_loss, autodiff = true, verbose=false, kwargs...)
+function overpotential(k::Real, model::KineticModel, mult=1; guess = fill(sign(k)*0.1, length(mult*model)), T = 298, loss = janky_log_loss, autodiff = true, verbose=false, kwargs...)
     m = mult*model
-    function compare_k!(storage, V)
-        storage .= loss(k, rate_constant.(V, m; T = T, kwargs...))
-    end
 
-    Vs = if autodiff
-        function myfun!(F, J, V)
-            if isnothing(J)
-                F .= loss(k, rate_constant.(V, m; T = T, kwargs...))
-            elseif isnothing(F) && !isnothing(J)
-                gs = Zygote.gradient(V) do V
-                    Zygote.forwarddiff(V) do V
-                        loss(k, rate_constant.(V, m; T = T, kwargs...)) |> sum
-                    end
-                end[1]
-                J .= diagm(gs)
-            else
-                y, back = Zygote.pullback(V) do V
-                    Zygote.forwarddiff(V) do V
-                        loss(k, rate_constant.(V, m; T = T, kwargs...))
-                    end
-                end
-                F .= y
-                J .= diagm(back(one.(y))[1])
+    function f!(Fx, V)
+        Fx = loss(k, rate_constant.(V, m; T=T, kwargs...))
+    end
+    function jac!(J, V)
+        ∇f = Zygote.gradient(V) do V
+            Zygote.forwarddiff(V) do V
+                loss(k, rate_constant.(V, m; T = T, kwargs...)) |> sum
+            end
+        end[1]
+        J .= diagm(∇f)
+    end
+    function fjac!(f, ∇f, V)
+        y, back = Zygote.pullback(V) do V
+            Zygote.forwarddiff(V) do V
+                loss(k, rate_constant.(V, m; T = T, kwargs...))
             end
         end
-        Vs = nlsolve(only_fj!(myfun!), guess, show_trace=verbose)
-    else
-        Vs = nlsolve(compare_k!, guess, show_trace=verbose)
+        f, ∇f = y, diagm(back(one.(y))[1])
     end
-    if !converged(Vs)
-        @warn "Overpotential fit not fully converged...you may have fed in an unreachable reaction rate!"
+
+    function Jv!(x)
+        function JacV(Fv, v)
+            ∇f = Zygote.gradient(V) do V
+                Zygote.forwarddiff(V) do V
+                    loss(k, rate_constant.(V, m; T = T, kwargs...)) |> sum
+                end
+            end[1]
+            Fv = ∇f * v
+        end
+        LinearMap(JacV, length(x))
     end
-    Vs.zero
+    
+    vectorobj = NLSolvers.VectorObjective(f!, jac!, fjac!, Jv!)
+
+    optprob = NEqProblem(vectorobj)
+
+    Vs = solve(optprob, guess, TrustRegion(NLSolvers.Newton(), Dogleg()), NEqOptions())
+
+    # if !converged(Vs)
+    #     @warn "Overpotential fit not fully converged...you may have fed in an unreachable reaction rate!"
+    # end
+    # Vs.zero
+    Vs.info.solution
 end
 
 inv!(x) = x .= inv.(x)

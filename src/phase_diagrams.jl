@@ -64,35 +64,42 @@ end
 # case where we just feed in two points (x should be of length two)
 # probably don't actually need this separate version, keeping it here for sanity check for now
 function common_tangent(x::Vector, I, km::KineticModel; stepsize=5e-3, kwargs...)
-    g = g_kinetic(x, I, km; stepsize=stepsize, kwargs...)
-    µ = µ_kinetic(x, I, km; kwargs...)
+    @timeit to "common_tangent (vector)" begin
+    @timeit to "Δg" g = g_kinetic(x, I, km; stepsize=stepsize, kwargs...)
+    @timeit to "Δµ" µ = µ_kinetic(x, I, km; kwargs...)
     [(g[2] - g[1])/(x[2] - x[1]) - μ[1], μ[2]-μ[1]]
+    end
 end
 
 # case where we want to check many points at once (shape of x should be N x 2)
 # TODO: check that this works properly
 function common_tangent(x::Array, I, km::KineticModel; kwargs...)
+    @timeit to "common_tangent (array)" begin
     g(x) = g_kinetic(x, I, km; kwargs...)
     µ(x) = µ_kinetic(x, I, km; kwargs...)
-    Δg = g(x[:,2]) .- g(x[:,1])
+    @timeit to "Δg" Δg = g(x[:,2]) .- g(x[:,1])
     Δx = x[:,2] .- x[:,1]
+    @timeit to "Δµ" begin
     μ1 = μ(x[:,1])
     Δμ = μ(x[:,2]) .- μ1
+    end
     hcat(Δg ./ Δx .- μ1, Δμ)
+    end
 end
 
 # TODO: get vector I case working
 # also even scalar is super slow right now
-function find_phase_boundaries(I::Real, km::KineticModel; stepsize=5e-3, verbose=false, kwargs...)
-    
+function find_phase_boundaries(I::Real, km::KineticModel; stepsize=5e-3, verbose=false, guess=[0.05, 0.95], kwargs...)
+    @timeit to "find_phase_boundaries" begin
     function myct!(storage, x)
         res = common_tangent(x, I, km; stepsize=stepsize, kwargs...)
         storage[1] = res[1]
         storage[2] = res[2]
     end
     # TODO: grad! here from AD
-    x1 = nlsolve(myct!, [0.05, 0.95], show_trace=verbose)
+    x1 = nlsolve(myct!, guess, show_trace=verbose)
     x1.zero
+    end
 end
 
 function phase_diagram(km::KineticModel; kwargs...)

@@ -1,5 +1,8 @@
 module ElectrochemicalKinetics
 
+using TimerOutputs
+const to = TimerOutput()
+
 const kB = 8.617e-5
 
 include("utils/dos.jl")

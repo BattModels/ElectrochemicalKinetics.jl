@@ -27,29 +27,36 @@ Given values for current/rate constant and specified model parameters, find the 
 NB: currently only works with vector-parameter model and scalar mult or vice versa.
 """
 function overpotential(k::Real, model::KineticModel, mult=1; guess = fill(sign(k)*0.1, length(mult*model)), T = 298, loss = janky_log_loss, autodiff = true, verbose=false, kwargs...)
+    @timeit to "overpotential" begin
     m = mult*model
 
     function f!(Fx, V)
-        Fx = loss(k, rate_constant.(V, m; T=T, kwargs...))
+        @timeit to "f" Fx = loss(k, rate_constant.(V, m; T=T, kwargs...))
     end
     function jac!(J, V)
+        @timeit to "jac" begin
         ∇f = Zygote.gradient(V) do V
             Zygote.forwarddiff(V) do V
                 loss(k, rate_constant.(V, m; T = T, kwargs...)) |> sum
             end
         end[1]
         J .= diagm(∇f)
+        end
     end
     function fjac!(f, ∇f, V)
+        @timeit to "fjac" begin
+        # TODO: figure out how to do this with |>sum put back in, should hopefully speed things up
         y, back = Zygote.pullback(V) do V
             Zygote.forwarddiff(V) do V
                 loss(k, rate_constant.(V, m; T = T, kwargs...))
             end
         end
         f, ∇f = y, diagm(back(one.(y))[1])
+        end
     end
 
     function Jv!(x)
+        @timeit to "jv" begin
         function JacV(Fv, v)
             ∇f = Zygote.gradient(V) do V
                 Zygote.forwarddiff(V) do V
@@ -59,6 +66,7 @@ function overpotential(k::Real, model::KineticModel, mult=1; guess = fill(sign(k
             Fv = ∇f * v
         end
         LinearMap(JacV, length(x))
+        end
     end
     
     vectorobj = NLSolvers.VectorObjective(f!, jac!, fjac!, Jv!)
@@ -72,6 +80,7 @@ function overpotential(k::Real, model::KineticModel, mult=1; guess = fill(sign(k
     # end
     # Vs.zero
     Vs.info.solution
+    end
 end
 
 inv!(x) = x .= inv.(x)

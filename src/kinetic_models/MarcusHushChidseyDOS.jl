@@ -8,10 +8,14 @@ Computes Marcus-Hush-Chidsey + DOS kinetics as described in Kurchin and Viswanat
 
 NB: At the moment, this will allow for vector `A` and `λ` parameters, but will presume that all models correspond to the same DOS.
 """
-struct MarcusHushChidseyDOS <: IntegralModel
-    A
-    λ
+struct MarcusHushChidseyDOS{T} <: IntegralModel
+    A::T
+    λ::T
     dos::DOSData
+    function MarcusHushChidseyDOS(A, λ, dos)
+        ps = consistent_params(Float64.(A), Float64.(λ))
+        new{typeof(ps[1])}(ps..., dos)
+    end
 end
 
 function Base.show(io::IO, mhcd::MarcusHushChidseyDOS)

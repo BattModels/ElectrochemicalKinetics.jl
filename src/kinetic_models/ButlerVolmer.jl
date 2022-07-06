@@ -6,9 +6,14 @@ Computes Butler-Volmer kinetics.
 
 If initialized with one argument, assumes symmetric electron transfer (α=0.5) and sets this to be the prefactor A. Note that this prefactor implicitly contains information about equilibrium activation energies, as well as geometric information.
 """
-struct ButlerVolmer <: NonIntegralModel
-    A
-    α
+struct ButlerVolmer{T} <: NonIntegralModel
+    A::T
+    α::T
+    function ButlerVolmer(A, α)
+        @assert all(α .<= 1.0 .&& α .>=0.0) "Electron transfer coefficient must be in [0,1]"
+        ps = consistent_params(Float64.(A), Float64.(α))
+        new{typeof(ps[1])}(ps...)
+    end
 end
 
 # default to unit prefactor and symmetric response

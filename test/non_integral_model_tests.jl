@@ -42,14 +42,11 @@
                 α_vals = [0.4, 0.5, 0.6]
                 bvv1 = ButlerVolmer(A_vals) # autopopulate α, combine scalar/vector
                 bvv2 = ButlerVolmer(A_vals, α_vals[1:2]) # both vectors
-                bvv3 = ButlerVolmer(A_vals, α_vals) # invalid, different lengths
+                @test_throws DimensionMismatch ButlerVolmer(A_vals, α_vals) # invalid, different lengths
 
                 # test that it's equivalent to the scalar model version
                 @test rate_constant(0.1, bvv1) == rate_constant.(Ref(0.1), ButlerVolmer.(A_vals))
                 @test rate_constant(0.1, bvv2) == rate_constant.(Ref(0.1), ButlerVolmer.(A_vals, α_vals[1:2]))
-
-                # test that correct error is thrown
-                @test_throws DimensionMismatch rate_constant(0, bvv3)
             end
             @testset "Vector Voltages and Models" begin
                 # TODO: this

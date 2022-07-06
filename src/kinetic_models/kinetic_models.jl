@@ -4,6 +4,8 @@ using Statistics
 using Interpolations
 using DelimitedFiles
 
+include("../utils/misc.jl")
+
 """
     fermi_dirac(E, kT=0.026)
 
@@ -23,7 +25,7 @@ import Base.*
 function *(c::Real, km::KineticModel)
     new_A = c*km.A
     other_params = getfield.([km], propertynames(km))[2:end]
-    typeof(km)(new_A, other_params...)
+    eval(nameof(typeof(km)))(new_A, other_params...)
 end
 
 # generic pretty printing

@@ -9,10 +9,14 @@ Note that for "typical" reorganization energy values (in the vicinity of 10*kT a
 
 If either the prefactor or the average dos are omitted, their values are assumed to be 1. Note that strictly speaking, `average_dos` and the prefactor `A` are redundant. They are both included primarily to facilitate comparisons with similarly parametrized Marcus-like models such as `MarcusHushChidseyDOS`.
 """
-struct MarcusHushChidsey <: IntegralModel
-    A
-    λ
-    average_dos
+struct MarcusHushChidsey{T} <: IntegralModel
+    A::T
+    λ::T
+    average_dos::T
+    function MarcusHushChidsey(A, λ, average_dos)
+        ps = consistent_params(Float64.(A), Float64.(λ), Float64.(average_dos))
+        new{typeof(ps[1])}(ps...)
+    end
 end
 
 # default prefactor is 1
@@ -20,7 +24,7 @@ MarcusHushChidsey(λ, avg_dos) = MarcusHushChidsey(1.0, λ, avg_dos)
 # assume prefactor = 1 and avg_dos = 1
 MarcusHushChidsey(λ) = MarcusHushChidsey(1.0, λ, 1.0)
 # convert more detailed DOS information to just pull out average
-MarcusHushChidsey(A, λ, dd::DOSData) = MarcusHushChidsey(A, λ, Ref(dd.average_value))
+MarcusHushChidsey(A, λ, dd::DOSData) = MarcusHushChidsey(A, λ, dd.average_value)
 MarcusHushChidsey(A, λ, dos_file::Union{Matrix,String}; kwargs...) =
     MarcusHushChidsey(A, λ, DOSData(dos_file; kwargs...))
 

@@ -42,28 +42,28 @@ xs = [0.1, 0.5, 0.95]
 @testset "Kinetic μ" begin
     # all these numbers are just references evaluated as of 2/24/22
     μ_50_vals = Dict(
-        ButlerVolmer=>Dict(
+        :ButlerVolmer=>Dict(
             0.1 => 0.0383864736, 
             0.5 => 0.01862765755, 
             0.95 => 0.06237022288), 
-        Marcus=>Dict(
+        :Marcus=>Dict(
             0.1 => 0.02841242588577, 
             0.5 => 0.01928206795, 
             0.95 => 0.07492901629449),
-        AsymptoticMarcusHushChidsey=>Dict(
+        :AsymptoticMarcusHushChidsey=>Dict(
             0.1 => 0.0389118763, 
             0.5 => 0.0195713281175, 
             0.95 => 0.0735097011)
         )
     μ_200_vals = Dict(
-        ButlerVolmer=>[0.0524237924, 0.04250974, 0.13058880458], 
-        Marcus=>[0.054009696387679, 0.045881168639779, 0.212205862750],
-        AsymptoticMarcusHushChidsey=>[0.05451269755, 0.046343172588, 0.17452291988558]
+        :ButlerVolmer=>[0.0524237924, 0.04250974, 0.13058880458], 
+        :Marcus=>[0.054009696387679, 0.045881168639779, 0.212205862750],
+        :AsymptoticMarcusHushChidsey=>[0.05451269755, 0.046343172588, 0.17452291988558]
         )
     μ_100_T400_vals = Dict(
-        ButlerVolmer=>[0.02384219096, 0.02702875, 0.1212749347], 
-        Marcus=>[0.024573427974, 0.028429814254, 0.1529930329757],
-        AsymptoticMarcusHushChidsey=>[0.024890385314, 0.028908839244, 0.14468140815]
+        :ButlerVolmer=>[0.02384219096, 0.02702875, 0.1212749347], 
+        :Marcus=>[0.024573427974, 0.028429814254, 0.1529930329757],
+        :AsymptoticMarcusHushChidsey=>[0.024890385314, 0.028908839244, 0.14468140815]
         )
     for km in kms
         @testset "$(typeof(km))" begin
@@ -71,25 +71,25 @@ xs = [0.1, 0.5, 0.95]
             μ_200 = μ_kinetic(200, km)
             μ_100_T400 = μ_kinetic(100, km, T=400)
             # test that the right (approximate) relationships hold
-            μs = μ_50_vals[typeof(km)]
+            μs = μ_50_vals[typeof(km).name.name]
             for x in xs
                 @test μ_50(x) ≈ μs[x] ≈ μ_thermo(x) + overpotential(50, (1-x)*km)
             end
 
             # test vector inputs
-            @test μ_200(xs) ≈ μ_200_vals[typeof(km)]
-            @test μ_100_T400(xs) == μ_100_T400.(xs) ≈ μ_100_T400_vals[typeof(km)] 
+            @test μ_200(xs) ≈ μ_200_vals[typeof(km).name.name]
+            @test μ_100_T400(xs) == μ_100_T400.(xs) ≈ μ_100_T400_vals[typeof(km).name.name] 
         end
     end
 end
 
 @testset "Kinetic g" begin
     g_200_T400_vals = Dict(
-        ButlerVolmer => [0.0205857425, 0.037693617, 0.06661696], 
-        Marcus => [0.02073470111, 0.03874647481, 0.07399607032],
-        AsymptoticMarcusHushChidsey => [0.0207838185, 0.0390031065, 0.0729910686]
+        :ButlerVolmer => [0.0205857425, 0.037693617, 0.06661696], 
+        :Marcus => [0.02073470111, 0.03874647481, 0.07399607032],
+        :AsymptoticMarcusHushChidsey => [0.0207838185, 0.0390031065, 0.0729910686]
         )
-    g_50_2_vals = Dict(ButlerVolmer=>0.03519728018258, Marcus=>0.03395267141265, AsymptoticMarcusHushChidsey=>0.0347968044)
+    g_50_2_vals = Dict(:ButlerVolmer=>0.03519728018258, :Marcus=>0.03395267141265, :AsymptoticMarcusHushChidsey=>0.0347968044)
     for km in kms
         @testset "$(typeof(km))" begin
             μ_50 = μ_kinetic(50, km)
@@ -102,10 +102,10 @@ end
 
             # check scalar input works
             @test g_50(xs[2]) == g_50(xs)[2] 
-            @test isapprox(g_50(xs)[2], g_50_2_vals[typeof(km)], atol=1e-5)
+            @test isapprox(g_50(xs)[2], g_50_2_vals[typeof(km).name.name], atol=1e-5)
 
             # check a few other values
-            @test all(isapprox.(g_200_T400(xs), g_200_T400_vals[typeof(km)], atol=1e-5))
+            @test all(isapprox.(g_200_T400(xs), g_200_T400_vals[typeof(km).name.name], atol=1e-5))
         end
     end
 end

@@ -6,9 +6,13 @@ Computes Marcus kinetics.
 
 If initialized with one argument, assumes this to be the reorganization energy λ and sets the prefactor A to 1.0.
 """
-struct Marcus <: NonIntegralModel
-    A
-    λ
+struct Marcus{T} <: NonIntegralModel
+    A::T
+    λ::T
+    function Marcus(A, λ)
+        ps = consistent_params(Float64.(A), Float64.(λ))
+        new{typeof(ps[1])}(ps...)
+    end
 end
 
 # default prefactor is 1

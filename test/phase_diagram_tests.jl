@@ -47,7 +47,7 @@ xs = [0.1, 0.5, 0.95]
             0.5 => 0.01862765755, 
             0.95 => 0.06237022288), 
         :Marcus=>Dict(
-            0.1 => 0.02841242588577, 
+            0.1 => 0.0387445526862, 
             0.5 => 0.01928206795, 
             0.95 => 0.07492901629449),
         :AsymptoticMarcusHushChidsey=>Dict(
@@ -89,7 +89,7 @@ end
         :Marcus => [0.02073470111, 0.03874647481, 0.07399607032],
         :AsymptoticMarcusHushChidsey => [0.0207838185, 0.0390031065, 0.0729910686]
         )
-    g_50_2_vals = Dict(:ButlerVolmer=>0.03519728018258, :Marcus=>0.03395267141265, :AsymptoticMarcusHushChidsey=>0.0347968044)
+    g_50_2_vals = Dict(:ButlerVolmer=>0.03519728018258, :Marcus=>0.03542169346909, :AsymptoticMarcusHushChidsey=>0.03552448666)
     for km in kms
         @testset "$(typeof(km))" begin
             μ_50 = μ_kinetic(50, km)

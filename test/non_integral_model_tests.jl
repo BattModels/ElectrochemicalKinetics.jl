@@ -34,7 +34,7 @@
                 test_vector_voltages(bv2, Vs)
                 test_vector_voltages(bv3, Vs)
                 for model in [bv1, bv2] # bv3 won't be symmetrical
-                    @test isapprox(model(Vs), model(-Vs)) #symmetry
+                    @test isapprox(model(Vs), -model(-Vs)) #symmetry
                 end
             end
             @testset "Vector Models" begin
@@ -60,8 +60,8 @@
         @testset "Scalars" begin
             # TODO: this could all be more thorough, I literally just picked some arbitrary points
             @test m1(0.0) == 0.0
-            @test isapprox(m1(0.05, true), 0.031381, atol=1e-6)
-            @test isapprox(m1(0.2, false), 0.908324, atol=1e-6)
+            @test isapprox(m1(0.05, false), 0.031381, atol=1e-6)
+            @test isapprox(m1(0.2, true), 0.908324, atol=1e-6)
             @test isapprox(m1(0.13), 0.570862, atol=1e-6)
             @test isapprox(m2(0.13), 5.708625, atol=1e-6)
         end
@@ -71,7 +71,7 @@
                 test_vector_voltages(m1, Vs)
                 test_vector_voltages(m2, Vs)
                 for model in [m1, m2]
-                    @test isapprox(model(Vs), model(-Vs)) #symmetry
+                    @test isapprox(model(Vs), -model(-Vs)) #symmetry
                 end
             end
             @testset "Vector Models" begin
@@ -94,13 +94,13 @@
         @testset "Scalars" begin
             @test amhc(0.0) == 0.0
             @test amhc(0.0, true) == amhc(0.0, false) ≈ 0.00596440064
-            @test amhc(0.2) == amhc(-0.2) ≈ 0.1006330238
+            @test amhc(0.2) == -amhc(-0.2) ≈ 0.1006330238
             @test amhc(0.2, kT=.015) ≈ 0.06360960459
             @test amhc(0.2, kT=.03) ≈ 0.11255129857   
         end
         @testset "Vector Voltages" begin
             test_vector_voltages(amhc, Vs)
-            @test isapprox(amhc(Vs), amhc(-Vs)) #symmetry
+            @test isapprox(amhc(Vs), -amhc(-Vs)) #symmetry
         end
         @testset "Vector Models" begin
             A_vals = [1, 100, 10000]

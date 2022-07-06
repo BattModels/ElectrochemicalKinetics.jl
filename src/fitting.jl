@@ -9,12 +9,23 @@ log_loss(y, y_pred) = (log.(y) .- log.(y_pred)).^2
 # sum of squares loss in linear coordinates
 linear_loss(y, y_pred) = (y .- y_pred).^2
 
+# one that works for both signs
+function janky_log_loss(y, y_pred)
+    if all(y .* y_pred .> 0)
+        return log_loss(abs.(y), abs.(y_pred))
+    else
+        # @warn "Values have different signs...defaulting to squared error"
+        # this should be fine to (hopefully) push things into the right region...
+        return linear_loss(y, y_pred)
+    end
+end
+
 """
     overpotential(k, model; kwargs...)
 
 Given values for current/rate constant and specified model parameters, find the overpotential that would have resulted in it. (This is the inverse of the `rate_constant` function.)
 """
-function overpotential(k, model::KineticModel, guess = fill(0.1, max(length(k), length(model))); kT = 0.026, loss = log_loss, autodiff = true, verbose=false, kwargs...)
+function overpotential(k, model::KineticModel, guess = fill(0.1, max(length(k), length(model))); kT = 0.026, loss = janky_log_loss, autodiff = true, verbose=false, kwargs...)
     function compare_k!(storage, V)
         storage .= loss(k, rate_constant(V, model; kT = kT, kwargs...))
     end
@@ -49,6 +60,8 @@ function overpotential(k, model::KineticModel, guess = fill(0.1, max(length(k), 
     end
     Vs.zero
 end
+
+overpotential(k::Real, model::KineticModel{T}, guess=0.1; kwargs...) where T<:Real = overpotential([k], model, [0.1]; kwargs...)[1]
 
 inv!(x) = x .= inv.(x)
 

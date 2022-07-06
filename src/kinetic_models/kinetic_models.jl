@@ -18,7 +18,7 @@ fermi_dirac(E; kT = 0.026) = inv.(1 .+ exp.(E ./ kT))
 
 Abstract base class for kinetic models.
 """
-abstract type KineticModel end
+abstract type KineticModel{T} end
 
 # return a new one with a scaled prefactor
 import Base.*
@@ -51,14 +51,14 @@ end
 
 Abstract base class for kinetic models whose rates can be computed directly from an input voltage without requiring an energy integral. All subtypes must dispatch the `rate_constant` function.
 """
-abstract type NonIntegralModel{T} <: KineticModel end
+abstract type NonIntegralModel{T} <: KineticModel{T} end
 
 """
     IntegralModel
 
 Abstract base class for "Marcus-like" kinetic models that require computation of an energy integral. All subtypes need to dispatch the `rate_constant` function directly, or dispatch the `integrand` function and use the default `rate_constant` dispatch.
 """
-abstract type IntegralModel{T} <: KineticModel end
+abstract type IntegralModel{T} <: KineticModel{T} end
 
 # check to catch missed dispatches for new types
 # integrand(km::IntegralModel, V_dl, ox::Bool; kwargs...) =
@@ -67,9 +67,7 @@ abstract type IntegralModel{T} <: KineticModel end
 # TODO: check that this passes through both kT and V_q appropriately
 # dispatch for net rates
 integrand(km::IntegralModel, V; kwargs...) =
-    E -> abs.(
-        integrand(km, V, Val(true); kwargs...)(E) - integrand(km, V, Val(false); kwargs...)(E)
-    )
+    E -> integrand(km, V, Val(true); kwargs...)(E) - integrand(km, V, Val(false); kwargs...)(E)
 integrand(km::IntegralModel, V, ox::Bool; kwargs...) = integrand(km, V, Val(ox); kwargs...)
 
 """
@@ -85,9 +83,9 @@ If calc_cq flag is passed, optionally compute voltage shifts due to quantum capa
 """
 rate_constant(V_app, model::NonIntegralModel, ox::Bool; kwargs...) = rate_constant(V_app, model, Val(ox); kwargs...)
 
-# default dispatch for net rates, returns absolute value
+# dispatch for net rates
 rate_constant(V_app, model::NonIntegralModel; kwargs...) =
-    abs.(rate_constant(V_app, model, Val(true); kwargs...) - rate_constant(V_app, model, Val(false); kwargs...))
+    rate_constant(V_app, model, Val(true); kwargs...) - rate_constant(V_app, model, Val(false); kwargs...)
 
 # TODO: add tests that both args and kwargs are correctly captured here (also for the Val thing)
 # "callable" syntax

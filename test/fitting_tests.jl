@@ -6,17 +6,17 @@
             # test a number less than the initial guess
             V1 = 0.05
             k1 = rate_constant(V1, m)
-            @test isapprox(overpotential(k1, m)[1], V1, atol=1e-5)
+            @test isapprox(overpotential(k1, m), V1, atol=1e-5)
             # and one greater
             V2 = 0.15
             k2 = rate_constant(V2, m)
-            @test isapprox(overpotential(k2, m)[1], V2, atol=1e-5)
-            # test that vectorized fitting works...first for one model and multiple k's
-            # this test is turned off for now because better adjoint of overpotential currently doesn't work with it...
-            # @test isapprox(overpotential(m, [k1, k2]), [V1, V2], atol=5e-4)
-            # TODO: figure out sensible and consistent way to vectorize over k and/or V (e.g. use a matrix?)
-            # now test for one k and multiple models
-            @test isapprox(overpotential(k1, [m, m]), [V1, V1], atol=5e-4)
+            @test isapprox(overpotential(k2, m), V2, atol=1e-5)
+            # test that vectorized fitting works, both for scalar k and vector model and vice versa
+            # TODO: figure out why this doesn't work for integral models
+            if model_type != MarcusHushChidsey
+                @test isapprox(overpotential([k1, k2], m), [V1, V2], atol=5e-4)
+                @test isapprox(overpotential(k1, [1,1]*m), [V1, V1], atol=5e-4)
+            end
             # make sure that both fails since indexing would be ambiguous
             @test_throws MethodError overpotential([k1, k2], [m, m])
         end

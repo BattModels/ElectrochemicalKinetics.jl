@@ -22,11 +22,14 @@ abstract type KineticModel end
 
 # return a new one with a scaled prefactor
 import Base.*
-function *(c::Real, km::KineticModel)
+function *(c, km::KineticModel)
     new_A = c*km.A
     other_params = getfield.([km], propertynames(km))[2:end]
     eval(nameof(typeof(km)))(new_A, other_params...)
 end
+
+import Base.length
+length(km::KineticModel) = length(km.A)
 
 # generic pretty printing
 function Base.show(io::IO, m::KineticModel)
@@ -48,14 +51,14 @@ end
 
 Abstract base class for kinetic models whose rates can be computed directly from an input voltage without requiring an energy integral. All subtypes must dispatch the `rate_constant` function.
 """
-abstract type NonIntegralModel <: KineticModel end
+abstract type NonIntegralModel{T} <: KineticModel end
 
 """
     IntegralModel
 
 Abstract base class for "Marcus-like" kinetic models that require computation of an energy integral. All subtypes need to dispatch the `rate_constant` function directly, or dispatch the `integrand` function and use the default `rate_constant` dispatch.
 """
-abstract type IntegralModel <: KineticModel end
+abstract type IntegralModel{T} <: KineticModel end
 
 # check to catch missed dispatches for new types
 # integrand(km::IntegralModel, V_dl, ox::Bool; kwargs...) =

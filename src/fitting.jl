@@ -14,31 +14,30 @@ linear_loss(y, y_pred) = (y .- y_pred).^2
 
 Given values for current/rate constant and specified model parameters, find the overpotential that would have resulted in it. (This is the inverse of the `rate_constant` function.)
 """
-function overpotential(k, model::KineticModel, guess = fill(0.1, length(k)); kT = 0.026, loss = log_loss, autodiff = true, verbose=false, kwargs...)
+function overpotential(k, model::KineticModel, guess = fill(0.1, max(length(k), length(model))); kT = 0.026, loss = log_loss, autodiff = true, verbose=false, kwargs...)
     function compare_k!(storage, V)
         storage .= loss(k, rate_constant(V, model; kT = kT, kwargs...))
     end
 
     Vs = if autodiff
         function myfun!(F, J, V)
-            if J == nothing
+            if isnothing(J)
                 F .= loss(k, rate_constant(V, model; kT = kT, kwargs...))
-            elseif F == nothing && !isnothing(J)
-                # TODO: we could speed up the case of scalar k's by dispatching to call gradient here instead
-                gs = Zygote.gradient(V[1]) do V
+            elseif isnothing(F) && !isnothing(J)
+                gs = Zygote.gradient(V) do V
                     Zygote.forwarddiff(V) do V
                         loss(k, rate_constant(V, model; kT = kT, kwargs...)) |> sum
                     end
                 end[1]
-                J .= gs
+                J .= diagm(gs)
             else
-                y, back = Zygote.pullback(V[1]) do V
+                y, back = Zygote.pullback(V) do V
                     Zygote.forwarddiff(V) do V
                         loss(k, rate_constant(V, model; kT = kT, kwargs...)) |> sum
                     end
                 end
                 F .= y
-                J .= back(one.(y))[1]
+                J .= diagm(back(one.(y))[1])
             end
         end
         Vs = nlsolve(only_fj!(myfun!), guess, show_trace=verbose)
@@ -48,12 +47,7 @@ function overpotential(k, model::KineticModel, guess = fill(0.1, length(k)); kT 
     if !converged(Vs)
         @warn "Overpotential fit not fully converged...you may have fed in an unreachable reaction rate!"
     end
-    # this is janky but the broadcast doesn't work otherwise
-    if typeof(k) <: Array
-        Vs.zero
-    else
-        Vs.zero[1]
-    end
+    Vs.zero
 end
 
 inv!(x) = x .= inv.(x)

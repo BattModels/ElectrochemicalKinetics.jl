@@ -8,7 +8,7 @@ Computes Marcus-Hush-Chidsey + DOS kinetics as described in Kurchin and Viswanat
 
 NB: At the moment, this will allow for vector `A` and `λ` parameters, but will presume that all models correspond to the same DOS.
 """
-struct MarcusHushChidseyDOS{T} <: IntegralModel
+struct MarcusHushChidseyDOS{T} <: IntegralModel{T}
     A::T
     λ::T
     dos::DOSData

@@ -9,7 +9,7 @@ Note that for "typical" reorganization energy values (in the vicinity of 10*kT a
 
 If either the prefactor or the average dos are omitted, their values are assumed to be 1. Note that strictly speaking, `average_dos` and the prefactor `A` are redundant. They are both included primarily to facilitate comparisons with similarly parametrized Marcus-like models such as `MarcusHushChidseyDOS`.
 """
-struct MarcusHushChidsey{T} <: IntegralModel
+struct MarcusHushChidsey{T} <: IntegralModel{T}
     A::T
     λ::T
     average_dos::T

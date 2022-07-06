@@ -6,7 +6,7 @@ Computes Butler-Volmer kinetics.
 
 If initialized with one argument, assumes symmetric electron transfer (α=0.5) and sets this to be the prefactor A. Note that this prefactor implicitly contains information about equilibrium activation energies, as well as geometric information.
 """
-struct ButlerVolmer{T} <: NonIntegralModel
+struct ButlerVolmer{T} <: NonIntegralModel{T}
     A::T
     α::T
     function ButlerVolmer(A, α)

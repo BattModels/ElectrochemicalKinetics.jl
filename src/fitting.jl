@@ -16,25 +16,25 @@ Given values for current/rate constant and specified model parameters, find the 
 """
 function overpotential(k, model::KineticModel, guess = fill(0.1, length(k)); kT = 0.026, loss = log_loss, autodiff = true, verbose=false, kwargs...)
     function compare_k!(storage, V)
-        storage .= loss(k, rate_constant(V, model; kT = kT, kwargs...))
+        storage .= loss(k, model(V; kT = kT, kwargs...))
     end
 
     Vs = if autodiff
         function myfun!(F, J, V)
             if J == nothing
-                F .= loss(k, rate_constant(V, model; kT = kT, kwargs...))
+                F .= loss(k, model(V; kT = kT, kwargs...))
             elseif F == nothing && !isnothing(J)
                 # TODO: we could speed up the case of scalar k's by dispatching to call gradient here instead
-                gs = Zygote.gradient(V[1]) do V
+                gs = Zygote.gradient(V) do V
                     Zygote.forwarddiff(V) do V
-                        loss(k, rate_constant(V, model; kT = kT, kwargs...)) |> sum
+                        loss(k, model(V; kT = kT, kwargs...)) |> sum
                     end
                 end[1]
                 J .= gs
             else
-                y, back = Zygote.pullback(V[1]) do V
+                y, back = Zygote.pullback(V) do V
                     Zygote.forwarddiff(V) do V
-                        loss(k, rate_constant(V, model; kT = kT, kwargs...)) |> sum
+                        loss(k, model(V; kT = kT, kwargs...)) |> sum
                     end
                 end
                 F .= y
@@ -63,7 +63,7 @@ Zygote.@adjoint function overpotential(k, model, guess; loss = log_loss, kT = 0.
   function back(vs)
     gs = Zygote.jacobian(vs) do V
       Zygote.forwarddiff(V) do V
-        rate_constant(V, model; kw...)
+        model(V; kT = kT, kwargs...)
       end
     end[1]
     inv.(gs)

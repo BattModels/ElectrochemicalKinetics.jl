@@ -6,9 +6,9 @@ Computes asymptotic solution to MHC model, as described in Zeng et al.: 10.1016/
 
 If initialized with one argument, assumes this to be the reorganization energy λ and sets the prefactor to 1.0.
 """
-struct AsymptoticMarcusHushChidsey <: NonIntegralModel
-    A
-    λ
+struct AsymptoticMarcusHushChidsey{T,S} <: NonIntegralModel
+    A::T
+    λ::S
 end
 
 # default prefactor is 1

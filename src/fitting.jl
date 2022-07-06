@@ -10,7 +10,7 @@ log_loss(y, y_pred) = (log.(y) .- log.(y_pred)).^2
 linear_loss(y, y_pred) = (y .- y_pred).^2
 
 """
-    overpotential(model, k; kwargs...)
+    overpotential(k, model; kwargs...)
 
 Given values for current/rate constant and specified model parameters, find the overpotential that would have resulted in it. (This is the inverse of the `rate_constant` function.)
 """

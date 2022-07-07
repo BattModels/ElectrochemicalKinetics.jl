@@ -4,7 +4,7 @@ using Test
 
 function test_vector_voltages(model, voltages)
     @test isapprox(rate_constant(voltages, model), rate_constant.(voltages, Ref(model)))
-    @test isapprox(rate_constant(voltages, model, kT=0.4), rate_constant.(voltages, Ref(model), kT=0.4))
+    @test isapprox(rate_constant(voltages, model, T=1000), rate_constant.(voltages, Ref(model), T=1000))
 end
 
 @testset "ElectrochemicalKinetics.jl" begin

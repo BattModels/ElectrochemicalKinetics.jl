@@ -18,21 +18,21 @@ end
 # default prefactor is 1
 AsymptoticMarcusHushChidsey(λ) = AsymptoticMarcusHushChidsey(1.0, λ)
 
-function rate_constant(V_app, amhc::AsymptoticMarcusHushChidsey, ox::Bool; kT::Real = 0.026)
-    η = (2 * ox - 1) .* V_app ./ kT
-    λ_nondim = amhc.λ / kT
+function rate_constant(V_app, amhc::AsymptoticMarcusHushChidsey, ox::Bool; T = 298)
+    η = (2 * ox - 1) .* V_app ./ (kB * T)
+    λ_nondim = amhc.λ / (kB * T)
     a = 1 .+ sqrt.(λ_nondim)
     arg = (λ_nondim .- sqrt.(a .+ η.^2)) ./ (2 .* sqrt.(λ_nondim))
     pref = sqrt.(π .* λ_nondim) ./ (1 .+ exp.(-η))
-    return kT .* amhc.A .* pref .* erfc.(arg)
+    return kB * T .* amhc.A .* pref .* erfc.(arg)
 end
 
 # direct dispatch for net rates
-function rate_constant(V_app, amhc::AsymptoticMarcusHushChidsey; kT::Real = 0.026)
-    η = V_app / kT
-    λ_nondim = amhc.λ / kT
+function rate_constant(V_app, amhc::AsymptoticMarcusHushChidsey; T = 298)
+    η = V_app / (kB * T)
+    λ_nondim = amhc.λ / (kB * T)
     a = 1 .+ sqrt.(λ_nondim)
     arg = (λ_nondim .- sqrt.(a .+ η.^2)) ./ (2 .* sqrt.(λ_nondim))
     pref = sqrt.(π .* λ_nondim) .* tanh.(η/2)
-    return kT * amhc.A .* pref .* erfc.(arg)
+    return kB * T * amhc.A .* pref .* erfc.(arg)
 end

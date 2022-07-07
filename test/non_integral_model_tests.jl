@@ -14,17 +14,17 @@
 
             # oxidative
             for bv in [bv1, bv2, bv3]
-                @test bv(.026/bv.α, true) ≈ bv.A * ℯ
+                @test bv(kB*298/bv.α, true) ≈ bv.A * ℯ
             end
 
             # reductive
             for bv in [bv1, bv2, bv3]
-                @test bv(-.026/(1-bv.α), false) ≈ bv.A * ℯ
+                @test bv(-kB*298/(1-bv.α), false) ≈ bv.A * ℯ
             end
 
             # net
             for bv in [bv1, bv2, bv3]
-                @test bv(.026/bv.α) ≈ bv.A * (ℯ - exp((bv.α-1)/bv.α))
+                @test bv(kB*298/bv.α) ≈ bv.A * (ℯ - exp((bv.α-1)/bv.α))
             end
         end
 
@@ -60,10 +60,10 @@
         @testset "Scalars" begin
             # TODO: this could all be more thorough, I literally just picked some arbitrary points
             @test m1(0.0) == 0.0
-            @test isapprox(m1(0.05, false), 0.031381, atol=1e-6)
-            @test isapprox(m1(0.2, true), 0.908324, atol=1e-6)
-            @test isapprox(m1(0.13), 0.570862, atol=1e-6)
-            @test isapprox(m2(0.13), 5.708625, atol=1e-6)
+            @test isapprox(m1(0.05, false), 0.030055, atol=1e-6)
+            @test isapprox(m1(0.2, true), 0.907235, atol=1e-6)
+            @test isapprox(m1(0.13), 0.5671645, atol=1e-6)
+            @test isapprox(m2(0.13), 5.671645, atol=1e-6)
         end
 
         @testset "Vectors" begin
@@ -93,10 +93,10 @@
         amhc = AsymptoticMarcusHushChidsey(0.25)
         @testset "Scalars" begin
             @test amhc(0.0) == 0.0
-            @test amhc(0.0, true) == amhc(0.0, false) ≈ 0.00596440064
-            @test amhc(0.2) == -amhc(-0.2) ≈ 0.1006330238
-            @test amhc(0.2, kT=.015) ≈ 0.06360960459
-            @test amhc(0.2, kT=.03) ≈ 0.11255129857   
+            @test amhc(0.0, true) == amhc(0.0, false) ≈ 0.00573491969678f0
+            @test amhc(0.2) == -amhc(-0.2) ≈ 0.09964746f0
+            @test amhc(0.2, T=175) ≈ 0.063909331f0
+            @test amhc(0.2, T=350) ≈ 0.11301532f0 
         end
         @testset "Vector Voltages" begin
             test_vector_voltages(amhc, Vs)

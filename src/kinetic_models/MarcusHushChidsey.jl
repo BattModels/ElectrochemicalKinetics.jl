@@ -29,9 +29,9 @@ MarcusHushChidsey(A, λ, dos_file::Union{Matrix,String}; kwargs...) =
     MarcusHushChidsey(A, λ, DOSData(dos_file; kwargs...))
 
 # TODO: Check that both this and +DOS versions still match original paper
-function integrand(mhc::MarcusHushChidsey, V_dl, ox::Val; kT::Real = 0.026)
-    marcus_term(E, ::Val{true}) = exp.(-((E .- mhc.λ .+ V_dl) .^ 2) ./ (4 .* mhc.λ .* kT))
-    marcus_term(E, ::Val{false}) = exp.(-((E .- mhc.λ .- V_dl) .^2) ./ (4 .* mhc.λ .* kT))
-    f(E::Vector) = hcat((mhc.A * mhc.average_dos) .* marcus_term.(E, ox) .* fermi_dirac.(E; kT = kT)...)' # will return a matrix of both E and V_dl are vectors, first index will be energies and second voltages
-    f(E::Real) = (mhc.A .* mhc.average_dos) .* marcus_term.(E, ox) .* fermi_dirac.(E; kT = kT)
+function integrand(mhc::MarcusHushChidsey, V_dl, ox::Val; T = 298)
+    marcus_term(E, ::Val{true}) = exp.(-((E .- mhc.λ .+ V_dl) .^ 2) ./ (4 .* mhc.λ .* kB * T))
+    marcus_term(E, ::Val{false}) = exp.(-((E .- mhc.λ .- V_dl) .^2) ./ (4 .* mhc.λ .* kB * T))
+    f(E::Vector) = hcat((mhc.A * mhc.average_dos) .* marcus_term.(E, ox) .* fermi_dirac.(E; T = T)...)' # will return a matrix of both E and V_dl are vectors, first index will be energies and second voltages
+    f(E::Real) = (mhc.A .* mhc.average_dos) .* marcus_term.(E, ox) .* fermi_dirac.(E; T = T)
 end

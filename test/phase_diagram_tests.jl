@@ -43,27 +43,27 @@ xs = [0.1, 0.5, 0.95]
     # all these numbers are just references evaluated as of 2/24/22
     μ_50_vals = Dict(
         :ButlerVolmer=>Dict(
-            0.1 => 0.03838429f0, 
-            0.5 => 0.01862766f0, 
-            0.95 => 0.062373f0), 
+            0.1 => 0.038325055f0, 
+            0.5 => 0.018521359f0, 
+            0.95 =>  0.0615507f0), 
         :Marcus=>Dict(
-            0.1 => 0.03874237f0, 
-            0.5 => 0.019282f0, 
-            0.95 =>  0.074932f0),
+            0.1 => 0.03886537f0, 
+            0.5 =>  0.01950138f0, 
+            0.95 =>  0.0760257f0),
         :AsymptoticMarcusHushChidsey=>Dict(
-            0.1 => 0.0389097f0, 
-            0.5 => 0.0195713f0, 
-            0.95 => 0.0735126f0)
+            0.1 => 0.0390861f0, 
+            0.5 => 0.01988688f0, 
+            0.95 => 0.07516774f0)
         )
     μ_200_vals = Dict(
-        :ButlerVolmer=>[0.0524216f0, 0.0425097f0, 0.1305917f0], 
-        :Marcus=>[0.0540075f0, 0.04588117f0, 0.212208797f0],
-        :AsymptoticMarcusHushChidsey=> [0.0545105f0, 0.046343176f0, 0.17452585f0]
+        :ButlerVolmer=> [0.0521894f0, 0.0421092f0, 0.1289288f0], 
+        :Marcus=> [0.0544722f0, 0.0466285f0, 0.2127188f0],
+        :AsymptoticMarcusHushChidsey=>[0.055173985f0, 0.04740624957f0, 0.17594977f0]
         )
     μ_100_T400_vals = Dict(
-        :ButlerVolmer=>[0.02383926f0, 0.02702875f0, 0.12127886f0] , 
-        :Marcus=>[0.0245705f0, 0.028429816f0, 0.152996966f0],
-        :AsymptoticMarcusHushChidsey=>[0.0248874574f0, 0.028908841f0, 0.14468534]
+        :ButlerVolmer=>[0.023721278f0, 0.02681895f0, 0.120048858f0] , 
+        :Marcus=>[0.02481338f0, 0.0288534856f0, 0.1539812383f0],
+        :AsymptoticMarcusHushChidsey=>[0.0252367557f0, 0.029513253f0, 0.146351765f0]
         )
     for km in kms
         @testset "$(typeof(km))" begin
@@ -78,18 +78,18 @@ xs = [0.1, 0.5, 0.95]
 
             # test vector inputs
             @test μ_200(xs) ≈ μ_200_vals[typeof(km).name.name]
-            @test μ_100_T400(xs) == μ_100_T400.(xs) && all(isapprox.(µ_100_T400(xs), μ_100_T400_vals[typeof(km).name.name], atol=5f-5))
+            @test μ_100_T400(xs) == μ_100_T400.(xs) && all(isapprox.(µ_100_T400(xs), μ_100_T400_vals[typeof(km).name.name], atol=1f-5))
         end
     end
 end
 
 @testset "Kinetic g" begin
     g_200_T400_vals = Dict(
-        :ButlerVolmer => [0.02058574, 0.0376936, 0.06661696], 
-        :Marcus => [0.0207347, 0.0387464748, 0.07399607],
-        :AsymptoticMarcusHushChidsey => [0.0207838, 0.0390031, 0.07299107]
+        :ButlerVolmer => [0.020563, 0.03755, 0.0661336], 
+        :Marcus => [0.0207786, 0.0390248, 0.074701],
+        :AsymptoticMarcusHushChidsey => [0.0208467, 0.03939946, 0.0740394]
         )
-    g_50_2_vals = Dict(:ButlerVolmer=>0.03519728018, :Marcus=>0.03542169347, :AsymptoticMarcusHushChidsey=>0.03552449)
+    g_50_2_vals = Dict(:ButlerVolmer=>0.03515968, :Marcus=>0.035497, :AsymptoticMarcusHushChidsey=>0.0356339)
     for km in kms
         @testset "$(typeof(km))" begin
             μ_50 = μ_kinetic(50, km)
@@ -128,10 +128,7 @@ end
     @test v3[2] < v1[2]
 
     # test actual numerical values too
-    @test all(isapprox.(v1, [0.0458468, 0.839934], atol=1e-5))
-    @test all(isapprox.(v2, [0.08379, 0.795023], atol=1e-4))
-    @test all(isapprox.(v3, [0.1076, 0.675928], atol=1e-4))
-
-    # TODO: next for multiple currents at once (may require some syntax tweaks)
-
+    @test all(isapprox.(v1, [0.045547, 0.841501], atol=1e-5))
+    @test all(isapprox.(v2, [0.083289, 0.796802], atol=1e-4))
+    @test all(isapprox.(v3, [0.105747, 0.6809], atol=1e-4))
 end

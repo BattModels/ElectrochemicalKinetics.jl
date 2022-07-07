@@ -7,8 +7,8 @@
         @testset "Scalars" begin
             # test some values
             @test rate_constant(0, mhc) == 0.0
-            @test rate_constant(0, mhc, true) == rate_constant(0, mhc, false) ≈ 0.0061371322
-            @test isapprox(rate_constant(0.1, mhc), 0.031239978, atol=1e-6)
+            @test rate_constant(0, mhc, true) == rate_constant(0, mhc, false) ≈ 0.005892741f0
+            @test isapprox(rate_constant(0.1, mhc), 0.03062463, atol=1e-6)
             
             # test net rates and symmetry
             @test isapprox(rate_constant(0.1, mhc, true) - rate_constant(0.1, mhc, false), rate_constant(0.1, mhc), atol=1e-6)

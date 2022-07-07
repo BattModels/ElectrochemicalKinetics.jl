@@ -7,11 +7,11 @@ using DelimitedFiles
 include("../utils/misc.jl")
 
 """
-    fermi_dirac(E, kT=0.026)
+    fermi_dirac(E, T=298)
 
-Compute the value of the Fermi-Dirac distribution at energy `E` (relative to the Fermi energy) and thermal energy `kT`.
+Compute the value of the Fermi-Dirac distribution at energy `E` (relative to the Fermi energy) and temperature `T`.
 """
-fermi_dirac(E; kT = 0.026) = inv.(1 .+ exp.(E ./ kT))
+fermi_dirac(E; T = 298) = inv.(1 .+ exp.(E ./ (kB * T)))
 
 """
     KineticModel
@@ -95,12 +95,12 @@ function rate_constant(
     V_app,
     model::IntegralModel,
     args...; # would just be the ox flag, if present
-    kT = 0.026,
-    E_min = -100 * kT,
-    E_max = 100 * kT
+    T = 298,
+    E_min = -100 * kB * T,
+    E_max = 100 * kB * T
 )
     n, w = scale(E_min, E_max)
-    f = integrand(model, V_app, args...; kT = kT)
+    f = integrand(model, V_app, args...; T = T)
     sum(w .* f.(n))
 end
 

@@ -25,26 +25,26 @@ end
 
 Given values for current/rate constant and specified model parameters, find the overpotential that would have resulted in it. (This is the inverse of the `rate_constant` function.)
 """
-function overpotential(k, model::KineticModel, guess = fill(0.1, max(length(k), length(model))); kT = 0.026, loss = janky_log_loss, autodiff = true, verbose=false, kwargs...)
+function overpotential(k, model::KineticModel, guess = fill(0.1, max(length(k), length(model))); T = 298, loss = janky_log_loss, autodiff = true, verbose=false, kwargs...)
     function compare_k!(storage, V)
-        storage .= loss(k, rate_constant(V, model; kT = kT, kwargs...))
+        storage .= loss(k, rate_constant(V, model; T = T, kwargs...))
     end
 
     Vs = if autodiff
         function myfun!(F, J, V)
             if isnothing(J)
-                F .= loss(k, rate_constant(V, model; kT = kT, kwargs...))
+                F .= loss(k, rate_constant(V, model; T = T, kwargs...))
             elseif isnothing(F) && !isnothing(J)
                 gs = Zygote.gradient(V) do V
                     Zygote.forwarddiff(V) do V
-                        loss(k, rate_constant(V, model; kT = kT, kwargs...)) |> sum
+                        loss(k, rate_constant(V, model; T = T, kwargs...)) |> sum
                     end
                 end[1]
                 J .= diagm(gs)
             else
                 y, back = Zygote.pullback(V) do V
                     Zygote.forwarddiff(V) do V
-                        loss(k, rate_constant(V, model; kT = kT, kwargs...)) |> sum
+                        loss(k, rate_constant(V, model; T = T, kwargs...)) |> sum
                     end
                 end
                 F .= y
@@ -65,12 +65,12 @@ overpotential(k::Real, model::KineticModel{T}, guess=0.1; kwargs...) where T<:Re
 
 inv!(x) = x .= inv.(x)
 
-Zygote.@adjoint function overpotential(k, model, guess; loss = log_loss, kT = 0.026, autodiff = true, verbose = false, kw...)
-  Vs = overpotential(model, k, guess; loss, verbose, autodiff, kT, kw...)
+Zygote.@adjoint function overpotential(k, model, guess; loss = log_loss, T = 298, autodiff = true, verbose = false, kw...)
+  Vs = overpotential(model, k, guess; loss=loss, verbose=verbose, autodiff=autodiff, T=T, kw...)
   function back(vs)
     gs = Zygote.jacobian(vs) do V
       Zygote.forwarddiff(V) do V
-        rate_constant(V, model; kw...)
+        rate_constant(V, model; T=T, kw...)
       end
     end[1]
     inv.(gs)
@@ -109,11 +109,11 @@ function fit_model(
     exp_data::Matrix,
     model_type::Type{<:KineticModel};
     param_bounds::Dict = default_param_bounds,
-    kT::Real = 0.026,
+    T::Float32 = 298,
     kwargs...
 )
     V_vals = exp_data[:, 1]
-    eval_model(model) = [rate_constant(V, model; kT = kT) for V in V_vals]
+    eval_model(model) = [rate_constant(V, model; T=T) for V in V_vals]
     _fit_model(exp_data, model_type, param_bounds, eval_model)
 end
 
@@ -122,15 +122,15 @@ function fit_model(
     exp_data::Matrix,
     model_type::Type{<:IntegralModel};
     param_bounds::Dict = default_param_bounds,
-    kT::Real = 0.026,
-    E_min = -100 * kT,
-    E_max = 100 * kT,
+    T::Float32 = 298,
+    E_min = -100 * kB*T,
+    E_max = 100 * kB*T,
     kwargs...,
 )
     V_vals = exp_data[:, 1]
     eval_model(model) = rate_constant(V_vals,
                                   model;
-                                  kT = kT,
+                                  T = T,
                                   E_min = E_min,
                                   E_max = E_max,
                                   kwargs...)

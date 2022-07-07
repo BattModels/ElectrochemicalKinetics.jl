@@ -9,8 +9,6 @@ const room_T = 298
 const muoA_default = 0.02
 const muoB_default = 0.03
 const Ω_default = 0.1
-N = 1000
-quadfun = gausslegendre
 
 # our familiar thermodynamic functions
 h(x;Ω=Ω_default) = @. x*(1-x)*Ω # enthalpy of mixing
@@ -36,7 +34,7 @@ function g_kinetic(I, km::KineticModel; Ω=Ω_default, muoA=muoA_default, muoB=m
     #TODO: gradient of this term is just value of overpotential(x)
     function kinetic_term(x)
         f(x) = ElectrochemicalKinetics.overpotential(I, (1 .- x) .* Ref(km))
-        n, w = ElectrochemicalKinetics.scale(zero.(x), x)
+        n, w = ElectrochemicalKinetics.scale_coarse(zero.(x), x)
         map((w, n) -> sum(w .* f(n)), eachcol(w), eachcol(n))
     end
     g(x) = thermo_term(x) .+ kinetic_term(vec(x))
@@ -53,6 +51,7 @@ function common_tangent(x::Vector, I, km::KineticModel; Ω=Ω_default, muoA=muoA
 end
 
 # case where we want to check many points at once (shape of x should be N x 2)
+# TODO: test this...may not really be able to save much time
 function common_tangent(x::Array, I, km::KineticModel; kwargs...)
     g = g_kinetic(I, km; kwargs...)
     µ = µ_kinetic(I, km; kwargs...)
@@ -63,7 +62,7 @@ function common_tangent(x::Array, I, km::KineticModel; kwargs...)
     hcat(Δg ./ Δx .- μ1, Δμ)
 end
 
-function find_phase_boundaries(I, km::KineticModel; quadfun=quadfun, N=N, kwargs...)
+function find_phase_boundaries(I, km::KineticModel; guess=[0.05, 0.95], verbose=false, kwargs...)
     
     function myct!(storage, x)
         res = common_tangent(x, I, km; kwargs...)
@@ -71,21 +70,10 @@ function find_phase_boundaries(I, km::KineticModel; quadfun=quadfun, N=N, kwargs
         storage[2] = res[2]
     end
     # TODO: grad! here from AD
-    x1 = nlsolve(myct!, [0.05 0.95])
+    x1 = nlsolve(myct!, guess, show_trace=verbose, ftol=1e-6, xtol=1e-6)
     x1.zero
 end
 
 function phase_diagram(km::KineticModel; kwargs...)
     # TODO: write this, lol
 end
-
-# bv = ButlerVolmer(300)
-# I_vals = 10 .^ (1.1:0.025:3.1)
-
-
-# this line takes a few seconds with B-V but aaages with anything else...
-# pbs = [find_phase_boundaries(I, bv, T=330) for I in I_vals]
-
-# plot(vcat(pbs...), hcat(I_vals, I_vals), label="phase boundary")
-# xlabel!("x")
-# ylabel!("I")

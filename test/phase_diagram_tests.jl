@@ -128,9 +128,9 @@ end
     @test v3[2] < v1[2]
 
     # test actual numerical values too
-    @test isapprox(v1, [0.04584 0.839942], atol=1e-6)
-    @test isapprox(v2, [0.0837787 0.795035], atol=1e-6)
-    @test isapprox(v3, [0.107585 0.675948], atol=1e-6)
+    @test isapprox(v1, [0.04584, 0.839942], atol=1e-5)
+    @test isapprox(v2, [0.0837787, 0.795035], atol=1e-5)
+    @test isapprox(v3, [0.107585, 0.675948], atol=1e-5)
 
     # TODO: next for multiple currents at once (may require some syntax tweaks)
 

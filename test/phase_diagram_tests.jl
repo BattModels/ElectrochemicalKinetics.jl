@@ -26,7 +26,7 @@ T = 298
     @test all(isinf.(μ_thermo([0.0, 1.0])))
     @test μ_thermo(0.5) == μ_thermo(0.5, T=500) ≈ muoB - muoA
     @test μ_thermo(0.1) ≈ 0.033576035f0
-    @test μ_thermo(0.9, T=400) ≈ 0.00573686571f0
+    @test isapprox(μ_thermo(0.9, T=400), 0.00573686571, atol=5e-6)
     @test all(μ_thermo([0.1, 0.2, 0.7]) .≈ [0.033576f0, 0.03440044f0, -0.0082417f0])
     @test all(μ_thermo([0.1, 0.2, 0.7], T=350) .≈ [0.02373024f0, 0.0281884f0, -0.00444493f0])
 end
@@ -78,7 +78,7 @@ xs = [0.1, 0.5, 0.95]
 
             # test vector inputs
             @test μ_200(xs) ≈ μ_200_vals[typeof(km).name.name]
-            @test μ_100_T400(xs) == μ_100_T400.(xs) ≈ μ_100_T400_vals[typeof(km).name.name] 
+            @test μ_100_T400(xs) == μ_100_T400.(xs) && all(isapprox.(µ_100_T400(xs), μ_100_T400_vals[typeof(km).name.name], atol=5f-5))
         end
     end
 end
@@ -129,8 +129,8 @@ end
 
     # test actual numerical values too
     @test all(isapprox.(v1, [0.0458468, 0.839934], atol=1e-5))
-    @test all(isapprox.(v2, [0.08379, 0.795023], atol=1e-5))
-    @test all(isapprox.(v3, [0.1076, 0.675928], atol=1e-5))
+    @test all(isapprox.(v2, [0.08379, 0.795023], atol=1e-4))
+    @test all(isapprox.(v3, [0.1076, 0.675928], atol=1e-4))
 
     # TODO: next for multiple currents at once (may require some syntax tweaks)
 

@@ -12,23 +12,23 @@ T = 298
     @test h(0.5; Ω=1) == 0.25 # kwargs
 
     # similar set for entropy...
-    @test s(0.5) ≈ -kB * 2 * 0.5 * log(0.5)
+    @test isapprox(s(0.5), -kB * log(0.5), atol=1e-5)
     @test s(0.1) == s(0.9)
-    @test s([0.1, 0.2, 0.7]) ≈ [2.8012399817e-5, 4.3119676836e-5, 5.2638176908e-5]
+    @test s([0.1, 0.2, 0.7]) ≈ [2.80134626433e-5, 4.3121323932e-5, 5.2640192129e-5]
 
     # ...and thermodynamic free energy...
-    @test g_thermo(0.5) == h(0.5) - T * s(0.5) + muoA * 0.5 + muoB * 0.5 ≈ 0.032200909
-    @test g_thermo(0.0) ≈ muoA
-    @test g_thermo(1.0) ≈ muoB
-    @test g_thermo([0.1, 0.2, 0.7]) ≈ [0.02165230485, 0.0251503363, 0.032313823]
+    @test g_thermo(0.5) == h(0.5) - T * s(0.5) + muoA * 0.5 + muoB * 0.5 ≈ 0.032200226968
+    @test isapprox(g_thermo(0.0), muoA, atol=1e-8)
+    @test isapprox(g_thermo(1.0), muoB, atol=1e-8)
+    @test g_thermo([0.1, 0.2, 0.7]) ≈ [0.021651988, 0.02514984585595, 0.0323132232]
 
     # ...and thermodynamic chemical potential.
     @test all(isinf.(μ_thermo([0.0, 1.0])))
     @test μ_thermo(0.5) == μ_thermo(0.5, T=500) ≈ muoB - muoA
-    @test μ_thermo(0.1) ≈ 0.033578217
-    @test μ_thermo(0.9, T=400) ≈ 0.0057339367
-    @test μ_thermo([0.1, 0.2, 0.7]) ≈ [0.033578217, 0.034401818, -0.008242526]
-    @test μ_thermo([0.1, 0.2, 0.7], T=350) ≈ [0.023732805, 0.028190055, -0.00444592]
+    @test μ_thermo(0.1) ≈  0.0335760350387
+    @test μ_thermo(0.9, T=400) ≈ 0.0057368657199
+    @test μ_thermo([0.1, 0.2, 0.7]) ≈ [0.0335760350387, 0.034400441691438, -0.00824168486]
+    @test μ_thermo([0.1, 0.2, 0.7], T=350) ≈ [0.023730242495, 0.0281884382282, -0.004444931883]
 end
 
 # prefactors are set so that k vs. η plots roughly line up for small η
@@ -43,27 +43,27 @@ xs = [0.1, 0.5, 0.95]
     # all these numbers are just references evaluated as of 2/24/22
     μ_50_vals = Dict(
         :ButlerVolmer=>Dict(
-            0.1 => 0.0383864736, 
+            0.1 => 0.03838429151, 
             0.5 => 0.01862765755, 
-            0.95 => 0.06237022288), 
+            0.95 => 0.062373147), 
         :Marcus=>Dict(
-            0.1 => 0.0387445526862, 
-            0.5 => 0.01928206795, 
-            0.95 => 0.07492901629449),
+            0.1 => 0.03874237118, 
+            0.5 => 0.01928206901, 
+            0.95 =>  0.0749319471),
         :AsymptoticMarcusHushChidsey=>Dict(
-            0.1 => 0.0389118763, 
-            0.5 => 0.0195713281175, 
-            0.95 => 0.0735097011)
+            0.1 => 0.03890969477, 
+            0.5 => 0.01957132911, 
+            0.95 => 0.07351263138)
         )
     μ_200_vals = Dict(
-        :ButlerVolmer=>[0.0524237924, 0.04250974, 0.13058880458], 
-        :Marcus=>[0.054009696387679, 0.045881168639779, 0.212205862750],
-        :AsymptoticMarcusHushChidsey=>[0.05451269755, 0.046343172588, 0.17452291988558]
+        :ButlerVolmer=>[0.05242161033, 0.04250973994, 0.13059172875], 
+        :Marcus=>[0.0540075165676, 0.0458811724237, 0.212208797161],
+        :AsymptoticMarcusHushChidsey=> [0.0545105175689, 0.04634317606989, 0.174525852191]
         )
     μ_100_T400_vals = Dict(
-        :ButlerVolmer=>[0.02384219096, 0.02702875, 0.1212749347], 
-        :Marcus=>[0.024573427974, 0.028429814254, 0.1529930329757],
-        :AsymptoticMarcusHushChidsey=>[0.024890385314, 0.028908839244, 0.14468140815]
+        :ButlerVolmer=>[0.0238392619734, 0.027028750035, 0.121278859754] , 
+        :Marcus=>[0.0245705001602, 0.02842981631828, 0.1529969664115],
+        :AsymptoticMarcusHushChidsey=>[0.02488745742498, 0.02890884116453, 0.14468534057]
         )
     for km in kms
         @testset "$(typeof(km))" begin
@@ -128,9 +128,9 @@ end
     @test v3[2] < v1[2]
 
     # test actual numerical values too
-    @test isapprox(v1, [0.04584, 0.839942], atol=1e-5)
-    @test isapprox(v2, [0.0837787, 0.795035], atol=1e-5)
-    @test isapprox(v3, [0.107585, 0.675948], atol=1e-5)
+    @test isapprox(v1, [0.0458468, 0.839934], atol=1e-5)
+    @test isapprox(v2, [0.08379, 0.795023], atol=1e-5)
+    @test isapprox(v3, [0.1076, 0.675928], atol=1e-5)
 
     # TODO: next for multiple currents at once (may require some syntax tweaks)
 

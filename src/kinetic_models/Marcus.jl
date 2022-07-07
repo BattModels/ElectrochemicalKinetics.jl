@@ -10,7 +10,7 @@ struct Marcus{T} <: NonIntegralModel{T}
     A::T
     λ::T
     function Marcus(A, λ)
-        ps = consistent_params(Float64.(A), Float64.(λ))
+        ps = consistent_params(Float32.(A), Float32.(λ))
         new{typeof(ps[1])}(ps...)
     end
 end

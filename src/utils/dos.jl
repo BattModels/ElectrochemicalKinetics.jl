@@ -19,9 +19,9 @@ Struct for storing density of states (DOS) information. Can be constructed from 
 """
 struct DOSData
     interp_func
-    average_value::Float64
-    E_min::Float64
-    E_max::Float64
+    average_value::Float32
+    E_min::Float32
+    E_max::Float32
 end
 
 DOSData(dos_file; Ef=0, cut_energy=false) = DOSData(get_dos(dos_file; Ef, cut_energy)...)
@@ -44,10 +44,10 @@ Returns a callable interpolated DOS, the average value of DOS, and the lower and
 """
 function get_dos(dos_file::String; kwargs...)
     # dos_data = Zygote.ignore() do
-    #     x = readdlm(dos_file, Float64, skipstart=1)
+    #     x = readdlm(dos_file, Float32, skipstart=1)
     #     x
     # end
-    dos_data = readdlm(dos_file, Float64, skipstart=1)
+    dos_data = readdlm(dos_file, Float32, skipstart=1)
     get_dos(dos_data; kwargs...)
 end
 function get_dos(dd::Matrix; Ef=0, cut_energy=false)

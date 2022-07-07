@@ -14,7 +14,7 @@ struct MarcusHushChidsey{T} <: IntegralModel{T}
     λ::T
     average_dos::T
     function MarcusHushChidsey(A, λ, average_dos)
-        ps = consistent_params(Float64.(A), Float64.(λ), Float64.(average_dos))
+        ps = consistent_params(Float32.(A), Float32.(λ), Float32.(average_dos))
         new{typeof(ps[1])}(ps...)
     end
 end

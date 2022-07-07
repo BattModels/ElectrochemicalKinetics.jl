@@ -13,7 +13,7 @@ struct MarcusHushChidseyDOS{T} <: IntegralModel{T}
     λ::T
     dos::DOSData
     function MarcusHushChidseyDOS(A, λ, dos)
-        ps = consistent_params(Float64.(A), Float64.(λ))
+        ps = consistent_params(Float32.(A), Float32.(λ))
         new{typeof(ps[1])}(ps..., dos)
     end
 end

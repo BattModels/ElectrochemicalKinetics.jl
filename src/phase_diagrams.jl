@@ -73,6 +73,26 @@ function find_phase_boundaries(I, km::KineticModel; guess=[0.05, 0.95], verbose=
     x1.zero
 end
 
-function phase_diagram(km::KineticModel; kwargs...)
-    # TODO: write this, lol
+function phase_diagram(km::KineticModel; I_step=10, verbose=false, kwargs...)
+    I = 0
+    pbs_here = find_phase_boundaries(I, km; kwargs...)
+    pbs = pbs_here'
+    I_vals = [0]
+    while abs(pbs_here[2] - pbs_here[1]) > 1e-3
+        I = I + I_step
+        if verbose
+            println("Solving at I=", I, "...")
+        end
+        try
+            pbs_here = find_phase_boundaries(I, km; guess=pbs_here, kwargs...)
+            pbs = vcat(pbs, pbs_here')
+            push!(I_vals, I)
+            if verbose
+                println("Phase boundaries are at ", pbs_here)
+            end
+        catch e
+            println("Solve failed at I=", I)
+        end
+    end
+    return vcat(pbs[:,1], reverse(pbs[:,2])), vcat(I_vals, reverse(I_vals))
 end

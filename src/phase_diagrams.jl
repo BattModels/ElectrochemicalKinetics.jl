@@ -15,24 +15,26 @@ s(x) = @. -kB*(x*log(x+eps(Float32)) + (1-x)*log(1-x+eps(Float32))) # entropy pe
 g_thermo(x; Ω=Ω_default, muoA=muoA_default, muoB=muoB_default, T=room_T) = @. h(x;Ω) - T*s(x)+ muoA*(1-x) + muoB*x # Gibbs free energy per particle
 μ_thermo(x; Ω=Ω_default, muoA=muoA_default, muoB=muoB_default, T=room_T) = @. (1-2*x)*Ω + kB*T*log(x/(1-x)) + muoB-muoA # chemical potential
 
+prefactor(x, intercalate::Bool) = intercalate ? (1 .- x) : x
+
 """
 µ and g with kinetic constributions, can be modeled using any <:KineticModel object
 
 These functions return single-argument functions (to easily use common-tangent function below while
 still being able to swap out model parameters by calling "function-builders" with different arguments).
 """
-function µ_kinetic(I, km::KineticModel; Ω=Ω_default, muoA=muoA_default, muoB=muoB_default, T=room_T)
-    thermo_term(x) = μ_thermo(x; Ω=Ω, muoA=muoA, muoB=muoB, T=T)
-    μ(x::Real) = thermo_term(x) .+ overpotential(I, (1-x)*km)
-    μ(x::AbstractVector) = thermo_term(x) .+ overpotential(I, (1 .- x).*Ref(km))
+function µ_kinetic(I, km::KineticModel; intercalate=true, kwargs...)
+    thermo_term(x) = μ_thermo(x; kwargs...)
+    μ(x::Real) = thermo_term(x) .+ overpotential(I, prefactor(x, intercalate)*km)
+    μ(x::AbstractVector) = thermo_term(x) .+ overpotential(I, prefactor(x, intercalate).*Ref(km))
     return μ
 end
 
-function g_kinetic(I, km::KineticModel; Ω=Ω_default, muoA=muoA_default, muoB=muoB_default, T=room_T)
-    thermo_term(x) = g_thermo(x; Ω=Ω, muoA=muoA, muoB=muoB, T=T)
+function g_kinetic(I, km::KineticModel; intercalate=true, kwargs...)
+    thermo_term(x) = g_thermo(x; kwargs...)
     #TODO: gradient of this term is just value of overpotential(x)
     function kinetic_term(x)
-        f(x) = ElectrochemicalKinetics.overpotential(I, (1 .- x) .* Ref(km))
+        f(x) = ElectrochemicalKinetics.overpotential(I, prefactor(x, intercalate) * km)
         n, w = ElectrochemicalKinetics.scale_coarse(zero.(x), x)
         map((w, n) -> sum(w .* f(n)), eachcol(w), eachcol(n))
     end
@@ -43,39 +45,27 @@ end
 
 # zeros of this function correspond to pairs of x's satisfying the common tangent condition for a given µ function
 # case where we just feed in two points (x should be of length two)
-function common_tangent(x::Vector, I, km::KineticModel; Ω=Ω_default, muoA=muoA_default, muoB=muoB_default, T=room_T)
-    g = g_kinetic(I, km; Ω=Ω, muoA=muoA, muoB=muoB, T=T)
-    µ = µ_kinetic(I, km; Ω=Ω, muoA=muoA, muoB=muoB, T=T)
+function common_tangent(x::Vector, I, km::KineticModel; intercalate=true, kwargs...)
+    g = g_kinetic(I, km; intercalate=intercalate, kwargs...)
+    µ = µ_kinetic(I, km; intercalate=intercalate, kwargs...)
     [(g(x[2]) - g(x[1]))/(x[2] - x[1]) .- μ(x[1]), μ(x[2])-μ(x[1])]
 end
 
-# case where we want to check many points at once (shape of x should be N x 2)
-# TODO: test this...may not really be able to save much time
-function common_tangent(x::Array, I, km::KineticModel; kwargs...)
-    g = g_kinetic(I, km; kwargs...)
-    µ = µ_kinetic(I, km; kwargs...)
-    Δg = g(x[:,2]) - g(x[:,1])
-    Δx = x[:,2] - x[:,1]
-    μ1 = μ(x[:,1])
-    Δμ = μ(x[:,2]) - μ1
-    hcat(Δg ./ Δx .- μ1, Δμ)
-end
-
-function find_phase_boundaries(I, km::KineticModel; guess=[0.05, 0.95], verbose=false, kwargs...)
+# TODO: see if we can speed this up with gradients?
+function find_phase_boundaries(I, km::KineticModel; guess=[0.05, 0.95], intercalate=true, verbose=false, kwargs...)
     
     function myct!(storage, x)
-        res = common_tangent(x, I, km; kwargs...)
+        res = common_tangent(x, I, km; intercalate=intercalate, kwargs...)
         storage[1] = res[1]
         storage[2] = res[2]
     end
-    # TODO: grad! here from AD
     x1 = nlsolve(myct!, guess, show_trace=verbose, ftol=1e-6, xtol=1e-6)
     x1.zero
 end
 
-function phase_diagram(km::KineticModel; I_step=10, verbose=false, kwargs...)
+function phase_diagram(km::KineticModel; I_step=10, verbose=false, intercalate=true, kwargs...)
     I = 0
-    pbs_here = find_phase_boundaries(I, km; kwargs...)
+    pbs_here = find_phase_boundaries(I, km; intercalate=intercalate, kwargs...)
     pbs = pbs_here'
     I_vals = [0]
     while abs(pbs_here[2] - pbs_here[1]) > 1e-3
@@ -84,7 +74,7 @@ function phase_diagram(km::KineticModel; I_step=10, verbose=false, kwargs...)
             println("Solving at I=", I, "...")
         end
         try
-            pbs_here = find_phase_boundaries(I, km; guess=pbs_here, kwargs...)
+            pbs_here = find_phase_boundaries(I, km; intercalate=intercalate, guess=pbs_here, kwargs...)
             pbs = vcat(pbs, pbs_here')
             push!(I_vals, I)
             if verbose

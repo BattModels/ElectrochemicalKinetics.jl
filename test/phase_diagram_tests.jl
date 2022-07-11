@@ -4,6 +4,9 @@ muoA = 0.02
 muoB = 0.03
 T = 298
 
+# TODO: add tests where we change Ω, etc.
+# TODO: add tests for deintercalation case
+
 @testset "Basic free energy functions" begin
     # enthalpy of mixing
     @test h(0.5) == 0.025 # value

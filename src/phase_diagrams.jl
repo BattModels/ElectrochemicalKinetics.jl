@@ -51,7 +51,7 @@ function common_tangent(x::Vector, I, km::KineticModel; intercalate=true, kwargs
     [(g(x[2]) - g(x[1]))/(x[2] - x[1]) .- μ(x[1]), μ(x[2])-μ(x[1])]
 end
 
-# TODO: see if we can speed this up with gradients?
+# TODO: see if we can speed this up with gradients? And/or if it's even needed for integral cases
 function find_phase_boundaries(I, km::KineticModel; guess=[0.05, 0.95], intercalate=true, verbose=false, kwargs...)
     
     function myct!(storage, x)
@@ -63,6 +63,7 @@ function find_phase_boundaries(I, km::KineticModel; guess=[0.05, 0.95], intercal
     x1.zero
 end
 
+# TODO: add T_max to handle low-T BV cases
 function phase_diagram(km::KineticModel; I_step=10, verbose=false, intercalate=true, kwargs...)
     I = 0
     pbs_here = find_phase_boundaries(I, km; intercalate=intercalate, kwargs...)

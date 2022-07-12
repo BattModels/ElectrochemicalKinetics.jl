@@ -20,53 +20,97 @@ function janky_log_loss(y, y_pred)
     end
 end
 
+# helper fcn to make sure starting guess for `overpotential` has correct sign
+function _get_guess(k, model)
+    guess = fill(1f-1, max(length(k), length(model)))
+    # make sure guess has correct sign
+    if k isa Real
+        if k == 0
+            guess .= 0
+        elseif k < 0
+            guess[guess .> 0] .= -1 * guess[guess .> 0]
+        end
+    elseif k isa Vector
+        guess[k .== 0] .= 0
+        guess[k .< 0 .&& guess .> 0] .= -1 * guess[k .< 0 .&& guess .> 0]
+    end
+    return guess
+end
+
+# TODO: support reaction direction flag here
 """
     overpotential(k, model; kwargs...)
 
 Given values for current/rate constant and specified model parameters, find the overpotential that would have resulted in it. (This is the inverse of the `rate_constant` function.)
+
+NOTE that this currently only solves for net reaction rates.
 """
-function overpotential(k, model::KineticModel, guess = fill(0.1, max(length(k), length(model))); T = 298, loss = janky_log_loss, autodiff = true, verbose=false, kwargs...)
+function overpotential(k, model::KineticModel, guess = _get_guess(k, model); T = 298, loss = janky_log_loss, autodiff = true, verbose=false, kwargs...)
+    # wherever k=0 we can shortcut since the answer has to be 0
+    k_solve = k
+    if k==0 # scalar k=0, possibly vector model
+        if verbose
+            println("shortcutting full solve")
+        end
+        return zeros(Float32, length(model))
+    elseif any(k .== 0) # vector k with some zero elements, scalar model
+        if verbose
+            println("shortcutting part of solve")
+        end
+        k_solve = k[k.!=0]
+    end
+
     function compare_k!(storage, V)
         storage .= loss(k, rate_constant(V, model; T = T, kwargs...))
     end
-
     Vs = if autodiff
         function myfun!(F, J, V)
+            # println("V=",V)
+            # println("loss=", loss(k, rate_constant(V, model; T=T, kwargs...)))
             if isnothing(J)
-                F .= loss(k, rate_constant(V, model; T = T, kwargs...))
+                F .= loss(k_solve, rate_constant(V, model; T = T, kwargs...))
             elseif isnothing(F) && !isnothing(J)
                 gs = Zygote.gradient(V) do V
                     Zygote.forwarddiff(V) do V
-                        loss(k, rate_constant(V, model; T = T, kwargs...)) |> sum
+                        loss(k_solve, rate_constant(V, model; T = T, kwargs...)) |> sum
                     end
                 end[1]
                 J .= diagm(gs)
             else
                 y, back = Zygote.pullback(V) do V
                     Zygote.forwarddiff(V) do V
-                        loss(k, rate_constant(V, model; T = T, kwargs...)) |> sum
+                        loss(k_solve, rate_constant(V, model; T = T, kwargs...)) |> sum
                     end
                 end
                 F .= y
                 J .= diagm(back(one.(y))[1])
             end
+            # println("J=", J)
         end
-        Vs = nlsolve(only_fj!(myfun!), guess, show_trace=verbose)
+        Vs = nlsolve(only_fj!(myfun!), guess, show_trace=verbose, extended_trace=true)
     else
         Vs = nlsolve(compare_k!, guess, show_trace=verbose)
     end
     if !converged(Vs)
         @warn "Overpotential fit not fully converged...you may have fed in an unreachable reaction rate!"
     end
-    Vs.zero
+    sol = Vs.zero
+    sol_return = zero(guess)
+    if k_solve != k # need to put back the zero elements
+        sol_return[k.!=0] .= sol
+    else
+        sol_return = sol
+    end
+    sol_return
 end
 
 overpotential(k::Real, model::KineticModel{T}, guess=0.1; kwargs...) where T<:Real = overpotential([k], model, [0.1]; kwargs...)[1]
 
 inv!(x) = x .= inv.(x)
 
+# TODO: test this
 Zygote.@adjoint function overpotential(k, model, guess; loss = log_loss, T = 298, autodiff = true, verbose = false, kw...)
-  Vs = overpotential(model, k, guess; loss=loss, verbose=verbose, autodiff=autodiff, T=T, kw...)
+  Vs = overpotential(k, model, guess; loss=loss, verbose=verbose, autodiff=autodiff, T=T, kw...)
   function back(vs)
     gs = Zygote.jacobian(vs) do V
       Zygote.forwarddiff(V) do V
@@ -75,7 +119,7 @@ Zygote.@adjoint function overpotential(k, model, guess; loss = log_loss, T = 298
     end[1]
     inv.(gs)
   end
-  Vs, Δ -> (nothing, nothing, Δ .* back(Vs))
+  Vs, Δ -> (Δ .* back(Vs), nothing, nothing)
 end
 
 # basically the gradient of overpotential should just be the inverse of the gradient of the forward solve at that point, i.e. if rate_constant(V, model) ==k then overpotential(model, k)==V , so we don’t need to diff through the actual solve in overpotential because the gradient should just be the inverse of the gradient of rate_constant at V

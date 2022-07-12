@@ -1,3 +1,4 @@
+# TODO: add tests for shortcutting in overpotential solve
 @testset "Overpotential Fitting" begin
     params = Dict(ButlerVolmer=>[], Marcus=>[0.25], AsymptoticMarcusHushChidsey=>[0.25], MarcusHushChidsey=>[0.25])
     for model_type in [ButlerVolmer, Marcus, AsymptoticMarcusHushChidsey, MarcusHushChidsey]

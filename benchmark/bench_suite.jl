@@ -65,3 +65,13 @@ for km in i_kms[2:end] # skipping MHC for now
     suite["overpotential fitting"]["integral models"]["non-AD"][modeltype] = @benchmarkable overpotential($k, $km, autodiff=false) seconds=time_mult*10
     suite["overpotential fitting"]["integral models"]["AD"][modeltype] = @benchmarkable overpotential($k, $km, autodiff=true) seconds=time_mult*20
 end
+
+suite["phase diagrams"] = BenchmarkGroup()
+suite["phase diagrams"]["non-integral models"] = BenchmarkGroup()
+for km in ni_kms
+    modeltype = typeof(km)
+    suite["phase diagrams"]["non-integral models"][modeltype] = @benchmarkable phase_diagram($km, T=350)
+    # TODO: add a lower-temp BV one
+end
+
+# TODO: get working, add benchmarks for integral model phase diagrams

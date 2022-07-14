@@ -18,7 +18,7 @@ end
 
 # default to unit prefactor and symmetric response
 ButlerVolmer() = ButlerVolmer(1.0, 0.5)
-ButlerVolmer(A) = ButlerVolmer(A, 0.5)
+ButlerVolmer(α) = ButlerVolmer(1.0, α)
 
 function rate_constant(V_app, bv::ButlerVolmer, ::Val{true}; T = 298)
     exp_arg = (bv.α .* V_app) / (kB * T)

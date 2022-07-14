@@ -20,7 +20,7 @@ function plot_models(
 )
     V_range = range(V_min, V_max, length = 200)
     xs = repeat([V_range], length(models))
-    ys = map(model -> [rate_constant(V, model; kwargs...) for V in V_range], models)
+    ys = map(model -> abs.(rate_constant(V_range, model; kwargs...)), models)
     plot(
         xs,
         ys,
@@ -56,7 +56,7 @@ function plot_exp_and_models(
     xs = Vector[V, repeat([V_range], length(models))...]
     ys = Vector[
         exp_data[:, 2],
-        map(model -> rate_constant(V_range, model; kwargs...), models)...,
+        map(model -> abs.(rate_constant(V_range, model; kwargs...)), models)...,
     ]
 
     # scatter plot of experimental data, lines for fits

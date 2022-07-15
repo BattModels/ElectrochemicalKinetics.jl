@@ -20,7 +20,7 @@ end
 
 function Base.show(io::IO, mhcd::MarcusHushChidseyDOS)
     s = repr(typeof(mhcd)) * "("
-    s *= "A=$(round.(mhcd.A, sigdigits=3)), λ=$(round(mhcd.λ, sigdigits=3)))"
+    s *= "A=$(round.(mhcd.A, sigdigits=3)), λ=$(round.(mhcd.λ, sigdigits=3)))"
     print(io, s)
 end
 

@@ -8,7 +8,7 @@ suite["integrals"] = BenchmarkGroup()
 suite["integrals"]["scale"] = @benchmarkable ElectrochemicalKinetics.scale(0.1, 0.2) seconds=time_mult
 
 # reusing the same ones from phase_diagram_tests
-bv = ButlerVolmer(300)
+bv = ButlerVolmer(300, 0.5)
 m = Marcus(5000, 0.3)
 amhc = AsymptoticMarcusHushChidsey(70000, 0.3)
 ni_kms = [bv, m, amhc]

@@ -28,29 +28,21 @@
             end
         end
 
-        @testset "Vectors" begin
-            @testset "Vector Voltages" begin
-                test_vector_voltages(bv1, Vs)
-                test_vector_voltages(bv2, Vs)
-                test_vector_voltages(bv3, Vs)
-                for model in [bv1, bv2] # bv3 won't be symmetrical
-                    @test isapprox(model(Vs), -model(-Vs)) #symmetry
-                end
+        @testset "Vector Voltages" begin
+            test_vector_voltages(bv1, Vs)
+            test_vector_voltages(bv2, Vs)
+            test_vector_voltages(bv3, Vs)
+            for model in [bv1, bv2] # bv3 won't be symmetrical
+                @test isapprox(model(Vs), -model(-Vs)) #symmetry
             end
-            @testset "Vector Models" begin
-                A_vals = [1.0, 2.0]
-                α_vals = [0.4, 0.5, 0.6]
-                bvv1 = ButlerVolmer(A_vals, 0.5)
-                bvv2 = ButlerVolmer(A_vals, α_vals[1:2]) # both vectors
-                @test_throws DimensionMismatch ButlerVolmer(A_vals, α_vals) # invalid, different lengths
+        end
 
-                # test that it's equivalent to the scalar model version
-                @test rate_constant(0.1, bvv1) == rate_constant.(Ref(0.1), ButlerVolmer.(A_vals, Ref(0.5)))
-                @test rate_constant(0.1, bvv2) == rate_constant.(Ref(0.1), ButlerVolmer.(A_vals, α_vals[1:2]))
-            end
-            @testset "Vector Voltages and Models" begin
-                # TODO: this
-            end
+        @testset "Vector Models" begin
+            A_vals = [0.7, 2.0]
+            α_vals = [0.4, 0.5, 0.6]
+            @test_throws DimensionMismatch ButlerVolmer(A_vals, α_vals) # invalid, different lengths
+
+            test_vector_models(ButlerVolmer, [A_vals, α_vals[1:2]])
         end
     end
 
@@ -66,26 +58,17 @@
             @test isapprox(m2(0.13), 5.671645, atol=1e-6)
         end
 
-        @testset "Vectors" begin
-            @testset "Vector Voltages" begin
-                test_vector_voltages(m1, Vs)
-                test_vector_voltages(m2, Vs)
-                for model in [m1, m2]
-                    @test isapprox(model(Vs), -model(-Vs)) #symmetry
-                end
+        @testset "Vector Voltages" begin
+            test_vector_voltages(m1, Vs)
+            test_vector_voltages(m2, Vs)
+            for model in [m1, m2]
+                @test isapprox(model(Vs), -model(-Vs)) #symmetry
             end
-            @testset "Vector Models" begin
-                A_vals = [1, 100, 10000]
-                λ_vals = [0.1, 0.3, 0.7]
-                mv1 = Marcus(λ_vals)
-                mv2 = Marcus(A_vals, λ_vals)
-
-                @test rate_constant(0.1, mv1) == rate_constant.(Ref(0.1), Marcus.(λ_vals))
-                @test rate_constant(0.1, mv2) == rate_constant.(Ref(0.1), Marcus.(A_vals, λ_vals))
-            end
-            @testset "Vector Voltages and Models" begin
-                # TODO: this
-            end
+        end
+        @testset "Vector Models" begin
+            A_vals = [1, 100, 10000]
+            λ_vals = [0.1, 0.3, 0.7]
+            test_vector_models(Marcus, [A_vals, λ_vals])
         end
     end
 
@@ -105,14 +88,7 @@
         @testset "Vector Models" begin
             A_vals = [1, 100, 10000]
             λ_vals = [0.1, 0.3, 0.7]
-            amhc1 = AsymptoticMarcusHushChidsey(λ_vals)
-            amhc2 = AsymptoticMarcusHushChidsey(A_vals, λ_vals)
-
-            @test rate_constant(0.1, amhc1) == rate_constant.(Ref(0.1), AsymptoticMarcusHushChidsey.(λ_vals))
-            @test rate_constant(0.1, amhc2) == rate_constant.(Ref(0.1), AsymptoticMarcusHushChidsey.(A_vals, λ_vals))
-        end
-        @testset "Vector Voltages and Models" begin
-            # TODO: this
+            test_vector_models(AsymptoticMarcusHushChidsey, [A_vals, λ_vals])
         end
     end
 end

@@ -20,7 +20,7 @@ struct MarcusHushChidsey{T} <: IntegralModel{T}
 end
 
 # default prefactor is 1
-MarcusHushChidsey(λ, avg_dos) = MarcusHushChidsey(1.0, λ, avg_dos)
+MarcusHushChidsey(A, λ) = MarcusHushChidsey(A, λ, 1.0)
 # assume prefactor = 1 and avg_dos = 1
 MarcusHushChidsey(λ) = MarcusHushChidsey(1.0, λ, 1.0)
 # convert more detailed DOS information to just pull out average

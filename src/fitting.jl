@@ -128,7 +128,7 @@ end
 # multiple models, one k value (used in thermo example)
 overpotential(k::Real, models::Vector{<:KineticModel}, guess=fill(0.1, length(k)); kwargs...) = overpotential.(Ref(k), models, Ref(guess); kwargs...)
 
-fitting_params(t::Type{<:KineticModel}) = fieldnames(t)
+fitting_params(t::Type{<:NonIntegralModel}) = fieldnames(t)
 fitting_params(::Type{MarcusHushChidsey}) = (:A, :λ)
 fitting_params(::Type{MarcusHushChidseyDOS}) = (:A, :λ)
 const default_param_bounds = Dict(:A => (0.1, 50000), :λ => (0.01, 0.5), :α => (0.01, 0.99))
@@ -153,7 +153,7 @@ function fit_model(
     exp_data::Matrix,
     model_type::Type{<:KineticModel};
     param_bounds::Dict = default_param_bounds,
-    T::Float32 = 298,
+    T = 298,
     kwargs...
 )
     V_vals = exp_data[:, 1]
@@ -166,7 +166,7 @@ function fit_model(
     exp_data::Matrix,
     model_type::Type{<:IntegralModel};
     param_bounds::Dict = default_param_bounds,
-    T::Float32 = 298,
+    T = 298,
     E_min = -100 * kB*T,
     E_max = 100 * kB*T,
     kwargs...,
@@ -191,7 +191,7 @@ function _fit_model(
     I_vals = exp_data[:, 2]
 
     model_builder = _get_model_builder(model_type, param_bounds; kwargs...)
-    sq_error(I_pred) = sum((I_pred .- I_vals) .^ 2)
+    sq_error(I_pred) = sum((abs.(I_pred) .- I_vals) .^ 2)
 
     # WTF, why do I need these here again...just when I think I understand scope
     fitting_params(t::Type{<:KineticModel}) = fieldnames(t)
@@ -199,7 +199,6 @@ function _fit_model(
     fitting_params(::Type{MarcusHushChidseyDOS}) = (:A, :λ)
 
     # find best-fitting params
-    # Zygote is tripped up by QuadGK, so that one has to be done with black-box optimization, but the non-integral models work with autodiff
     opt_func = params -> sq_error(model_evaluator(model_builder(params)))
     local best_params
     # function grad!(s, x)
@@ -216,10 +215,10 @@ function _fit_model(
     # IntegralModels performed better with GradientDescent
     optimizer, opts = if model_type <: IntegralModel
       opts = Optim.Options(show_trace = false,
-                           iterations = 3,
-                           outer_iterations = 4,
+                           iterations = 5,
+                           outer_iterations = 7,
                            x_tol = 1.,
-                           f_tol = 1e3)
+                           f_tol = 1e2)
       Fminbox(NelderMead()), opts
     else
       Fminbox(NelderMead()), Optim.Options()

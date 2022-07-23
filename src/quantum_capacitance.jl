@@ -1,5 +1,4 @@
 using Interpolations
-using QuadGK
 
 function calculate_Vdl_interp(dos_f, Vq_min, Vq_max, C_dl)
     Vq_range = range(Vq_min, Vq_max, step=0.001)
@@ -28,5 +27,6 @@ end
 
 function compute_cq(E_min, E_max, eVq, dos_func; kT=.026)
     fcn = E->QC_integrand(E, eVq, dos_func; kT=kT)
-    quadgk(fcn, E_min, E_max)[1]
+    n, w = scale(E_min, E_max)
+    sum(w .* fcn.(n))
 end

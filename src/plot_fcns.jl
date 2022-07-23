@@ -9,7 +9,7 @@ Plot predicted rate constants for each model in the provided list.
 # Keyword Arguments
 * V_min and V_max: bounds of voltage, defaults to +/- 1.0
 * plot_title
-* kwargs for compute_k function
+* kwargs for rate_constant function
 """
 function plot_models(
     models::Vector{<:KineticModel};
@@ -20,7 +20,7 @@ function plot_models(
 )
     V_range = range(V_min, V_max, length = 200)
     xs = repeat([V_range], length(models))
-    ys = map(model -> [compute_k(V, model; kwargs...) for V in V_range], models)
+    ys = map(model -> abs.(rate_constant(V_range, model; kwargs...)), models)
     plot(
         xs,
         ys,
@@ -42,7 +42,7 @@ Plot predicted rate constants for each model in the provided list.
 # Keyword Arguments
 * V_min and V_max: bounds of voltage, defaults to +/- 1.0
 * plot_title
-* kwargs for compute_k function
+* kwargs for rate_constant function
 """
 function plot_exp_and_models(
     exp_data::Matrix,
@@ -56,7 +56,7 @@ function plot_exp_and_models(
     xs = Vector[V, repeat([V_range], length(models))...]
     ys = Vector[
         exp_data[:, 2],
-        map(model -> compute_k(V_range, model; kwargs...), models)...,
+        map(model -> abs.(rate_constant(V_range, model; kwargs...)), models)...,
     ]
 
     # scatter plot of experimental data, lines for fits

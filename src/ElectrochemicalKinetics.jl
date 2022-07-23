@@ -1,29 +1,28 @@
 module ElectrochemicalKinetics
 
-include("dos.jl")
+const kB = 8.61733326e-5
+
+include("utils/dos.jl")
 export DOS
 using .DOS: DOSData, get_dos
 export DOSData, get_dos
 
-include("kinetic_models.jl")
+include("kinetic_models/kinetic_models.jl")
 export ButlerVolmer, AsymptoticMarcusHushChidsey
 export fermi_dirac
 export integrand
-export KineticModel, IntegralModel
+export KineticModel, NonIntegralModel, IntegralModel
 export Marcus, MarcusHushChidsey, MarcusHushChidseyDOS
-
-include("quantum_capacitance.jl")
-
-include("rate_constant.jl")
-export compute_k, compute_k_cq
+export rate_constant, rate_constant_cq
 
 include("fitting.jl")
-include("integration_utils.jl")
-export fitting_params, fit_model, fit_overpotential, is_dosmodel
+include("utils/integration_utils.jl")
+export fitting_params, fit_model, overpotential, is_dosmodel
 
 include("phase_diagrams.jl")
 export kB, h, s, g_thermo, µ_thermo 
-export µ_kinetic, g_kinetic, common_tangent, find_phase_boundaries
+export µ_kinetic, g_kinetic
+export common_tangent, find_phase_boundaries, phase_diagram
 
 include("plot_fcns.jl")
 export plot_models, plot_exp_and_models

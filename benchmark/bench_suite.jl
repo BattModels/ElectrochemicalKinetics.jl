@@ -8,7 +8,7 @@ suite["integrals"] = BenchmarkGroup()
 suite["integrals"]["scale"] = @benchmarkable ElectrochemicalKinetics.scale(0.1, 0.2) seconds=time_mult
 
 # reusing the same ones from phase_diagram_tests
-bv = ButlerVolmer(300)
+bv = ButlerVolmer(300, 0.5)
 m = Marcus(5000, 0.3)
 amhc = AsymptoticMarcusHushChidsey(70000, 0.3)
 ni_kms = [bv, m, amhc]
@@ -22,8 +22,8 @@ suite["rate constants"]["non-integral models"]["vector V"] = BenchmarkGroup()
 
 for km in ni_kms
     modeltype = typeof(km)
-    suite["rate constants"]["non-integral models"]["scalar V"][modeltype] = @benchmarkable compute_k(0.1, $km) seconds=time_mult*0.1
-    suite["rate constants"]["non-integral models"]["vector V"][modeltype] = @benchmarkable compute_k(0.01:0.01:0.2, $km) seconds=time_mult
+    suite["rate constants"]["non-integral models"]["scalar V"][modeltype] = @benchmarkable rate_constant($0.1, $km) seconds=time_mult*0.1
+    suite["rate constants"]["non-integral models"]["vector V"][modeltype] = @benchmarkable rate_constant($0.01:0.01:0.2, $km) seconds=time_mult
 end
 
 mhc = MarcusHushChidsey(70000, 0.3, 1.0)
@@ -38,11 +38,11 @@ suite["rate constants"]["integral models"]["vector V"] = BenchmarkGroup()
 
 for km in i_kms
     modeltype = names[km]
-    suite["rate constants"]["integral models"]["scalar V"][modeltype] = @benchmarkable compute_k(0.1, $km) seconds=time_mult*8
-    suite["rate constants"]["integral models"]["vector V"][modeltype] = @benchmarkable compute_k(0.01:0.01:0.2, $km) seconds=time_mult*11
+    suite["rate constants"]["integral models"]["scalar V"][modeltype] = @benchmarkable rate_constant($0.1, $km) seconds=time_mult*8
+    suite["rate constants"]["integral models"]["vector V"][modeltype] = @benchmarkable rate_constant($0.01:0.01:0.2, $km) seconds=time_mult*11
 end
 
-# fit_overpotential benchmarks
+# overpotential benchmarks
 # TODO: add vector cases
 k = 2e3
 
@@ -53,8 +53,8 @@ suite["overpotential fitting"]["non-integral models"]["AD"] = BenchmarkGroup()
 
 for km in ni_kms
     modeltype = typeof(km)
-    suite["overpotential fitting"]["non-integral models"]["non-AD"][modeltype] = @benchmarkable fit_overpotential($km, $k, autodiff=false) seconds=time_mult*3
-    suite["overpotential fitting"]["non-integral models"]["AD"][modeltype] = @benchmarkable fit_overpotential($km, $k, autodiff=true) seconds=time_mult*5
+    suite["overpotential fitting"]["non-integral models"]["non-AD"][modeltype] = @benchmarkable overpotential($k, $km, autodiff=false) seconds=time_mult*3
+    suite["overpotential fitting"]["non-integral models"]["AD"][modeltype] = @benchmarkable overpotential($k, $km, autodiff=true) seconds=time_mult*5
 end
 
 suite["overpotential fitting"]["integral models"] = BenchmarkGroup()
@@ -62,6 +62,16 @@ suite["overpotential fitting"]["integral models"]["non-AD"] = BenchmarkGroup()
 suite["overpotential fitting"]["integral models"]["AD"] = BenchmarkGroup()
 for km in i_kms[2:end] # skipping MHC for now
     modeltype = names[km]
-    suite["overpotential fitting"]["integral models"]["non-AD"][modeltype] = @benchmarkable fit_overpotential($km, $k, autodiff=false) seconds=time_mult*10
-    suite["overpotential fitting"]["integral models"]["AD"][modeltype] = @benchmarkable fit_overpotential($km, $k, autodiff=true) seconds=time_mult*20
+    suite["overpotential fitting"]["integral models"]["non-AD"][modeltype] = @benchmarkable overpotential($k, $km, autodiff=false) seconds=time_mult*10
+    suite["overpotential fitting"]["integral models"]["AD"][modeltype] = @benchmarkable overpotential($k, $km, autodiff=true) seconds=time_mult*20
 end
+
+suite["phase diagrams"] = BenchmarkGroup()
+suite["phase diagrams"]["non-integral models"] = BenchmarkGroup()
+for km in ni_kms
+    modeltype = typeof(km)
+    suite["phase diagrams"]["non-integral models"][modeltype] = @benchmarkable phase_diagram($km, T=350)
+    # TODO: add a lower-temp BV one
+end
+
+# TODO: get working, add benchmarks for integral model phase diagrams

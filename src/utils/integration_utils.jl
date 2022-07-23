@@ -16,14 +16,5 @@ function setup_integration(f, N)
     end
 end
 
-const scale = setup_integration(gausslegendre, 1000)
-
-# Can't get this to broadcast correctly - but this is the right sort of
-# approach to take here. Of note - this is 2x faster in the forwards pass
-# and about 10x faster in the backwards pass compared to the other method
-# function scale_integration_nodes2(unscaled_x, unscaled_w, lb, ub)
-#     w_scale = @. 0.5 * (ub - lb)
-#     x_scale = @. 0.5 * (ub + lb) + 0.5 * (ub - lb)
-#     unscaled_x * x_scale', unscaled_w * w_scale'
-#     # x_scale * unscaled_x, unscaled_w * w_scale'
-# end
+const scale = setup_integration(gausslegendre, 500)
+const scale_coarse = setup_integration(gausslegendre, 50)

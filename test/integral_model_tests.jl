@@ -7,7 +7,7 @@
         # test some values
         @test compute_k(0, mhc) == 0.0
         @test compute_k(0, mhc, true) == compute_k(0, mhc, false) ≈ 0.0061371322
-        @test compute_k(0.1, mhc) ≈ 0.031239978
+        @test isapprox(compute_k(0.1, mhc), 0.031239978, atol=1e-6)
         
         # test net rates and symmetry
         @test isapprox(compute_k(0.1, mhc, true) - compute_k(0.1, mhc, false), compute_k(0.1, mhc), atol=1e-6)
@@ -22,7 +22,7 @@
         # test that a uniform DOS version matches MHC
         flat_dos = [-5 1; 5 1]
         mhcd = MarcusHushChidseyDOS(0.25, flat_dos)
-        @test isapprox(compute_k(0, mhcd), 0.0, atol=1e-16)
+        @test isapprox(compute_k(0, mhcd), 0.0, atol=1e-6)
         mhc = MarcusHushChidsey(0.25)
         mhcd_k = compute_k(Vs, mhcd)
         mhc_k = compute_k(Vs, mhc)
@@ -35,7 +35,7 @@
         dos = hcat(Es, gaussian.(0.7 .*(Es .- 2)) .+ gaussian.(0.7 .*(Es .+ 2)))
         mhcd = MarcusHushChidseyDOS(0.25, dos)
         # this should be symmetric
-        @test all(isapprox.(compute_k(Vs, mhcd), compute_k(-Vs, mhcd), atol=1e-15))
+        @test all(isapprox.(compute_k(Vs, mhcd), compute_k(-Vs, mhcd), atol=1e-6))
         # now try an asymmetric one
         dos = hcat(Es .+ 1, dos[:,2])
         mhcd = MarcusHushChidseyDOS(0.25, dos)

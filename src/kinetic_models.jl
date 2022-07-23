@@ -12,7 +12,7 @@ abstract type KineticModel end
 
 # dispatch for net rates, returns absolute value
 (km::KineticModel)(V_app; kT = 0.026) =
-    abs.(km(V_app, true; kT = kT) - km(V_app, false; kT = kT))
+    abs.(km(V_app, Val(true); kT = kT) - km(V_app, Val(false); kT = kT))
 
 # return a new one with a scaled prefactor
 import Base.*
@@ -54,13 +54,13 @@ end
 ButlerVolmer() = ButlerVolmer(1.0, 0.5)
 ButlerVolmer(A) = ButlerVolmer(A, 0.5)
 
-function (bv::ButlerVolmer)(V_app, ox::Bool; kT::Real = 0.026)
-    local exp_arg
-    if ox
-        exp_arg = (bv.α .* V_app) ./ kT
-    else
-        exp_arg = -((1 - bv.α) .* V_app) ./ kT
-    end
+function (bv::ButlerVolmer)(V_app, ::Val{true}; kT::Real = 0.026)
+    exp_arg = (bv.α .* V_app) ./ kT
+    bv.A .* exp.(exp_arg)
+end
+
+function (bv::ButlerVolmer)(V_app, ::Val{false}; kT::Real = 0.026)
+    exp_arg = -((1 - bv.α) .* V_app) ./ kT
     bv.A .* exp.(exp_arg)
 end
 
@@ -87,6 +87,16 @@ function (m::Marcus)(V_app, ox::Bool; kT::Real = 0.026)
     else
         exp_arg = -(m.λ .- V_app).^2 ./ (4 * m.λ * kT)
     end
+    m.A .* exp.(exp_arg)
+end
+
+function (m::Marcus)(V_app, ::Val{true}; kT::Real = 0.026)
+    exp_arg = -(m.λ .+ V_app).^2 ./ (4 * m.λ * kT)
+    m.A .* exp.(exp_arg)
+end
+
+function (m::Marcus)(V_app, ::Val{false}; kT::Real = 0.026)
+    exp_arg = -(m.λ .- V_app).^2 ./ (4 * m.λ * kT)
     m.A .* exp.(exp_arg)
 end
 
@@ -176,7 +186,8 @@ function integrand(mhc::MarcusHushChidsey, V_dl, ox::Bool; kT::Real = 0.026)
         end
         exp.(exp_arg)
     end
-    E -> (mhc.A * mhc.average_dos) .* marcus_term(E) .* fermi_dirac(E; kT = kT)
+    f(E::Vector) = hcat((mhc.A * mhc.average_dos) .* marcus_term.(E) .* fermi_dirac.(E; kT = kT)...)' # will return a matrix of both E and V_dl are vectors, first index will be energies and second voltages
+    f(E::Real) = (mhc.A * mhc.average_dos) .* marcus_term.(E) .* fermi_dirac.(E; kT = kT)
 end
 
 
@@ -224,5 +235,6 @@ function integrand(
         exp.(exp_arg)
     end
     fd(E) = ox ? 1 .- fermi_dirac(E; kT = kT) : fermi_dirac(E; kT = kT)
+    # TODO: add two dispatches as with MHC above
     E -> mhcd.A .* mhcd.dos.interp_func.(E .+ V_q) .* fd(E) .* marcus_term(E)
 end

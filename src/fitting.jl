@@ -1,7 +1,7 @@
 using Zygote
 using Optim
-using DiffImages
 using NLsolve
+using LinearAlgebra
 
 # sum of squares loss in logarithmic coordinates
 log_loss(y, y_pred) = (log.(y) .- log.(y_pred)).^2
@@ -12,25 +12,39 @@ linear_loss(y, y_pred) = (y .- y_pred).^2
 """
     fit_overpotential(model, k; kwargs...)
 
-Given values for current/rate constant and specified model parameters, find the overpotentials that must have resulted in it.
+Given values for current/rate constant and specified model parameters, find the overpotential that would have resulted in it. (This is the inverse of the `compute_k` function.)
 """
-function fit_overpotential(model::KineticModel, k, forward=true; kT=.026, loss = log_loss, kwargs...)
-    # start on the correct half of the Tafel plot
-    if forward
-        guess = 0.1
-    else
-        guess = -0.1
-    end
+function fit_overpotential(model::KineticModel, k, guess = fill(0.1, length(k)); kT = 0.026, loss = log_loss, autodiff = true, verbose=false, kwargs...)
     function compare_k!(storage, V)
-        storage .= loss(k, compute_k(V, model; kT=kT, kwargs...))
+        storage .= loss(k, compute_k(V, model; kT = kT, kwargs...))
     end
 
-    function grad!(storage, V)
-        gs = Zygote.jacobian(V -> sum(loss(k, compute_k(V, model; kT=kT, kwargs...))), V)[1]
-        storage .= gs
-        nothing
+    Vs = if autodiff
+        function myfun!(F, J, V)
+            if J == nothing
+                F .= loss(k, compute_k(V, model; kT = kT, kwargs...))
+            elseif F == nothing && !isnothing(J)
+                # TODO: we could speed up the case of scalar k's by dispatching to call gradient here instead
+                gs = Zygote.gradient(V[1]) do V
+                    Zygote.forwarddiff(V) do V
+                        loss(k, compute_k(V, model; kT = kT, kwargs...)) |> sum
+                    end
+                end[1]
+                J .= gs
+            else
+                y, back = Zygote.pullback(V[1]) do V
+                    Zygote.forwarddiff(V) do V
+                        loss(k, compute_k(V, model; kT = kT, kwargs...)) |> sum
+                    end
+                end
+                F .= y
+                J .= back(one.(y))[1]
+            end
+        end
+        Vs = nlsolve(only_fj!(myfun!), guess, show_trace=verbose)
+    else
+        Vs = nlsolve(compare_k!, guess, show_trace=verbose)
     end
-    Vs = nlsolve(compare_k!, grad!, repeat([guess], length(k)))
     if !converged(Vs)
         @warn "Overpotential fit not fully converged...you may have fed in an unreachable reaction rate!"
     end
@@ -42,8 +56,26 @@ function fit_overpotential(model::KineticModel, k, forward=true; kT=.026, loss =
     end
 end
 
+inv!(x) = x .= inv.(x)
+
+Zygote.@adjoint function fit_overpotential(model, k, guess; loss = log_loss, kT = 0.026, autodiff = true, verbose = false, kw...)
+  Vs = fit_overpotential(model, k, guess; loss, verbose, autodiff, kT, kw...)
+  function back(vs)
+    gs = Zygote.jacobian(vs) do V
+      Zygote.forwarddiff(V) do V
+        compute_k(V, model; kw...)
+      end
+    end[1]
+    inv.(gs)
+  end
+  Vs, Δ -> (nothing, nothing, Δ .* back(Vs))
+end
+
+# basically the gradient of fit_overpotential should just be the inverse of the gradient of the forward solve at that point, i.e. if compute_k(V, model) ==k then fit_overpotential(model, k)==V , so we don’t need to diff through the actual solve in fit_overpotential because the gradient should just be the inverse of the gradient of compute_k at V
+
+
 # multiple models, one k value (used in thermo example)
-fit_overpotential(models::Vector{<:KineticModel}, k::Real, forward=true; kwargs...) = fit_overpotential.(models, Ref(k), Ref(forward); kwargs...)
+fit_overpotential(models::Vector{<:KineticModel}, k::Real, guess=fill(0.1, length(k)); kwargs...) = fit_overpotential.(models, Ref(k), Ref(guess); kwargs...)
 
 fitting_params(t::Type{<:KineticModel}) = fieldnames(t)
 fitting_params(::Type{MarcusHushChidsey}) = (:A, :λ)
@@ -119,12 +151,12 @@ function _fit_model(
     # Zygote is tripped up by QuadGK, so that one has to be done with black-box optimization, but the non-integral models work with autodiff
     opt_func = params -> sq_error(model_evaluator(model_builder(params)))
     local best_params
-    function grad!(s, x)
-        gs = gradient(params -> opt_func(params), x)[1]
-        for i in 1:length(x)
-            s[i] = gs[i]
-        end
-    end
+    # function grad!(s, x)
+    #     gs = gradient(params -> opt_func(params), x)[1]
+    #     for i in 1:length(x)
+    #         s[i] = gs[i]
+    #     end
+    # end
     lower = Float64.([param_bounds[p][1] for p in fitting_params(model_type)])
     upper = Float64.([param_bounds[p][2] for p in fitting_params(model_type)])
     init_guess = 0.5 .* (lower .+ upper)
@@ -137,11 +169,11 @@ function _fit_model(
                            outer_iterations = 4,
                            x_tol = 1.,
                            f_tol = 1e3)
-      Fminbox(GradientDescent()), opts
+      Fminbox(NelderMead()), opts
     else
-      Fminbox(LBFGS()), Optim.Options()
+      Fminbox(NelderMead()), Optim.Options()
     end
-    opt = optimize(opt_func, grad!, lower, upper, init_guess, optimizer, opts)
+    opt = optimize(opt_func, lower, upper, init_guess, optimizer, opts)
     best_params = Optim.minimizer(opt)
 
     # construct and return model

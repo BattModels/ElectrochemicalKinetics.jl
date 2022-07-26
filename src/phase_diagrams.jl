@@ -63,13 +63,19 @@ function find_phase_boundaries(I, km::KineticModel; guess=[0.05, 0.95], intercal
     x1.zero
 end
 
-# TODO: add T_max to handle low-T BV cases
-function phase_diagram(km::KineticModel; I_step=10, verbose=false, intercalate=true, kwargs...)
+"""
+    phase_diagram(km; I_step=1, I_max=Inf, verbose=false, intercalate=true, kwargs...)
+
+Construct electrochemical phase diagram for the model `km` as a function of composition and current, in steps of `I_step`.
+    
+Note that appropriate values of `I_step` depend strongly on the prefactor of your model. For example, for `ButlerVolmer` with a prefactor of 1, 
+"""
+function phase_diagram(km::KineticModel; I_step=1, I_max=Inf, verbose=false, intercalate=true, kwargs...)
     I = 0
     pbs_here = find_phase_boundaries(I, km; intercalate=intercalate, kwargs...)
     pbs = pbs_here'
     I_vals = [0]
-    while abs(pbs_here[2] - pbs_here[1]) > 1e-3
+    while abs(pbs_here[2] - pbs_here[1]) > 1e-3 && I < I_max
         I = I + I_step
         if verbose
             println("Solving at I=", I, "...")

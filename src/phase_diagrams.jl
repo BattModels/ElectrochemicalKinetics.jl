@@ -68,7 +68,9 @@ end
 
 Construct electrochemical phase diagram for the model `km` as a function of composition and current, in steps of `I_step`.
     
-Note that appropriate values of `I_step` depend strongly on the prefactor of your model. For example, for `ButlerVolmer` with a prefactor of 1, 
+NOTE 1: appropriate values of `I_step` depend strongly on the prefactor of your model. For example, for `ButlerVolmer` with a prefactor of 1, the phase diagram at T=330K closes at I=5, but with a prefactor of 10, it reaches up to I=44. 
+
+NOTE 2: at lower temperatures (<=320K or so), ButlerVolmer models with the default thermodynamic parameters have a two-phase region at every current, so setting a finite value of I_max is necessary for this function to finish running.
 """
 function phase_diagram(km::KineticModel; I_step=1, I_max=Inf, verbose=false, intercalate=true, kwargs...)
     I = 0

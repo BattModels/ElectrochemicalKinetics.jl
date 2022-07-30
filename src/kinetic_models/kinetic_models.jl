@@ -4,7 +4,10 @@ using Statistics
 using Interpolations
 using DelimitedFiles
 
+
 include("../utils/misc.jl")
+include("unitful.jl")
+
 
 """
     fermi_dirac(E, T=298)

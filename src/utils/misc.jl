@@ -10,7 +10,7 @@ function consistent_params(ps...)
             if length(p) == len
                 push!(new_ps, p)
             else
-                push!(new_ps, repeat([p], len))
+                push!(new_ps, fill(p, len))
             end
         end
         return new_ps
@@ -18,3 +18,4 @@ function consistent_params(ps...)
         throw(DimensionMismatch("Mixed length fields...they must be all the same length, or a combination of one length and length one ;)"))
     end
 end
+

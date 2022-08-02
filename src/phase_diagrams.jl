@@ -64,19 +64,19 @@ function find_phase_boundaries(I, km::KineticModel; guess=[0.05, 0.95], intercal
 end
 
 """
-    phase_diagram(km; I_step=1, I_max=Inf, verbose=false, intercalate=true, kwargs...)
+    phase_diagram(km; I_start=0, I_step=1, I_max=Inf, verbose=false, intercalate=true, start_guess=[0.05, 0.95], kwargs...)
 
-Construct electrochemical phase diagram for the model `km` as a function of composition and current, in steps of `I_step`.
+Construct electrochemical phase diagram for the model `km` as a function of composition and current, from `I_start` to `I_max`, in steps of `I_step`. To aid in convergence, you may also provide `start_guess` for the phase boundaries at `I_start`.
     
 NOTE 1: appropriate values of `I_step` depend strongly on the prefactor of your model. For example, for `ButlerVolmer` with a prefactor of 1, the phase diagram at T=330K closes at I=5, but with a prefactor of 10, it reaches up to I=44. 
 
 NOTE 2: at lower temperatures (<=320K or so), ButlerVolmer models with the default thermodynamic parameters have a two-phase region at every current, so setting a finite value of I_max is necessary for this function to finish running.
 """
-function phase_diagram(km::KineticModel; I_step=1, I_max=Inf, verbose=false, intercalate=true, kwargs...)
-    I = 0
-    pbs_here = find_phase_boundaries(I, km; intercalate=intercalate, kwargs...)
+function phase_diagram(km::KineticModel; I_start=0, I_step=1, I_max=Inf, verbose=false, intercalate=true, start_guess=[0.05, 0.95], kwargs...)
+    I = I_start
+    pbs_here = find_phase_boundaries(I, km; intercalate=intercalate, guess=start_guess, kwargs...)
     pbs = pbs_here'
-    I_vals = [0]
+    I_vals = [I_start]
     while abs(pbs_here[2] - pbs_here[1]) > 1e-3 && I < I_max
         I = I + I_step
         if verbose

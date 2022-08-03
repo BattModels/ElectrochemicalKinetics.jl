@@ -30,6 +30,8 @@ MarcusHushChidsey(A, λ, dos_file::Union{Matrix,String}; kwargs...) =
 
 # TODO: Check that both this and +DOS versions still match original paper
 function integrand(mhc::MarcusHushChidsey, V_dl, ox::Val; T = 298)
+    T = nounits_T(T)
+    V_dl = nounits_V(V_dl)
     marcus_term(E, ::Val{true}) = exp.(-((E .- mhc.λ .+ V_dl) .^ 2) ./ (4 * mhc.λ * kB * T))
     marcus_term(E, ::Val{false}) = exp.(-((E .- mhc.λ .- V_dl) .^2) ./ (4 * mhc.λ * kB * T))
     E -> mhc.A .* mhc.average_dos .* marcus_term(E, ox) .* fermi_dirac.(E; T=T)

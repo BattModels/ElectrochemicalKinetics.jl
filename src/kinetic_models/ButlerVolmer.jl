@@ -21,11 +21,11 @@ ButlerVolmer() = ButlerVolmer(1.0, 0.5)
 ButlerVolmer(α) = ButlerVolmer(1.0, α)
 
 function rate_constant(V_app, bv::ButlerVolmer, ::Val{true}; T = 298)
-    exp_arg = (bv.α .* V_app) / (kB * T)
+    exp_arg = (bv.α .* nounits_V.(V_app)) / (kB * nounits_T.(T))
     bv.A .* exp.(exp_arg)
 end
 
 function rate_constant(V_app, bv::ButlerVolmer, ::Val{false}; T = 298)
-    exp_arg = -((1 .- bv.α) .* V_app) / (kB * T)
+    exp_arg = -((1 .- bv.α) .* nounits_V(V_app)) / (kB * nounits_T(T))
     bv.A .* exp.(exp_arg)
 end

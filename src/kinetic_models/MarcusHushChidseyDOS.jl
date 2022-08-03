@@ -63,6 +63,11 @@ function rate_constant(
     Vq_max = 0.5,
     kwargs...,
 )
+    T = nounits_T(T)
+    V_app = nounits_V(V_app)
+    Vq_min = nounits_V(Vq_min)
+    Vq_max = nounits_V(Vq_max)
+
     if calc_cq
         rate_constant_cq(
             V_app,
@@ -99,6 +104,10 @@ function rate_constant_cq(
     E_min = model.dos.E_min,
     E_max = model.dos.E_max,
 )
+    T = nounits_T(T)
+    V_app = nounits_V(V_app)
+    Vq_min = nounits_V(Vq_min)
+    Vq_max = nounits_V(Vq_max)
     V_dl_interp = calculate_Vdl_interp(model.dos.interp_func, Vq_min, Vq_max, C_dl)
     V_dl = V_dl_interp(V_app)
     V_q = V_app - V_dl
@@ -118,6 +127,10 @@ function rate_constant_cq(
     E_min = model.dos.E_min,
     E_max = model.dos.E_max,
 )
+    T = nounits_T(T)
+    V_app = nounits_V(V_app)
+    Vq_min = nounits_V(Vq_min)
+    Vq_max = nounits_V(Vq_max)
     V_dl_interp = calculate_Vdl_interp(model.dos.interp_func, Vq_min, Vq_max, C_dl)
     V_dl = V_dl_interp(V_app)
     V_q = V_app - V_dl

@@ -19,11 +19,15 @@ end
 Marcus(λ) = Marcus(1.0, λ)
 
 function rate_constant(V_app, m::Marcus, ::Val{true}; T = 298)
+    T = nounits_T(T)
+    V_app = nounits_V(V_app)
     exp_arg = -(m.λ .- V_app).^2 ./ (4 .* m.λ .* kB * T)
     m.A .* exp.(exp_arg)
 end
 
 function rate_constant(V_app, m::Marcus, ::Val{false}; T = 298)
+    T = nounits_T(T)
+    V_app = nounits_V(V_app)
     exp_arg = -(m.λ .+ V_app).^2 ./ (4 .* m.λ .* kB * T)
     m.A .* exp.(exp_arg)
 end

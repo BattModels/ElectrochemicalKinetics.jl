@@ -23,18 +23,18 @@ prefactor(x, intercalate::Bool) = intercalate ? (1 .- x) : x
 These functions return single-argument functions (to easily use common-tangent function below while
 still being able to swap out model parameters by calling "function-builders" with different arguments).
 """
-function µ_kinetic(I, km::KineticModel; intercalate=true, kwargs...)
+function µ_kinetic(I, km::KineticModel; intercalate=true, warn=true, kwargs...)
     thermo_term(x) = μ_thermo(x; kwargs...)
-    μ(x::Real) = thermo_term(x) .+ overpotential(I, prefactor(x, intercalate)*km)
-    μ(x::AbstractVector) = thermo_term(x) .+ overpotential(I, prefactor(x, intercalate).*Ref(km))
+    μ(x::Real) = thermo_term(x) .+ overpotential(I, prefactor(x, intercalate)*km, warn=warn)
+    μ(x::AbstractVector) = thermo_term(x) .+ overpotential(I, prefactor(x, intercalate).*Ref(km), warn=warn)
     return μ
 end
 
-function g_kinetic(I, km::KineticModel; intercalate=true, kwargs...)
+function g_kinetic(I, km::KineticModel; intercalate=true, warn=true, kwargs...)
     thermo_term(x) = g_thermo(x; kwargs...)
     #TODO: gradient of this term is just value of overpotential(x)
     function kinetic_term(x)
-        f(x) = ElectrochemicalKinetics.overpotential(I, prefactor(x, intercalate) * km)
+        f(x) = ElectrochemicalKinetics.overpotential(I, prefactor(x, intercalate) * km, warn=warn)
         n, w = ElectrochemicalKinetics.scale_coarse(zero.(x), x)
         map((w, n) -> sum(w .* f(n)), eachcol(w), eachcol(n))
     end

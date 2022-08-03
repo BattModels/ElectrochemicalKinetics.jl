@@ -45,7 +45,7 @@ Given values for current/rate constant and specified model parameters, find the 
 
 NOTE that this currently only solves for net reaction rates.
 """
-function overpotential(k, model::KineticModel, guess = _get_guess(k, model); T = 298, loss = janky_log_loss, autodiff = true, verbose=false, kwargs...)
+function overpotential(k, model::KineticModel, guess = _get_guess(k, model); T = 298, loss = janky_log_loss, autodiff = true, verbose=false, warn=true, kwargs...)
     # wherever k=0 we can shortcut since the answer has to be 0
     k_solve = k
     if k==0 # scalar k=0, possibly vector model
@@ -91,7 +91,7 @@ function overpotential(k, model::KineticModel, guess = _get_guess(k, model); T =
     else
         Vs = nlsolve(compare_k!, guess, show_trace=verbose)
     end
-    if !converged(Vs)
+    if !converged(Vs) && warn
         @warn "Overpotential fit not fully converged...you may have fed in an unreachable reaction rate!"
     end
     sol = Vs.zero

@@ -26,7 +26,7 @@ still being able to swap out model parameters by calling "function-builders" wit
 function µ_kinetic(I, km::KineticModel; intercalate=true, warn=true, kwargs...)
     thermo_term(x) = μ_thermo(x; kwargs...)
     μ(x::Real) = thermo_term(x) .+ overpotential(I/prefactor(x, intercalate), km, warn=warn)
-    μ(x::AbstractVector) = thermo_term(x) .+ overpotential(I./prefactor(x, intercalate), Ref(km), warn=warn)
+    μ(x::AbstractVector) = thermo_term(x) .+ overpotential(I./prefactor(x, intercalate), km, warn=warn)
     return μ
 end
 
@@ -72,7 +72,7 @@ NOTE 1: appropriate values of `I_step` depend strongly on the prefactor of your 
 
 NOTE 2: at lower temperatures (<=320K or so), ButlerVolmer models with the default thermodynamic parameters have a two-phase region at every current, so setting a finite value of I_max is necessary for this function to finish running.
 """
-function phase_diagram(km::KineticModel; I_start=0, I_step=1, I_max=Inf, verbose=false, intercalate=true, start_guess=[0.05, 0.95], kwargs...)
+function phase_diagram(km::KineticModel; I_start=0.0, I_step=1.0, I_max=Inf, verbose=false, intercalate=true, start_guess=[0.05, 0.95], kwargs...)
     I = I_start
     pbs_here = find_phase_boundaries(I, km; intercalate=intercalate, guess=start_guess, kwargs...)
     pbs = pbs_here'

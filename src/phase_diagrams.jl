@@ -90,8 +90,8 @@ function phase_diagram(km::KineticModel; I_start=0.0, I_step=1.0, I_max=Inf, ver
                 println("Phase boundaries are at ", pbs_here)
             end
         catch e
-            # println("Solve failed at I=", I)
-            println(e)
+            println("Solve failed at I=", I)
+            # println(e)
         end
     end
     return vcat(pbs[:,1], reverse(pbs[:,2])), vcat(I_vals, reverse(I_vals))

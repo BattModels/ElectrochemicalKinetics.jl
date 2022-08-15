@@ -23,14 +23,14 @@ prefactor(x, intercalate::Bool) = intercalate ? (1 .- x) : x
 These functions return single-argument functions (to easily use common-tangent function below while
 still being able to swap out model parameters by calling "function-builders" with different arguments).
 """
-function µ_kinetic(I, km::KineticModel; intercalate=true, warn=true, T=T, kwargs...)
+function µ_kinetic(I, km::KineticModel; intercalate=true, warn=true, T=room_T, kwargs...)
     thermo_term(x) = μ_thermo(x; T=T, kwargs...)
     μ(x::Real) = thermo_term(x) .+ overpotential(I/prefactor(x, intercalate), km, T=T, warn=warn)
     μ(x::AbstractVector) = thermo_term(x) .+ overpotential(I./prefactor(x, intercalate), km, T=T, warn=warn)
     return μ
 end
 
-function g_kinetic(I, km::KineticModel; intercalate=true, warn=true, T=T, kwargs...)
+function g_kinetic(I, km::KineticModel; intercalate=true, warn=true, T=room_T, kwargs...)
     thermo_term(x) = g_thermo(x; T=T, kwargs...)
     #TODO: gradient of this term is just value of overpotential(x)
     function kinetic_term(x)

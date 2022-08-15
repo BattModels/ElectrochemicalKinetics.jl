@@ -23,18 +23,18 @@ prefactor(x, intercalate::Bool) = intercalate ? (1 .- x) : x
 These functions return single-argument functions (to easily use common-tangent function below while
 still being able to swap out model parameters by calling "function-builders" with different arguments).
 """
-function µ_kinetic(I, km::KineticModel; intercalate=true, warn=true, kwargs...)
-    thermo_term(x) = μ_thermo(x; kwargs...)
-    μ(x::Real) = thermo_term(x) .+ overpotential(I, prefactor(x, intercalate)*km, warn=warn)
-    μ(x::AbstractVector) = thermo_term(x) .+ overpotential(I, prefactor(x, intercalate).*Ref(km), warn=warn)
+function µ_kinetic(I, km::KineticModel; intercalate=true, warn=true, T=room_T, kwargs...)
+    thermo_term(x) = μ_thermo(x; T=T, kwargs...)
+    μ(x::Real) = thermo_term(x) .+ overpotential(I/prefactor(x, intercalate), km, T=T, warn=warn)
+    μ(x::AbstractVector) = thermo_term(x) .+ overpotential(I./prefactor(x, intercalate), km, T=T, warn=warn)
     return μ
 end
 
-function g_kinetic(I, km::KineticModel; intercalate=true, warn=true, kwargs...)
-    thermo_term(x) = g_thermo(x; kwargs...)
+function g_kinetic(I, km::KineticModel; intercalate=true, warn=true, T=room_T, kwargs...)
+    thermo_term(x) = g_thermo(x; T=T, kwargs...)
     #TODO: gradient of this term is just value of overpotential(x)
     function kinetic_term(x)
-        f(x) = ElectrochemicalKinetics.overpotential(I, prefactor(x, intercalate) * km, warn=warn)
+        f(x) = ElectrochemicalKinetics.overpotential.(I ./prefactor(x, intercalate), Ref(km), T=T, warn=warn)
         n, w = ElectrochemicalKinetics.scale_coarse(zero.(x), x)
         map((w, n) -> sum(w .* f(n)), eachcol(w), eachcol(n))
     end
@@ -72,7 +72,7 @@ NOTE 1: appropriate values of `I_step` depend strongly on the prefactor of your 
 
 NOTE 2: at lower temperatures (<=320K or so), ButlerVolmer models with the default thermodynamic parameters have a two-phase region at every current, so setting a finite value of I_max is necessary for this function to finish running.
 """
-function phase_diagram(km::KineticModel; I_start=0, I_step=1, I_max=Inf, verbose=false, intercalate=true, start_guess=[0.05, 0.95], kwargs...)
+function phase_diagram(km::KineticModel; I_start=0.0, I_step=1.0, I_max=Inf, verbose=false, intercalate=true, start_guess=[0.05, 0.95], kwargs...)
     I = I_start
     pbs_here = find_phase_boundaries(I, km; intercalate=intercalate, guess=start_guess, kwargs...)
     pbs = pbs_here'
@@ -91,6 +91,7 @@ function phase_diagram(km::KineticModel; I_start=0, I_step=1, I_max=Inf, verbose
             end
         catch e
             println("Solve failed at I=", I)
+            # println(e)
         end
     end
     return vcat(pbs[:,1], reverse(pbs[:,2])), vcat(I_vals, reverse(I_vals))

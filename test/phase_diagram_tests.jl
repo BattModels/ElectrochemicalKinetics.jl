@@ -117,24 +117,60 @@ end
 end
 
 @testset "Phase Diagram" begin
-    km = bv # TODO: expand this
+    v1_vals = Dict(:ButlerVolmer=>[0.045547, 0.841501],
+                :Marcus=>[0.04901, 0.81884],
+                :AsymptoticMarcusHushChidsey=>[0.04958, 0.81897])
+    v2_vals = Dict(:ButlerVolmer=>[0.090478, 0.77212],
+                :Marcus=>[0.078934, 0.804275],
+                :AsymptoticMarcusHushChidsey=>[0.07609, 0.81652])
+    v3_vals = Dict(:ButlerVolmer=>[0.105747, 0.6809],
+                :Marcus=>[0.154934, 0.54218],
+                :AsymptoticMarcusHushChidsey=>[0.147034,0.566617])
+    I_max_T300 = Dict(:ButlerVolmer=>700.0,
+                :Marcus=>600.0,
+                :AsymptoticMarcusHushChidsey=>650.0)
+    I_max_T400 = Dict(:ButlerVolmer=>250.0,
+                :Marcus=>400.0,
+                :AsymptoticMarcusHushChidsey=>500.0)
+    for km in kms
+        model_type = nameof(typeof(km))
+        @testset "$model_type" begin
+            # simplest case, just one pair of x values (this function is still pretty slow though)
+            v1 = find_phase_boundaries(100, km)
 
-    # simplest case, just one pair of x values (this function is still pretty slow though)
-    v1 = find_phase_boundaries(100, km)
+            @test all(isapprox.(common_tangent(v1, 100, km), Ref(0.0), atol=1e-6))
+            v2 = find_phase_boundaries(100, km, T=350)     
+            @test all(isapprox.(common_tangent(v2, 100, km, T=350), Ref(0.0), atol=1e-5))
+            # they should get "narrower" with temperature
+            @test v2[1] > v1[1]
+            @test v2[2] < v1[2]
+            v3 = find_phase_boundaries(400, km, guess=[0.1,0.8])
+            # ...and also with current
+            @test v3[1] > v1[1]
+            @test v3[2] < v1[2]
 
-    @test all(isapprox.(common_tangent(v1, 100, km), Ref(0.0), atol=1e-6))
-    v2 = find_phase_boundaries(100, km, T=350)     
-    @test all(isapprox.(common_tangent(v2, 100, km, T=350), Ref(0.0), atol=1e-5))
-    # they should get "narrower" with temperature
-    @test v2[1] > v1[1]
-    @test v2[2] < v1[2]
-    v3 = find_phase_boundaries(400, km)
-    # ...and also with current
-    @test v3[1] > v1[1]
-    @test v3[2] < v1[2]
+            # test actual numerical values too
+            @test all(isapprox.(v1, v1_vals[model_type], atol=1e-5))
+            @test all(isapprox.(v2, v2_vals[model_type], atol=1e-4))
+            @test all(isapprox.(v3, v3_vals[model_type], atol=1e-4))
 
-    # test actual numerical values too
-    @test all(isapprox.(v1, [0.045547, 0.841501], atol=1e-5))
-    @test all(isapprox.(v2, [0.090478, 0.77212], atol=1e-4))
-    @test all(isapprox.(v3, [0.105747, 0.6809], atol=1e-4))
+            # and actually build the full map for a couple temps
+            pbs, I = phase_diagram(km, I_max=700, I_step=50)
+            @test maximum(I) == I_max_T300[model_type]
+        end
+    end
+
+    @testset "MHC" begin
+        # do some lighterweight stuff here since this takes awhile
+        mhc = MarcusHushChidsey(amhc.A, amhc.λ)
+        # also give it a good initial guess so it only takes one or two optimizer steps
+        v1 = find_phase_boundaries(100, mhc, guess=v1_vals[:AsymptoticMarcusHushChidsey])
+        @test all(isapprox.(v1, [0.04967204036, 0.81822937543], atol=1e-5))
+
+        v2 = find_phase_boundaries(100, mhc, T=350, guess=v2_vals[:AsymptoticMarcusHushChidsey])
+        @test all(isapprox.(v2, [0.075615, 0.8171636], atol=1e-5))
+
+        v3 = find_phase_boundaries(400, mhc, guess=v3_vals[:AsymptoticMarcusHushChidsey])
+        @test all(isapprox.(v3, [0.1467487, 0.5704125], atol=1e-5))
+    end
 end

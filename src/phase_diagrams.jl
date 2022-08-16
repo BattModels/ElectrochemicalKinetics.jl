@@ -43,6 +43,7 @@ function g_kinetic(I, km::KineticModel; intercalate=true, warn=true, T=room_T, k
     return g
 end
 
+# TODO: figure out T passthrough issue
 # zeros of this function correspond to pairs of x's satisfying the common tangent condition for a given µ function
 # case where we just feed in two points (x should be of length two)
 function common_tangent(x::Vector, I, km::KineticModel; intercalate=true, kwargs...)
@@ -72,18 +73,22 @@ NOTE 1: appropriate values of `I_step` depend strongly on the prefactor of your 
 
 NOTE 2: at lower temperatures (<=320K or so), ButlerVolmer models with the default thermodynamic parameters have a two-phase region at every current, so setting a finite value of I_max is necessary for this function to finish running.
 """
-function phase_diagram(km::KineticModel; I_start=0.0, I_step=1.0, I_max=Inf, verbose=false, intercalate=true, start_guess=[0.05, 0.95], kwargs...)
+function phase_diagram(km::KineticModel; I_start=0.0, I_step=1.0, I_max=Inf, verbose=false, intercalate=true, start_guess=[0.05, 0.95], tol=5e-3, kwargs...)
     I = I_start
     pbs_here = find_phase_boundaries(I, km; intercalate=intercalate, guess=start_guess, kwargs...)
     pbs = pbs_here'
     I_vals = [I_start]
-    while abs(pbs_here[2] - pbs_here[1]) > 1e-3 && I < I_max
+    pb_diff = [0.0, 0.0]
+    while abs(pbs_here[2] - pbs_here[1]) > tol && I < I_max
         I = I + I_step
         if verbose
             println("Solving at I=", I, "...")
         end
         try
-            pbs_here = find_phase_boundaries(I, km; intercalate=intercalate, guess=pbs_here, kwargs...)
+            pbs_old = pbs_here
+            pbs_here = find_phase_boundaries(I, km; intercalate=intercalate, guess=pbs_old .+ pb_diff, kwargs...)
+            pb_diff = pbs_here .- pbs_old
+            # TODO: check that they haven't crossed over
             pbs = vcat(pbs, pbs_here')
             push!(I_vals, I)
             if verbose

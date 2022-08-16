@@ -71,6 +71,7 @@ models = [fit_model(exp_data, model_type; dos_file=dosfile) for model_type in mo
 plot_exp_and_models(exp_data, models)
 ```
 The resulting plot looks like:
+
 <img src="img/plot1.png" alt="models_expts">
 
 But we might also want to see the higher-voltage behavior and compare the models absent the experimental data. There's another function for that (by default it plots to +/- 1V)...
@@ -86,7 +87,7 @@ For more on this, see upcoming paper: [arxiv link placeholder]
 ### Butler-Volmer
 Probably the most basic (and largely empirical) kinetic model. The rate constants are given by:
 
-$$k_{\text{ox}}^{\text{BV}}(\eta)=A\exp\left(\frac{\alpha\eta}{k_{\text B}T}\right)\\k_{\text{red}}^{\text{BV}}(\eta)=A\exp\left(\frac{(1-\alpha)\eta}{k_{\text B}T}\right)$$
+$$k_{\text{ox}}^{\text{BV}}(\eta)=A\exp\left(\frac{\alpha\eta}{k_{\text B}T}\right)\\ k_{\text{red}}^{\text{BV}}(\eta)=A\exp\left(\frac{(1-\alpha)\eta}{k_{\text B}T}\right)$$
 
 It is implemented in the package as `ButlerVolmer`, possessing two fields: the prefactor `A` and the transfer coefficient `α`.
 

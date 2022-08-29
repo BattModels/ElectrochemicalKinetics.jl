@@ -19,6 +19,8 @@ end
 AsymptoticMarcusHushChidsey(λ) = AsymptoticMarcusHushChidsey(1.0, λ)
 
 function rate_constant(V_app, amhc::AsymptoticMarcusHushChidsey, ox::Bool; T = 298)
+    T = nounits_T(T)
+    V_app = nounits_V(V_app)
     η = (2 * ox - 1) .* V_app ./ (kB * T)
     λ_nondim = amhc.λ / (kB * T)
     a = 1 .+ sqrt.(λ_nondim)
@@ -29,6 +31,8 @@ end
 
 # direct dispatch for net rates
 function rate_constant(V_app, amhc::AsymptoticMarcusHushChidsey; T = 298)
+    T = nounits_T(T)
+    V_app = nounits_V(V_app)
     η = V_app / (kB * T)
     λ_nondim = amhc.λ / (kB * T)
     a = 1 .+ sqrt.(λ_nondim)

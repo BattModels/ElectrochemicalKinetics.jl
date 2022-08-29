@@ -1,6 +1,8 @@
 using ElectrochemicalKinetics
 using QuadGK
 using Test
+using Unitful
+import Unitful: @u_str
 
 function test_vector_voltages(model, voltages)
     @test isapprox(rate_constant(voltages, model), rate_constant.(voltages, Ref(model)))
@@ -22,6 +24,12 @@ function test_vector_models(ModelType, params)
     @test isapprox(rate_constant(0.1, model1, T=1000), rate_constant.(Ref(0.1), ModelType.(broadcast_params[2:end]...), T=1000))
     @test isapprox(rate_constant(0.1, model2), rate_constant.(Ref(0.1), ModelType.(broadcast_params...)))
     @test isapprox(rate_constant(0.1, model2, T=200), rate_constant.(Ref(0.1), ModelType.(broadcast_params...), T=200))
+    #with units
+    @test isapprox(rate_constant(0.1u"V", model1), rate_constant.(Ref(0.1), ModelType.(broadcast_params[2:end]...)))
+    @test isapprox(rate_constant(0.1u"V", model1, T=1000u"K"), rate_constant.(Ref(0.1), ModelType.(broadcast_params[2:end]...), T=1000))
+    @test isapprox(rate_constant(0.1u"V", model2), rate_constant.(Ref(0.1), ModelType.(broadcast_params...)))
+    @test isapprox(rate_constant(0.1u"V", model2, T=200u"K"), rate_constant.(Ref(0.1), ModelType.(broadcast_params...), T=200))
+
 end
 
 @testset "ElectrochemicalKinetics.jl" begin

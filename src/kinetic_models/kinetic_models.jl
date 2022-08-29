@@ -4,7 +4,10 @@ using Statistics
 using Interpolations
 using DelimitedFiles
 
+
 include("../utils/misc.jl")
+include("unitful.jl")
+
 
 """
     fermi_dirac(E, T=298)
@@ -96,9 +99,11 @@ function rate_constant(
     model::IntegralModel,
     args...; # would just be the ox flag, if present
     T = 298,
-    E_min = -100 * kB * T,
-    E_max = 100 * kB * T
-)
+    E_min = -100 * kB *  nounits_T(T),
+    E_max = 100 * kB *  nounits_T(T)
+)   
+    V_app = nounits_V(V_app)
+    T = nounits_T(T)
     n, w = scale(E_min, E_max)
     f = integrand(model, V_app, args...; T = T)
     sum(w .* f.(n))

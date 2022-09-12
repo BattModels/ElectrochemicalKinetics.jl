@@ -66,8 +66,8 @@ abstract type IntegralModel{T} <: KineticModel{T} end
 
 # TODO: check that this passes through V_q appropriately
 # dispatch for net rates
-function integrand(km::IntegralModel, V; c_o=1.0, c_r=1.0, T=298, kwargs...)
-    eq_V = kB * T * log(c_r/c_o)
+function integrand(km::IntegralModel, V; c_r=1.0, c_o=1.0, T=298, kwargs...)
+    eq_V = kB * T .* log.(c_r/c_o)
     E -> c_r .* integrand(km, V .- eq_V, Val(true); kwargs...)(E) .- c_o .* integrand(km, V .- eq_V, Val(false); kwargs...)(E)
 end
 
@@ -87,8 +87,8 @@ If calc_cq flag is passed, optionally compute voltage shifts due to quantum capa
 rate_constant(V_app, model::NonIntegralModel, ox::Bool; kwargs...) = rate_constant(V_app, model, Val(ox); kwargs...)
 
 # dispatch for net rates
-function rate_constant(V_app, model::NonIntegralModel; c_o=1.0, c_r=1.0, T=298, kwargs...)
-    eq_V = kB * T * log(c_r/c_o)
+function rate_constant(V_app, model::NonIntegralModel; c_r=1.0, c_o=1.0, T=298, kwargs...)
+    eq_V = kB * T .* log.(c_r./c_o)
     c_r .* rate_constant(V_app .- eq_V, model, Val(true); kwargs...) .- c_o .* rate_constant(V_app .- eq_V, model, Val(false); kwargs...)
 end
 

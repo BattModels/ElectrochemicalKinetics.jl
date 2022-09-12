@@ -25,16 +25,16 @@ still being able to swap out model parameters by calling "function-builders" wit
 """
 function µ_kinetic(I, km::KineticModel; warn=true, T=room_T, kwargs...)
     thermo_term(x) = μ_thermo(x; T=T, kwargs...)
-    μ(x::Real) = thermo_term(x) .+ overpotential(I, c_r=x, c_o=1-x, km, T=T, warn=warn)
-    μ(x::AbstractVector) = thermo_term(x) .+ overpotential(I, km, c_r=x, c_o=1 .-x, T=T, warn=warn)
+    μ(x::Real) = thermo_term(x) .+ overpotential(I, km; c_r=x, c_o=1-x, T=T, warn=warn)[1]
+    μ(x::AbstractVector) = thermo_term(x) .+ overpotential(I, km; c_r=x, c_o=1 .-x, T=T, warn=warn)
     return μ
 end
 
-function g_kinetic(I, km::KineticModel; intercalate=true, warn=true, T=room_T, kwargs...)
+function g_kinetic(I, km::KineticModel; warn=true, T=room_T, kwargs...)
     thermo_term(x) = g_thermo(x; T=T, kwargs...)
     #TODO: gradient of this term is just value of overpotential(x)
     function kinetic_term(x)
-        f(x) = ElectrochemicalKinetics.overpotential.(I ./prefactor(x, intercalate), Ref(km), T=T, warn=warn)
+        f(x) = ElectrochemicalKinetics.overpotential(I, km; c_r=x, c_o=1 .-x, T=T, warn=warn)
         n, w = ElectrochemicalKinetics.scale_coarse(zero.(x), x)
         map((w, n) -> sum(w .* f(n)), eachcol(w), eachcol(n))
     end
@@ -46,17 +46,17 @@ end
 # TODO: figure out T passthrough issue
 # zeros of this function correspond to pairs of x's satisfying the common tangent condition for a given µ function
 # case where we just feed in two points (x should be of length two)
-function common_tangent(x::Vector, I, km::KineticModel; intercalate=true, kwargs...)
-    g = g_kinetic(I, km; intercalate=intercalate, kwargs...)
-    µ = µ_kinetic(I, km; intercalate=intercalate, kwargs...)
+function common_tangent(x::Vector, I, km::KineticModel; kwargs...)
+    g = g_kinetic(I, km; kwargs...)
+    µ = µ_kinetic(I, km; kwargs...)
     [(g(x[2]) - g(x[1]))/(x[2] - x[1]) .- μ(x[1]), μ(x[2])-μ(x[1])]
 end
 
 # TODO: see if we can speed this up with gradients? And/or if it's even needed for integral cases
-function find_phase_boundaries(I, km::KineticModel; guess=[0.05, 0.95], intercalate=true, verbose=false, kwargs...)
+function find_phase_boundaries(I, km::KineticModel; guess=[0.05, 0.95], verbose=false, kwargs...)
     
     function myct!(storage, x)
-        res = common_tangent(x, I, km; intercalate=intercalate, kwargs...)
+        res = common_tangent(x, I, km; kwargs...)
         storage[1] = res[1]
         storage[2] = res[2]
     end
@@ -75,18 +75,19 @@ NOTE 2: at lower temperatures (<=320K or so), ButlerVolmer models with the defau
 """
 function phase_diagram(km::KineticModel; I_start=0.0, I_step=1.0, I_max=Inf, verbose=false, intercalate=true, start_guess=[0.05, 0.95], tol=5e-3, kwargs...)
     I = I_start
-    pbs_here = find_phase_boundaries(I, km; intercalate=intercalate, guess=start_guess, kwargs...)
+    pbs_here = find_phase_boundaries(I, km; guess=start_guess, kwargs...)
     pbs = pbs_here'
     I_vals = [I_start]
     pb_diff = [0.0, 0.0]
-    while abs(pbs_here[2] - pbs_here[1]) > tol && I < I_max
+    # while within tolerance and "on same side" of max
+    while abs(pbs_here[2] - pbs_here[1]) > tol && (I_max - I) * I_step > 0
         I = I + I_step
         if verbose
             println("Solving at I=", I, "...")
         end
         try
             pbs_old = pbs_here
-            pbs_here = find_phase_boundaries(I, km; intercalate=intercalate, guess=pbs_old .+ pb_diff, kwargs...)
+            pbs_here = find_phase_boundaries(I, km; guess=pbs_old .+ pb_diff, kwargs...)
             pb_diff = pbs_here .- pbs_old
             # TODO: check that they haven't crossed over
             pbs = vcat(pbs, pbs_here')

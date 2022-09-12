@@ -64,18 +64,21 @@ abstract type IntegralModel{T} <: KineticModel{T} end
 # integrand(km::IntegralModel, V_dl, ox::Bool; kwargs...) =
 #     error("An integral-based kinetic model must dispatch the `integrand` function!")
 
-# TODO: check that this passes through both kT and V_q appropriately
+# TODO: check that this passes through V_q appropriately
 # dispatch for net rates
-integrand(km::IntegralModel, V; kwargs...) =
-    E -> integrand(km, V, Val(true); kwargs...)(E) - integrand(km, V, Val(false); kwargs...)(E)
+function integrand(km::IntegralModel, V; c_o=1.0, c_r=1.0, T=298, kwargs...)
+    eq_V = kB * T * log(c_r/c_o)
+    E -> c_r .* integrand(km, V .- eq_V, Val(true); kwargs...)(E) .- c_o .* integrand(km, V .- eq_V, Val(false); kwargs...)(E)
+end
+
 integrand(km::IntegralModel, V, ox::Bool; kwargs...) = integrand(km, V, Val(ox); kwargs...)
 
 """
     rate_constant(V_app, model::KineticModel, ox::Bool; kwargs...)
-    rate_constant(V_app, model::KineticModel; kwargs...)
+    rate_constant(V_app, model::KineticModel; c_r=1.0, c_o=1.0, kwargs...)
     rate_constant(E_min, E_max, V_app, model::MarcusHushChidseyDOS, calc_cq::Bool=false; C_dl = 10.0, Vq_min = -0.5, Vq_max = 0.5, kwargs...)
 
-Compute the rate constant k predicted by a given kinetic model at a applied voltage `V_app`. If a flag for reaction direction `ox` is supplied, `true` gives the oxidative and `false` the reductive direction, while omitting this flag will yield net reaction rate (absolute value thereof).
+Compute the rate constant k predicted by a given kinetic model at a applied voltage `V_app`. If a flag for reaction direction `ox` is supplied, `true` gives the oxidative and `false` the reductive direction, while omitting this flag will yield net reaction rate. In the net rate case, concentrations of reduced and oxidized species (`c_r` and `c_o`, respectively) may also be supplied (default values are unity).
 
 If the model is an `IntegralModel`, integration bounds `E_min` and `E_max` may be supplied as kwargs. Integration is done via GK quadrature.
 
@@ -84,8 +87,10 @@ If calc_cq flag is passed, optionally compute voltage shifts due to quantum capa
 rate_constant(V_app, model::NonIntegralModel, ox::Bool; kwargs...) = rate_constant(V_app, model, Val(ox); kwargs...)
 
 # dispatch for net rates
-rate_constant(V_app, model::NonIntegralModel; kwargs...) =
-    rate_constant(V_app, model, Val(true); kwargs...) - rate_constant(V_app, model, Val(false); kwargs...)
+function rate_constant(V_app, model::NonIntegralModel; c_o=1.0, c_r=1.0, T=298, kwargs...)
+    eq_V = kB * T * log(c_r/c_o)
+    c_r .* rate_constant(V_app .- eq_V, model, Val(true); kwargs...) .- c_o .* rate_constant(V_app .- eq_V, model, Val(false); kwargs...)
+end
 
 # TODO: add tests that both args and kwargs are correctly captured here (also for the Val thing)
 # "callable" syntax

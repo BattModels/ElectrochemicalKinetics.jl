@@ -30,7 +30,6 @@ function µ_kinetic(I, km::KineticModel; warn=true, T=room_T, kwargs...)
     return μ
 end
 
-# TODO: rename concentrations to activities
 function g_kinetic(I, km::KineticModel; warn=true, T=room_T, kwargs...)
     thermo_term(x) = g_thermo(x; T=T, kwargs...)
     #TODO: gradient of this term is just value of overpotential(x)

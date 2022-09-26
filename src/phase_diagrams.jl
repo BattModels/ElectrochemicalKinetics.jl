@@ -25,16 +25,17 @@ still being able to swap out model parameters by calling "function-builders" wit
 """
 function µ_kinetic(I, km::KineticModel; warn=true, T=room_T, kwargs...)
     thermo_term(x) = μ_thermo(x; T=T, kwargs...)
-    μ(x::Real) = thermo_term(x) .+ overpotential(I, km; c_r=x, c_o=1-x, T=T, warn=warn)[1]
-    μ(x::AbstractVector) = thermo_term(x) .+ overpotential(I, km; c_r=x, c_o=1 .-x, T=T, warn=warn)
+    μ(x::Real) = thermo_term(x) .+ overpotential(I, km; c_r=x/((1-x)), c_o=1, T=T, warn=warn)[1]
+    μ(x::AbstractVector) = thermo_term(x) .+ overpotential(I, km; c_r=x ./ ((1 .-x)), c_o=1, T=T, warn=warn)
     return μ
 end
 
+# TODO: rename concentrations to activities
 function g_kinetic(I, km::KineticModel; warn=true, T=room_T, kwargs...)
     thermo_term(x) = g_thermo(x; T=T, kwargs...)
     #TODO: gradient of this term is just value of overpotential(x)
     function kinetic_term(x)
-        f(x) = ElectrochemicalKinetics.overpotential(I, km; c_r=x, c_o=1 .-x, T=T, warn=warn)
+        f(x) = ElectrochemicalKinetics.overpotential(I, km; c_r=x ./ ((1 .- x)), c_o=1, T=T, warn=warn)
         n, w = ElectrochemicalKinetics.scale_coarse(zero.(x), x)
         map((w, n) -> sum(w .* f(n)), eachcol(w), eachcol(n))
     end

@@ -17,24 +17,35 @@ g_thermo(x; Ω=Ω_default, muoA=muoA_default, muoB=muoB_default, T=room_T) = @. 
 
 prefactor(x, intercalate::Bool) = intercalate ? (1 .- x) : x
 
+# TODO: add support for other thermodynamic models than ideal mixing...
 """
 µ and g with kinetic constributions, can be modeled using any <:KineticModel object
 
 These functions return single-argument functions (to easily use common-tangent function below while
 still being able to swap out model parameters by calling "function-builders" with different arguments).
+
+Notably, expressions for computing activity as a function of composition `x` for the oxidized and reduced states can be supplied via the activity_function_o and activity_function_r.
 """
-function µ_kinetic(I, km::KineticModel; warn=true, T=room_T, kwargs...)
+function µ_kinetic(I, km::KineticModel; 
+    activity_function_o=x-> 1 .- x, # default a la Bazant
+    activity_function_r=x-> 1 .- x, 
+    warn=true, 
+    T=room_T, 
+    kwargs...)
     thermo_term(x) = μ_thermo(x; T=T, kwargs...)
-    μ(x::Real) = thermo_term(x) .+ overpotential(I, km; c_r=x/((1-x)), c_o=1, T=T, warn=warn)[1]
-    μ(x::AbstractVector) = thermo_term(x) .+ overpotential(I, km; c_r=x ./ ((1 .-x)), c_o=1, T=T, warn=warn)
+    μ(x::Real) = thermo_term(x) .+ overpotential(I, km; a_r=activity_function_r(x), a_o=activity_function_o(x), T=T, warn=warn)[1]
+    μ(x::AbstractVector) = thermo_term(x) .+ overpotential(I, km; a_r=activity_function_r(x), a_o=activity_function_o(x), T=T, warn=warn)
     return μ
 end
 
-function g_kinetic(I, km::KineticModel; warn=true, T=room_T, kwargs...)
+function g_kinetic(I, km::KineticModel; 
+    activity_function_o=x-> 1 .- x, 
+    activity_function_r=x-> 1 .- x,
+    warn=true, T=room_T, kwargs...)
     thermo_term(x) = g_thermo(x; T=T, kwargs...)
     #TODO: gradient of this term is just value of overpotential(x)
     function kinetic_term(x)
-        f(x) = ElectrochemicalKinetics.overpotential(I, km; c_r=x ./ ((1 .- x)), c_o=1, T=T, warn=warn)
+        f(x) = ElectrochemicalKinetics.overpotential(I, km; a_r=activity_function_r(x), a_o=activity_function_o(x), T=T, warn=warn)
         n, w = ElectrochemicalKinetics.scale_coarse(zero.(x), x)
         map((w, n) -> sum(w .* f(n)), eachcol(w), eachcol(n))
     end
@@ -73,7 +84,7 @@ NOTE 1: appropriate values of `I_step` depend strongly on the prefactor of your 
 
 NOTE 2: at lower temperatures (<=320K or so), ButlerVolmer models with the default thermodynamic parameters have a two-phase region at every current, so setting a finite value of I_max is necessary for this function to finish running.
 """
-function phase_diagram(km::KineticModel; I_start=0.0, I_step=1.0, I_max=Inf, verbose=false, intercalate=true, start_guess=[0.05, 0.95], tol=5e-3, kwargs...)
+function phase_diagram(km::KineticModel; I_start=0.0, I_step=1.0, I_max=Inf, verbose=false, start_guess=[0.05, 0.95], tol=5e-3, kwargs...)
     I = I_start
     pbs_here = find_phase_boundaries(I, km; guess=start_guess, kwargs...)
     pbs = pbs_here'

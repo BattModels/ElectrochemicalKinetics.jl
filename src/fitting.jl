@@ -21,9 +21,9 @@ function janky_log_loss(y, y_pred)
 end
 
 # helper fcn to make sure starting guess for `overpotential` has correct sign
-function _get_guess(init_guess, k, model, c_r, c_o)
+function _get_guess(init_guess, k, model, a_r, a_o)
     guess = init_guess
-    max_l = max(length(k), length(model), length(c_r), length(c_o))
+    max_l = max(length(k), length(model), length(a_r), length(a_o))
     if init_guess isa Real
         guess = fill(init_guess, max_l)
     else
@@ -53,10 +53,10 @@ Given values for current/rate constant and specified model parameters, find the 
 
 NOTE that this currently only solves for net reaction rates.
 """
-function overpotential(k, model::KineticModel; c_r=1.0, c_o=1.0, init_guess = 0.1, T = 298, loss = janky_log_loss, autodiff = true, verbose=false, warn=true, kwargs...)
+function overpotential(k, model::KineticModel; a_r=1.0, a_o=1.0, guess = 0.1, T = 298, loss = janky_log_loss, autodiff = true, verbose=false, warn=true, kwargs...)
     # wherever k=0 we can shortcut since the answer has to be 0
     k_solve = k
-    guess = _get_guess(init_guess, k, model, c_r, c_o)
+    guess = _get_guess(guess, k, model, a_r, a_o)
     if k==0 # scalar k=0, possibly vector model
         if verbose
             println("shortcutting full solve")
@@ -71,25 +71,25 @@ function overpotential(k, model::KineticModel; c_r=1.0, c_o=1.0, init_guess = 0.
     end
 
     function compare_k!(storage, V)
-        storage .= loss(k, rate_constant(V, model; c_r=c_r, c_o=c_o, T = T, kwargs...))
+        storage .= loss(k, rate_constant(V, model; a_r=a_r, a_o=a_o, T = T, kwargs...))
     end
     Vs = if autodiff
         function myfun!(F, J, V)
             # println("V=",V)
             # println("loss=", loss(k, rate_constant(V, model; T=T, kwargs...)))
             if isnothing(J)
-                F .= loss(k_solve, rate_constant(V, model; c_r=c_r, c_o=c_o, T = T, kwargs...))
+                F .= loss(k_solve, rate_constant(V, model; a_r=a_r, a_o=a_o, T = T, kwargs...))
             elseif isnothing(F) && !isnothing(J)
                 gs = Zygote.gradient(V) do V
                     Zygote.forwarddiff(V) do V
-                        loss(k_solve, rate_constant(V, model; c_r=c_r, c_o=c_o, T = T, kwargs...)) |> sum
+                        loss(k_solve, rate_constant(V, model; a_r=a_r, a_o=a_o, T = T, kwargs...)) |> sum
                     end
                 end[1]
                 J .= diagm(gs)
             else
                 y, back = Zygote.pullback(V) do V
                     Zygote.forwarddiff(V) do V
-                        loss(k_solve, rate_constant(V, model; c_r=c_r, c_o=c_o, T = T, kwargs...)) |> sum
+                        loss(k_solve, rate_constant(V, model; a_r=a_r, a_o=a_o, T = T, kwargs...)) |> sum
                     end
                 end
                 F .= y
@@ -111,10 +111,11 @@ function overpotential(k, model::KineticModel; c_r=1.0, c_o=1.0, init_guess = 0.
     else
         sol_return = sol
     end
+    if length(sol_return) == 1
+        sol_return = first(sol_return)
+    end
     sol_return
 end
-
-# overpotential(k::Real, model::KineticModel{T}; guess=0.1, kwargs...) where T<:Real = overpotential([k], model; guess=[0.1], kwargs...)[1]
 
 inv!(x) = x .= inv.(x)
 

@@ -27,12 +27,5 @@ function rate_constant(V_app, amhc::AsymptoticMarcusHushChidsey, ox::Bool; T = 2
     return kB * T .* amhc.A .* pref .* erfc.(arg)
 end
 
-# direct dispatch for net rates
-function rate_constant(V_app, amhc::AsymptoticMarcusHushChidsey; T = 298)
-    η = V_app / (kB * T)
-    λ_nondim = amhc.λ / (kB * T)
-    a = 1 .+ sqrt.(λ_nondim)
-    arg = (λ_nondim .- sqrt.(a .+ η.^2)) ./ (2 .* sqrt.(λ_nondim))
-    pref = sqrt.(π .* λ_nondim) .* tanh.(η/2)
-    return kB * T * amhc.A .* pref .* erfc.(arg)
-end
+rate_constant(V_app, amhc::AsymptoticMarcusHushChidsey, ::Val{true}; T=298) = rate_constant(V_app, amhc, true; T=T)
+rate_constant(V_app, amhc::AsymptoticMarcusHushChidsey, ::Val{false}; T=298) = rate_constant(V_app, amhc, false; T=T)

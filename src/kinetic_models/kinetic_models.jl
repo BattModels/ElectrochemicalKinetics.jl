@@ -67,7 +67,7 @@ abstract type IntegralModel{T} <: KineticModel{T} end
 # TODO: check that this passes through V_q appropriately
 # dispatch for net rates
 function integrand(km::IntegralModel, V; a_r=1.0, a_o=1.0, T=298, kwargs...)
-    eq_V = kB * T .* log.(a_r/a_o)
+    eq_V = kB * T .* log.(a_r ./ a_o)
     E -> a_r .* integrand(km, V .- eq_V, Val(true); kwargs...)(E) .- a_o .* integrand(km, V .- eq_V, Val(false); kwargs...)(E)
 end
 
@@ -89,7 +89,7 @@ rate_constant(V_app, model::NonIntegralModel, ox::Bool; kwargs...) = rate_consta
 # dispatch for net rates
 function rate_constant(V_app, model::NonIntegralModel; a_r=1.0, a_o=1.0, T=298, kwargs...)
     eq_V = kB * T .* log.(a_r./a_o)
-    a_r .* rate_constant(V_app .- eq_V, model, Val(true); kwargs...) .- a_o .* rate_constant(V_app .- eq_V, model, Val(false); kwargs...)
+    a_r .* rate_constant(V_app .- eq_V, model, Val(true); T=T, kwargs...) .- a_o .* rate_constant(V_app .- eq_V, model, Val(false); T=T, kwargs...)
 end
 
 # TODO: add tests that both args and kwargs are correctly captured here (also for the Val thing)
@@ -102,10 +102,11 @@ function rate_constant(
     args...; # would just be the ox flag, if present
     T = 298,
     E_min = -100 * kB * T,
-    E_max = 100 * kB * T
+    E_max = 100 * kB * T,
+    kwargs... # e.g. a_o, a_r
 )
     n, w = scale(E_min, E_max)
-    f = integrand(model, V_app, args...; T = T)
+    f = integrand(model, V_app, args...; T = T, kwargs...)
     sum(w .* f.(n))
 end
 

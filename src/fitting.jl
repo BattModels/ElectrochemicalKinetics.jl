@@ -21,8 +21,16 @@ function janky_log_loss(y, y_pred)
 end
 
 # helper fcn to make sure starting guess for `overpotential` has correct sign
-function _get_guess(k, model)
-    guess = fill(1f-1, max(length(k), length(model)))
+function _get_guess(init_guess, k, model, a_r, a_o)
+    guess = init_guess
+    max_l = max(length(k), length(model), length(a_r), length(a_o))
+    if init_guess isa Real
+        guess = fill(init_guess, max_l)
+    else
+        if length(init_guess) != max_l
+            @warn "Length mismatch between guess and required solution length"
+        end
+    end
     # make sure guess has correct sign
     if k isa Real
         if k == 0
@@ -45,9 +53,10 @@ Given values for current/rate constant and specified model parameters, find the 
 
 NOTE that this currently only solves for net reaction rates.
 """
-function overpotential(k, model::KineticModel, guess = _get_guess(k, model); T = 298, loss = janky_log_loss, autodiff = true, verbose=false, warn=true, kwargs...)
+function overpotential(k, model::KineticModel; a_r=1.0, a_o=1.0, guess = 0.1, T = 298, loss = janky_log_loss, autodiff = true, verbose=false, warn=true, kwargs...)
     # wherever k=0 we can shortcut since the answer has to be 0
     k_solve = k
+    guess = _get_guess(guess, k, model, a_r, a_o)
     if k==0 # scalar k=0, possibly vector model
         if verbose
             println("shortcutting full solve")
@@ -58,28 +67,29 @@ function overpotential(k, model::KineticModel, guess = _get_guess(k, model); T =
             println("shortcutting part of solve")
         end
         k_solve = k[k.!=0]
+        guess_solve = guess[k.!=0]
     end
 
     function compare_k!(storage, V)
-        storage .= loss(k, rate_constant(V, model; T = T, kwargs...))
+        storage .= loss(k, rate_constant(V, model; a_r=a_r, a_o=a_o, T = T, kwargs...))
     end
     Vs = if autodiff
         function myfun!(F, J, V)
             # println("V=",V)
             # println("loss=", loss(k, rate_constant(V, model; T=T, kwargs...)))
             if isnothing(J)
-                F .= loss(k_solve, rate_constant(V, model; T = T, kwargs...))
+                F .= loss(k_solve, rate_constant(V, model; a_r=a_r, a_o=a_o, T = T, kwargs...))
             elseif isnothing(F) && !isnothing(J)
                 gs = Zygote.gradient(V) do V
                     Zygote.forwarddiff(V) do V
-                        loss(k_solve, rate_constant(V, model; T = T, kwargs...)) |> sum
+                        loss(k_solve, rate_constant(V, model; a_r=a_r, a_o=a_o, T = T, kwargs...)) |> sum
                     end
                 end[1]
                 J .= diagm(gs)
             else
                 y, back = Zygote.pullback(V) do V
                     Zygote.forwarddiff(V) do V
-                        loss(k_solve, rate_constant(V, model; T = T, kwargs...)) |> sum
+                        loss(k_solve, rate_constant(V, model; a_r=a_r, a_o=a_o, T = T, kwargs...)) |> sum
                     end
                 end
                 F .= y
@@ -101,10 +111,11 @@ function overpotential(k, model::KineticModel, guess = _get_guess(k, model); T =
     else
         sol_return = sol
     end
+    if length(sol_return) == 1
+        sol_return = first(sol_return)
+    end
     sol_return
 end
-
-overpotential(k::Real, model::KineticModel{T}, guess=0.1; kwargs...) where T<:Real = overpotential([k], model, [0.1]; kwargs...)[1]
 
 inv!(x) = x .= inv.(x)
 
@@ -126,7 +137,7 @@ end
 
 
 # multiple models, one k value (used in thermo example)
-overpotential(k::Real, models::Vector{<:KineticModel}, guess=fill(0.1, length(k)); kwargs...) = overpotential.(Ref(k), models, Ref(guess); kwargs...)
+# overpotential(k::Real, models::Vector{<:KineticModel}, guess=fill(0.1, length(k)); kwargs...) = overpotential.(Ref(k), models, Ref(guess); kwargs...)
 
 fitting_params(t::Type{<:NonIntegralModel}) = fieldnames(t)
 fitting_params(::Type{MarcusHushChidsey}) = (:A, :λ)

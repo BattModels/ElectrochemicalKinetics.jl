@@ -5,7 +5,7 @@ muoB = 0.03
 T = 298
 
 # TODO: add tests where we change Ω, etc.
-# TODO: add tests for deintercalation case
+# TODO: add tests for other activity functions
 
 @testset "Basic free energy functions" begin
     # enthalpy of mixing
@@ -144,7 +144,7 @@ end
             # they should get "narrower" with temperature
             @test v2[1] > v1[1]
             @test v2[2] < v1[2]
-            v3 = find_phase_boundaries(400, km, guess=[0.1,0.8])
+            v3 = find_phase_boundaries(400, km, guess=[0.1,0.7])
             # ...and also with current
             @test v3[1] > v1[1]
             @test v3[2] < v1[2]
@@ -167,10 +167,11 @@ end
         v1 = find_phase_boundaries(100, mhc, guess=v1_vals[:AsymptoticMarcusHushChidsey])
         @test all(isapprox.(v1, [0.04967204036, 0.81822937543], atol=1e-5))
 
+        # values for these last two taken to be correct as of 2022-10-18
         v2 = find_phase_boundaries(100, mhc, T=350, guess=v2_vals[:AsymptoticMarcusHushChidsey])
-        @test all(isapprox.(v2, [0.075615, 0.8171636], atol=1e-5))
+        @test all(isapprox.(v2, [0.09011, 0.77146], atol=1e-5))
 
         v3 = find_phase_boundaries(400, mhc, guess=v3_vals[:AsymptoticMarcusHushChidsey])
-        @test all(isapprox.(v3, [0.1467487, 0.5704125], atol=1e-5))
+        @test all(isapprox.(v3, [0.1467, 0.57035], atol=1e-5))
     end
 end

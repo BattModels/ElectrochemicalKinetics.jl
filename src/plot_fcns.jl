@@ -18,7 +18,7 @@ function plot_models(
     V_max = 1.0,
     kwargs...,
 )
-    V_range = range(V_min, V_max, length = 200)
+    V_range = collect(range(V_min, V_max, length = 200))
     xs = repeat([V_range], length(models))
     ys = map(model -> abs.(rate_constant(V_range, model; kwargs...)), models)
     plot(

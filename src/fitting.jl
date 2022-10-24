@@ -3,6 +3,8 @@ using Optim
 using NLsolve
 using LinearAlgebra
 
+# TODO: add check for whether magnitude of k is less than what one kT of voltage would give, if so, use linearized version
+
 # sum of squares loss in logarithmic coordinates
 log_loss(y, y_pred) = (log.(y) .- log.(y_pred)).^2
 
@@ -53,7 +55,7 @@ Given values for current/rate constant and specified model parameters, find the 
 
 NOTE that this currently only solves for net reaction rates.
 """
-function overpotential(k, model::KineticModel; a_r=1.0, a_o=1.0, guess = 0.1, T = 298, loss = janky_log_loss, autodiff = true, verbose=false, warn=true, kwargs...)
+function overpotential(k, model::KineticModel; a_r=1.0, a_o=1.0, guess = 0.1, T = 298, loss = janky_log_loss, autodiff = true, verbose=false, warn=true, lin_thresh=0.05, kwargs...)
     # wherever k=0 we can shortcut since the answer has to be 0
     k_solve = k
     guess = _get_guess(guess, k, model, a_r, a_o)
@@ -70,26 +72,36 @@ function overpotential(k, model::KineticModel; a_r=1.0, a_o=1.0, guess = 0.1, T 
         guess_solve = guess[k.!=0]
     end
 
+    # check if we're in the "linearized" regime
+    # (i.e., less than the thermal voltage)
+    # TODO: make this work on vector k
+    local model_check
+    if abs(k) <= lin_thresh*rate_constant(kB*T, model; a_r=a_r, a_o=a_o, T=T, kwargs...)
+        model_check = LinearizedKineticModel(model)
+    else
+        model_check = model
+    end
+
     function compare_k!(storage, V)
-        storage .= loss(k, rate_constant(V, model; a_r=a_r, a_o=a_o, T = T, kwargs...))
+        storage .= loss(k, rate_constant(V, model_check; a_r=a_r, a_o=a_o, T = T, kwargs...))
     end
     Vs = if autodiff
         function myfun!(F, J, V)
             # println("V=",V)
             # println("loss=", loss(k, rate_constant(V, model; T=T, kwargs...)))
             if isnothing(J)
-                F .= loss(k_solve, rate_constant(V, model; a_r=a_r, a_o=a_o, T = T, kwargs...))
+                F .= loss(k_solve, rate_constant(V, model_check; a_r=a_r, a_o=a_o, T = T, kwargs...))
             elseif isnothing(F) && !isnothing(J)
                 gs = Zygote.gradient(V) do V
                     Zygote.forwarddiff(V) do V
-                        loss(k_solve, rate_constant(V, model; a_r=a_r, a_o=a_o, T = T, kwargs...)) |> sum
+                        loss(k_solve, rate_constant(V, model_check; a_r=a_r, a_o=a_o, T = T, kwargs...)) |> sum
                     end
                 end[1]
                 J .= diagm(gs)
             else
                 y, back = Zygote.pullback(V) do V
                     Zygote.forwarddiff(V) do V
-                        loss(k_solve, rate_constant(V, model; a_r=a_r, a_o=a_o, T = T, kwargs...)) |> sum
+                        loss(k_solve, rate_constant(V, model_check; a_r=a_r, a_o=a_o, T = T, kwargs...)) |> sum
                     end
                 end
                 F .= y

@@ -11,8 +11,8 @@ struct ButlerVolmer{T} <: NonIntegralModel{T}
     α::T
     function ButlerVolmer(A, α)
         @assert all(α .<= 1.0 .&& α .>=0.0) "Electron transfer coefficient must be in [0,1]"
-        ps = consistent_params(Float32.(A), Float32.(α))
-        new{typeof(ps[1])}(ps...)
+        ps = consistent_params(A, α)
+        new{typeof(ps[2])}(ps...)
     end
 end
 

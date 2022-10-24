@@ -61,7 +61,7 @@ function overpotential(k, model::KineticModel; a_r=1.0, a_o=1.0, guess = 0.1, T 
         if verbose
             println("shortcutting full solve")
         end
-        return zeros(Float32, length(model))
+        return zeros(length(model))
     elseif any(k .== 0) # vector k with some zero elements, scalar model
         if verbose
             println("shortcutting part of solve")
@@ -102,7 +102,7 @@ function overpotential(k, model::KineticModel; a_r=1.0, a_o=1.0, guess = 0.1, T 
         Vs = nlsolve(compare_k!, guess, show_trace=verbose)
     end
     if !converged(Vs) && warn
-        @warn "Overpotential fit not fully converged...you may have fed in an unreachable reaction rate!"
+        @warn "Overpotential fit not fully converged for $k...you may have fed in an unreachable reaction rate!"
     end
     sol = Vs.zero
     sol_return = zero(guess)
@@ -154,7 +154,7 @@ const default_param_bounds = Dict(:A => (0.1, 50000), :λ => (0.01, 0.5), :α =>
 # Keyword Arguments
 Requirements differ by model type...
 * `ButlerVolmer`, `AsymptoticMarcusHushChidsey`, `Marcus`: none
-* `MarcusHushChidsey`: average_dos::Float32 OR dos::DOSData OR dos_file::String
+* `MarcusHushChidsey`: average_dos OR dos::DOSData OR dos_file::String
 * `MarcusHushChidseyDOS`: dos::DOSData OR dos_file
 Some are always options...
 * `param_bounds::Dict{Symbol,Any}`: ranges of guesses for relevant model parameters. (must include all necessary keys, but defaults to some sensible ranges if not provided, see `default_param_bounds`...note that you should provide this for faster fitting if you know bounds)
@@ -218,8 +218,8 @@ function _fit_model(
     #         s[i] = gs[i]
     #     end
     # end
-    lower = Float32.([param_bounds[p][1] for p in fitting_params(model_type)])
-    upper = Float32.([param_bounds[p][2] for p in fitting_params(model_type)])
+    lower = [param_bounds[p][1] for p in fitting_params(model_type)]
+    upper = [param_bounds[p][2] for p in fitting_params(model_type)]
     init_guess = 0.5 .* (lower .+ upper)
 
     # set optimisers based on the model type

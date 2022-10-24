@@ -11,7 +11,7 @@ const Ω_default = 0.1
 
 # our familiar thermodynamic functions
 h(x;Ω=Ω_default) = @. x*(1-x)*Ω # enthalpy of mixing
-s(x) = @. -kB*(x*log(x+eps(Float32)) + (1-x)*log(1-x+eps(Float32))) # entropy per particle...added epsilons in the hopes that things will be less obnoxious at the edges
+s(x) = @. -kB*(x*log(x+eps(typeof(x))) + (1-x)*log(1-x+eps(typeof(x)))) # entropy per particle...added epsilons in the hopes that things will be less obnoxious at the edges
 g_thermo(x; Ω=Ω_default, muoA=muoA_default, muoB=muoB_default, T=room_T) = @. h(x;Ω) - T*s(x)+ muoA*(1-x) + muoB*x # Gibbs free energy per particle
 μ_thermo(x; Ω=Ω_default, muoA=muoA_default, muoB=muoB_default, T=room_T) = @. (1-2*x)*Ω + kB*T*log(x/(1-x)) + muoB-muoA # chemical potential
 
@@ -60,7 +60,7 @@ end
 function common_tangent(x::Vector, I, km::KineticModel; kwargs...)
     g = g_kinetic(I, km; kwargs...)
     µ = µ_kinetic(I, km; kwargs...)
-    [(g(x[2]) - g(x[1]))/(x[2] - x[1]) .- μ(x[1]), μ(x[2])-μ(x[1])]
+    [(g(x[2]) - g(x[1]))/(x[2] - x[1]) .- 0.5*(μ(x[1])+µ(x[2])), μ(x[2])-μ(x[1])]
 end
 
 # TODO: see if we can speed this up with gradients? And/or if it's even needed for integral cases

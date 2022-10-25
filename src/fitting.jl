@@ -24,6 +24,7 @@ end
 function _get_guess(init_guess, k, model, a_r, a_o)
     guess = init_guess
     max_l = max(length(k), length(model), length(a_r), length(a_o))
+    local k_check
     if init_guess isa Real
         guess = fill(init_guess, max_l)
     else
@@ -38,11 +39,13 @@ function _get_guess(init_guess, k, model, a_r, a_o)
         elseif k < 0
             guess[guess .> 0] .= -1 * guess[guess .> 0]
         end
+        k_check = repeat([k], max_l)
     elseif k isa Vector
         guess[k .== 0] .= 0
         guess[k .< 0 .&& guess .> 0] .= -1 * guess[k .< 0 .&& guess .> 0]
+        k_check = k
     end
-    return guess
+    return guess, k_check
 end
 
 # TODO: support reaction direction flag here
@@ -53,66 +56,72 @@ Given values for current/rate constant and specified model parameters, find the 
 
 NOTE that this currently only solves for net reaction rates.
 """
-function overpotential(k, model::KineticModel; a_r=1.0, a_o=1.0, guess = 0.1, T = 298, loss = janky_log_loss, autodiff = true, verbose=false, warn=true, kwargs...)
-    # wherever k=0 we can shortcut since the answer has to be 0
-    k_solve = k
-    guess = _get_guess(guess, k, model, a_r, a_o)
-    if k==0 # scalar k=0, possibly vector model
-        if verbose
-            println("shortcutting full solve")
-        end
-        return zeros(length(model))
-    elseif any(k .== 0) # vector k with some zero elements, scalar model
-        if verbose
-            println("shortcutting part of solve")
-        end
-        k_solve = k[k.!=0]
-        guess_solve = guess[k.!=0]
+function overpotential(k, model::KineticModel; a_r=1.0, a_o=1.0, guess = 0.1, T = 298, loss = janky_log_loss, autodiff = true, verbose=false, warn=true, lin_thresh=0.05, kwargs...)
+    # wherever magnitude of k is small (less than lin_thresh * thermal voltage) we don't need to do the full solve...
+    guess, k_check = _get_guess(guess, k, model, a_r, a_o)
+    guess_solve = guess
+    k_solve = k_check
+
+    inds_linearize = findall(abs.(k_check) .<= lin_thresh .* rate_constant(kB*T, model, a_r=a_r, a_o=a_o, T=T, kwargs...))
+    inds_keep = setdiff(1:length(k_check), inds_linearize)
+    if length(inds_linearize) > 0
+        k_solve = k_solve[inds_keep]
+        guess_solve = guess[inds_keep]
     end
 
-    function compare_k!(storage, V)
-        storage .= loss(k, rate_constant(V, model; a_r=a_r, a_o=a_o, T = T, kwargs...))
-    end
-    Vs = if autodiff
-        function myfun!(F, J, V)
-            # println("V=",V)
-            # println("loss=", loss(k, rate_constant(V, model; T=T, kwargs...)))
-            if isnothing(J)
-                F .= loss(k_solve, rate_constant(V, model; a_r=a_r, a_o=a_o, T = T, kwargs...))
-            elseif isnothing(F) && !isnothing(J)
-                gs = Zygote.gradient(V) do V
-                    Zygote.forwarddiff(V) do V
-                        loss(k_solve, rate_constant(V, model; a_r=a_r, a_o=a_o, T = T, kwargs...)) |> sum
-                    end
-                end[1]
-                J .= diagm(gs)
-            else
-                y, back = Zygote.pullback(V) do V
-                    Zygote.forwarddiff(V) do V
-                        loss(k_solve, rate_constant(V, model; a_r=a_r, a_o=a_o, T = T, kwargs...)) |> sum
-                    end
-                end
-                F .= y
-                J .= diagm(back(one.(y))[1])
-            end
-            # println("J=", J)
-        end
-        Vs = nlsolve(only_fj!(myfun!), guess, show_trace=verbose, extended_trace=true)
-    else
-        Vs = nlsolve(compare_k!, guess, show_trace=verbose)
-    end
-    if !converged(Vs) && warn
-        @warn "Overpotential fit not fully converged for $k...you may have fed in an unreachable reaction rate!"
-    end
-    sol = Vs.zero
     sol_return = zero(guess)
-    if k_solve != k # need to put back the zero elements
-        sol_return[k.!=0] .= sol
-    else
-        sol_return = sol
+
+    if length(k_solve) > 0
+        function compare_k!(storage, V)
+            storage .= loss(k, rate_constant(V, model; a_r=a_r, a_o=a_o, T = T, kwargs...))
+        end
+        Vs = if autodiff
+            function myfun!(F, J, V)
+                # println("V=",V)
+                # println("loss=", loss(k, rate_constant(V, model; T=T, kwargs...)))
+                if isnothing(J)
+                    F .= loss(k_solve, rate_constant(V, model; a_r=a_r, a_o=a_o, T = T, kwargs...))
+                elseif isnothing(F) && !isnothing(J)
+                    gs = Zygote.gradient(V) do V
+                        Zygote.forwarddiff(V) do V
+                            loss(k_solve, rate_constant(V, model; a_r=a_r, a_o=a_o, T = T, kwargs...)) |> sum
+                        end
+                    end[1]
+                    J .= diagm(gs)
+                else
+                    y, back = Zygote.pullback(V) do V
+                        Zygote.forwarddiff(V) do V
+                            loss(k_solve, rate_constant(V, model; a_r=a_r, a_o=a_o, T = T, kwargs...)) |> sum
+                        end
+                    end
+                    F .= y
+                    J .= diagm(back(one.(y))[1])
+                end
+                # println("J=", J)
+            end
+            Vs = nlsolve(only_fj!(myfun!), guess_solve, show_trace=verbose, extended_trace=true)
+        else
+            Vs = nlsolve(compare_k!, guess_solve, show_trace=verbose)
+        end
+        if !converged(Vs) && warn
+            @warn "Overpotential fit not fully converged for $k...you may have fed in an unreachable reaction rate!"
+        end
+        sol = Vs.zero
+        sol_return[inds_keep] = sol
+    end
+
+    # did we skip any solves? If so, we need to actually do the linearized solve and reconstruct the output array
+    if length(inds_linearize) > 0
+        k_lin = k_check[inds_linearize]
+        slope = Zygote.jacobian(0) do V
+            Zygote.forwarddiff(V) do V
+                rate_constant(V, model; a_o=a_o, a_r=a_r, T=T, kwargs...)
+            end
+        end[1]
+        sol_return[inds_linearize] = k_lin ./ slope
     end
     if length(sol_return) == 1
-        sol_return = first(sol_return)
+        sol_return = sol_return[1]
     end
     sol_return
 end

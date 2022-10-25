@@ -11,7 +11,14 @@ const Ω_default = 0.1
 
 # our familiar thermodynamic functions
 h(x;Ω=Ω_default) = @. x*(1-x)*Ω # enthalpy of mixing
-s(x) = @. -kB*(x*log(x+eps(typeof(x))) + (1-x)*log(1-x+eps(typeof(x)))) # entropy per particle...added epsilons in the hopes that things will be less obnoxious at the edges
+function s(x::Vector) # entropy per particle
+    res = zero(x)
+    valid_inds = findall(0 .< x .< 1)
+    xc = x[valid_inds]
+    res[valid_inds] = @. -kB*(xc*log(xc) + (1-xc)*log(1-xc))
+    res
+end
+s(x::Real) = 0 < x < 1 ? -kB*(x*log(x) + (1-x)*log(1-x)) : 0
 g_thermo(x; Ω=Ω_default, muoA=muoA_default, muoB=muoB_default, T=room_T) = @. h(x;Ω) - T*s(x)+ muoA*(1-x) + muoB*x # Gibbs free energy per particle
 μ_thermo(x; Ω=Ω_default, muoA=muoA_default, muoB=muoB_default, T=room_T) = @. (1-2*x)*Ω + kB*T*log(x/(1-x)) + muoB-muoA # chemical potential
 
@@ -30,22 +37,23 @@ function µ_kinetic(I, km::KineticModel;
     activity_function_o=x-> 1 .- x, # default a la Bazant
     activity_function_r=x-> 1 .- x, 
     warn=true, 
-    T=room_T, 
+    T=room_T,
+    lin_thresh=0.05,
     kwargs...)
     thermo_term(x) = μ_thermo(x; T=T, kwargs...)
-    μ(x::Real) = thermo_term(x) .+ overpotential(I, km; a_r=activity_function_r(x), a_o=activity_function_o(x), T=T, warn=warn)[1]
-    μ(x::AbstractVector) = thermo_term(x) .+ overpotential(I, km; a_r=activity_function_r(x), a_o=activity_function_o(x), T=T, warn=warn)
+    μ(x::Real) = thermo_term(x) .+ overpotential(I, km; a_r=activity_function_r(x), a_o=activity_function_o(x), T=T, warn=warn, lin_thresh=lin_thresh)[1]
+    μ(x::AbstractVector) = thermo_term(x) .+ overpotential(I, km; a_r=activity_function_r(x), a_o=activity_function_o(x), T=T, warn=warn, lin_thresh=lin_thresh)
     return μ
 end
 
 function g_kinetic(I, km::KineticModel; 
     activity_function_o=x-> 1 .- x, 
     activity_function_r=x-> 1 .- x,
-    warn=true, T=room_T, kwargs...)
+    warn=true, T=room_T, lin_thresh=0.05, kwargs...)
     thermo_term(x) = g_thermo(x; T=T, kwargs...)
     #TODO: gradient of this term is just value of overpotential(x)
     function kinetic_term(x)
-        f(x) = ElectrochemicalKinetics.overpotential(I, km; a_r=activity_function_r(x), a_o=activity_function_o(x), T=T, warn=warn)
+        f(x) = ElectrochemicalKinetics.overpotential(I, km; a_r=activity_function_r(x), a_o=activity_function_o(x), T=T, warn=warn, lin_thresh=lin_thresh)
         n, w = ElectrochemicalKinetics.scale_coarse(zero.(x), x)
         map((w, n) -> sum(w .* f(n)), eachcol(w), eachcol(n))
     end

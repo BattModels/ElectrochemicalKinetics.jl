@@ -114,7 +114,7 @@ function overpotential(k, model::KineticModel; a_r=1.0, a_o=1.0, guess = 0.1, T 
                 end
                 # println("J=", J)
             end
-            Vs = nlsolve(only_fj!(myfun!), guess_solve, show_trace=verbose, extended_trace=true)
+            Vs = nlsolve(only_fj!(myfun!), guess_solve, show_trace=verbose) #extended_trace=true
         else
             Vs = nlsolve(compare_k!, guess_solve, show_trace=verbose)
         end

@@ -47,7 +47,9 @@ function integrand(
     T = 298,
     V_q = 0.0,
 )
-    E -> mhcd.A .* mhcd.dos.interp_func.(E .+ V_q) .* fd(E, ox, T) .* marcus_term(V_dl, E, mhcd.λ, ox, T)
+    @timeit to "MHCD integrand" begin
+        E -> mhcd.A .* mhcd.dos.interp_func.(E .+ V_q) .* fd(E, ox, T) .* marcus_term(V_dl, E, mhcd.λ, ox, T)
+    end
 end
 
 function rate_constant(
@@ -63,22 +65,24 @@ function rate_constant(
     Vq_max = 0.5,
     kwargs...,
 )
-    if calc_cq
-        rate_constant_cq(
-            V_app,
-            model,
-            args...;
-            C_dl = C_dl,
-            Vq_min = Vq_min,
-            Vq_max = Vq_max,
-            T = T,
-            E_min = min(E_min, E_min-Vq_min),
-            E_max = max(E_max, E_max-Vq_max),
-        )
-    else
-        n, w = scale(E_min, E_max)
-        f = integrand(model, V_app, args...; T = T, kwargs...)
-        sum(w .* f.(n))
+    @timeit to "MHCD rate" begin   
+        if calc_cq
+            rate_constant_cq(
+                V_app,
+                model,
+                args...;
+                C_dl = C_dl,
+                Vq_min = Vq_min,
+                Vq_max = Vq_max,
+                T = T,
+                E_min = min(E_min, E_min-Vq_min),
+                E_max = max(E_max, E_max-Vq_max),
+            )
+        else
+            n, w = scale(E_min, E_max)
+            f = integrand(model, V_app, args...; T = T, kwargs...)
+            sum(w .* f.(n))
+        end
     end
 end
 

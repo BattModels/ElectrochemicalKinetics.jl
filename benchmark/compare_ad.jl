@@ -1,10 +1,15 @@
 using Zygote
 using Enzyme
+Enzyme.API.runtimeActivity!(true)
 using BenchmarkTools
 using ElectrochemicalKinetics
 
 bv = ButlerVolmer(300, 0.5)
 mhcd = MarcusHushChidseyDOS(10000, 0.3, string(dirname(pathof(ElectrochemicalKinetics)), "/../data/DOSes/Cu_111_dos.txt"))
+
+V_test = 0.2
+bv(V_test)
+mhcd(V_test)
 
 # first let's just compare time to get value and derivative for rate constants...this is all for SCALARS
 function rc_zyg_f(model, V)
@@ -37,10 +42,6 @@ function rc_enz_r(model, V)
     primal, deriv[1]
 end
 
-V_test = 0.2
-bv(V_test)
-mhcd(V_test)
-
 # spelling out a for loop here because BenchmarkTools got mad; this just has to be pasted into the REPL lol
 
 model = bv
@@ -56,31 +57,9 @@ model = mhcd
 println(model)
 println("Zygote, forward")
 @benchmark rc_zyg_f($model, $V_test)
+println("Enzyme, forward")
+@benchmark rc_enz_f($model, $V_test)
 
-# currently the next two crash my REPL...
-# println("Enzyme, forward")
-# @benchmark rc_enz_f($model, $V_test)
+# # this one still crashes...
 # println("Enzyme, reverse")
 # @benchmark rc_enz_r($model, $V_test)
-
-# so does this...
-# autodiff(Forward, rate_constant, Duplicated, Duplicated(0.2, 1.0), Const(mhcd))
-
-# even a single evaluation of the integrand also crashes as it turns out...
-# f(V) = integrand(mhcd, V)(0.0)
-# autodiff(Forward, f, Duplicated, Duplicated(0.2, 1.0))
-
-# okay can I cook up an MWE for this?
-# sort of...this is broken (but doesn't crash REPL):
-# f(x) = sum(x .* (1:10))
-# autodiff(Forward, f, Duplicated, Duplicated(0.1, 1.0))
-
-# but this works (and is more analogous to real case):
-f(x) = y -> exp.(y.*(1:10)./x)
-
-function g(x)
-    h = f(x)
-    sum(h(2))
-end
-
-autodiff(Forward, g, Duplicated, Duplicated(0.1, 1.0))

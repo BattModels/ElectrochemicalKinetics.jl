@@ -4,6 +4,7 @@ authors = ["Rachel Kurchin <rkurchin@cmu.edu>", "Holden Parks <hparks@andrew.cmu
 version = "0.2.2"
 
 [deps]
+BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
 DelimitedFiles = "8bb1440f-4735-579b-a4ab-409b98df4dab"
 Enzyme = "7da242da-08ed-463a-9acd-ee780be4f1d9"
 FastGaussQuadrature = "442a2c76-b920-505d-bb47-c5924d526838"

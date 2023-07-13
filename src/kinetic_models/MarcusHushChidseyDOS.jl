@@ -78,7 +78,12 @@ function rate_constant(
     else
         n, w = scale(E_min, E_max)
         f = integrand(model, V_app, args...; T = T, kwargs...)
-        sum(w .* f.(n))
+        s = zero(eltype(w))
+        for i=1:length(w)
+            @inbounds s+= w[i] * f(n[i])
+        end
+        s
+        # sum(w .* f.(n))
     end
 end
 

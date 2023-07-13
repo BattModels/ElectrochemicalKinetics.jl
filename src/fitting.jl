@@ -1,4 +1,6 @@
 using Zygote
+using Enzyme
+Enzyme.API.runtimeActivity!(true)
 using Optim
 using NLsolve
 using LinearAlgebra
@@ -59,6 +61,7 @@ function _get_guess(init_guess, k, model, a_r, a_o)
 end
 
 # TODO: support reaction direction flag here
+# TODO: put back the Zygote for vector support
 """
     overpotential(k, model; kwargs...)
 
@@ -66,29 +69,40 @@ Given values for current/rate constant and specified model parameters, find the 
 
 NOTE that this currently only solves for net reaction rates.
 """
-function overpotential(k, model::KineticModel; a_r=1.0, a_o=1.0, guess = 0.1, T = 298, loss = janky_log_loss, autodiff = true, verbose=false, warn=true, lin_thresh=0.05, kwargs...)
+function overpotential(k, model::KineticModel; a_r=1.0, a_o=1.0, guess = 0.1, T = 298, loss = janky_log_loss, autodiff = true, verbose=false, warn=true, lin_thresh=0.05)
+
     # wherever magnitude of k is small (less than lin_thresh * thermal voltage) we don't need to do the full solve...
     guess, k_check, a_r_check, a_o_check = _get_guess(guess, k, model, a_r, a_o)
     guess_solve = guess
     k_solve = k_check
-
-    inds_linearize = findall(abs.(k_check) .<= lin_thresh .* rate_constant(kB*T, model; a_r=a_r_check, a_o=a_o_check, T=T, kwargs...))
-
-    inds_solve = setdiff(1:length(k_check), inds_linearize)
     a_r_solve = a_r_check
     a_o_solve = a_o_check
-    if length(inds_linearize) > 0
-        k_solve = k_solve[inds_solve]
-        guess_solve = guess[inds_solve]
-        a_r_solve = a_r_check[inds_solve]
-        a_o_solve = a_o_check[inds_solve]
-    end
 
     sol_return = zero(guess)
 
+    if model isa NonIntegralModel
+        inds_linearize = findall(abs.(k_check) .<= lin_thresh .* rate_constant(kB*T, model; a_r=a_r_check, a_o=a_o_check, T=T))
+
+        inds_solve = setdiff(1:length(k_check), inds_linearize)
+        if length(inds_linearize) > 0
+            k_solve = k_solve[inds_solve]
+            guess_solve = guess[inds_solve]
+            a_r_solve = a_r_check[inds_solve]
+            a_o_solve = a_o_check[inds_solve]
+        end
+    elseif length(k_solve) > 1
+        @error "Integral models currently only support scalar overpotential inputs"
+    else
+        guess_solve = [guess_solve[1]]
+        k_solve = k_solve[1]
+        a_r_solve = a_r_solve[1]
+        a_o_solve = a_o_solve[1]
+        sol_return = zero(eltype(guess))
+    end
+    
     if length(k_solve) > 0
         function compare_k!(storage, V)
-            storage .= loss(k, rate_constant(V, model; a_r=a_r_solve, a_o=a_o_solve, T = T, kwargs...))
+            storage .= loss(k_solve, rate_constant(V, model; a_r=a_r_solve, a_o=a_o_solve, T = T))
         end
         Vs = if autodiff
             function myfun!(F, J, V)
@@ -99,16 +113,13 @@ function overpotential(k, model::KineticModel; a_r=1.0, a_o=1.0, guess = 0.1, T 
                 elseif isnothing(F) && !isnothing(J)
                     gs = Zygote.gradient(V) do V
                         Zygote.forwarddiff(V) do V
-                            loss(k_solve, rate_constant(V, model; a_r=a_r_solve, a_o=a_o_solve, T = T, kwargs...)) |> sum
+                            loss(k_solve, rate_constant(V, model; a_r=a_r_solve, a_o=a_o_solve, T = T)) |> sum
                         end
                     end[1]
                     J .= diagm(gs)
                 else
-                    y, back = Zygote.pullback(V) do V
-                        Zygote.forwarddiff(V) do V
-                            loss(k_solve, rate_constant(V, model; a_r=a_r_solve, a_o=a_o_solve, T = T, kwargs...)) |> sum
-                        end
-                    end
+                    adf(V, model, a_r, a_o, T) = loss(k_solve, rate_constant(V, model; a_r=a_r, a_o=a_o, T = T))
+                    deriv, primal = autodiff(Forward, adf, Duplicated, Duplicated(V,ones(eltype(V), size(V))), Const(model), Const(a_r_solve), Const(a_o), Const(T))
                     F .= y
                     J .= diagm(back(one.(y))[1])
                 end
